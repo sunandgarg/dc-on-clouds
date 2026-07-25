@@ -43,6 +43,9 @@ const CLEANER_MODELS: Record<string, Array<{ value: string; label: string }>> = 
     { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
     { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   ],
+  openai: [
+    { value: "gpt-4o-mini", label: "OpenAI GPT-4o mini - low cost" },
+  ],
 };
 
 async function invokeCleaner(body: Record<string, unknown>) {
@@ -92,8 +95,8 @@ export default function AdminDataCleaner() {
         feature: "data-cleaner",
         display_name: "Clean Data",
         is_enabled: true,
-        provider: "gemini",
-        model: "gemini-3.5-flash-lite",
+        provider: "openai",
+        model: "gpt-4o-mini",
       };
     },
   });
@@ -223,7 +226,7 @@ export default function AdminDataCleaner() {
   const remainingSeconds = Math.max(0, (activeJob?.total_items - activeJob?.processed_items) * rate);
   const currentBatch = activeJob ? Math.min(Math.ceil(Math.max(1, activeJob.processed_items + 1) / activeJob.batch_size), Math.max(1, Math.ceil(activeJob.total_items / activeJob.batch_size))) : 1;
   const totalBatches = activeJob ? Math.max(1, Math.ceil(activeJob.total_items / activeJob.batch_size)) : 1;
-  const cleanerProvider = cleanerRuntime.data?.provider || "gemini";
+  const cleanerProvider = cleanerRuntime.data?.provider || "openai";
   const cleanerModels = CLEANER_MODELS[cleanerProvider] || CLEANER_MODELS.anthropic;
   const cleanerModel = cleanerRuntime.data?.model || cleanerModels[0]?.value;
 
@@ -235,7 +238,7 @@ export default function AdminDataCleaner() {
             <div className="max-w-3xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold"><ShieldCheck className="h-4 w-4" /> Official sources only</div>
               <h1 className="text-2xl font-black md:text-3xl">Clean, verify and modernise your content database</h1>
-              <p className="mt-2 text-sm leading-6 text-blue-100/80">Use Claude for official-source web research or switch to Gemini for a cheaper direct-page cleaning pass. Third-party college directories are blocked either way.</p>
+              <p className="mt-2 text-sm leading-6 text-blue-100/80">Use Claude for official-source web research, or choose Gemini or OpenAI GPT-4o mini for a lower-cost direct-page cleaning pass. Third-party college directories are blocked in every mode.</p>
             </div>
             <Button onClick={start} disabled={action.isPending || !selectedTypes.length} size="lg" className="h-12 rounded-2xl bg-white text-slate-950 hover:bg-blue-50">
               {action.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DatabaseZap className="mr-2 h-4 w-4" />} Start cleaning
@@ -252,7 +255,7 @@ export default function AdminDataCleaner() {
                   <Bot className="h-4 w-4 text-primary" />
                   <div>
                     <p className="text-sm font-bold">AI model for this cleaner</p>
-                    <p className="text-xs text-muted-foreground">Claude is better for official-source reasoning. Gemini is cheaper for fast passes.</p>
+                    <p className="text-xs text-muted-foreground">Claude supports official-source research. Gemini and GPT-4o mini provide lower-cost direct-page cleaning.</p>
                   </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -266,6 +269,7 @@ export default function AdminDataCleaner() {
                       <SelectContent>
                         <SelectItem value="anthropic">Claude</SelectItem>
                         <SelectItem value="gemini">Google Gemini</SelectItem>
+                        <SelectItem value="openai">OpenAI / ChatGPT</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -301,7 +305,7 @@ export default function AdminDataCleaner() {
                 <div className="rounded-2xl border p-3"><div className="flex items-center justify-between gap-3"><div><Label>Auto-apply verified changes</Label><p className="text-[11px] text-muted-foreground">Off keeps changes for review</p></div><Switch checked={autoApply} onCheckedChange={setAutoApply} /></div></div>
               </div>
               {autoApply && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">Only changes with at least 95% evidence confidence and matching official-domain citations are applied. Uncertain facts stay unchanged and are highlighted in red. Identity, slugs, ratings, reviews and commercial priority fields remain protected.</div>}
-              <p className="text-xs text-muted-foreground">Cost guardrail: begin with 100 records in review mode. Claude is best for web-researched official-source verification. Gemini is cheaper, but works best when a reliable official page is already present on the record.</p>
+              <p className="text-xs text-muted-foreground">Cost guardrail: begin with 100 records in review mode. Claude is best for web-researched verification. Gemini and GPT-4o mini are lower-cost options and require a reliable official page on the record.</p>
             </CardContent>
           </Card>
 
