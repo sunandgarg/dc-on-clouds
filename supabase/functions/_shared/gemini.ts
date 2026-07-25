@@ -87,6 +87,42 @@ export async function geminiGenerate(opts: {
   return parts.map((p: any) => p?.text || "").join("");
 }
 
+// Grounded one-shot generation for current facts and official-source discovery.
+// The caller still validates every returned URL and fetched page before using it.
+export async function geminiGroundedGenerate(opts: {
+  system?: string;
+  prompt: string;
+  model?: string;
+}): Promise<{ text: string; sourceUrls: string[] }> {
+  await assertGlobalAiEnabled();
+  const model = opts.model || GEMINI_MODEL;
+  const url = `${GEMINI_BASE}/models/${model}:generateContent`;
+  const body = toGeminiBody({ system: opts.system, prompt: opts.prompt });
+  body.tools = [{ google_search: {} }];
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-goog-api-key": getKey(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    const detail = await resp.text();
+    throw new Error(`Gemini grounded search ${resp.status}: ${detail}`);
+  }
+  const data = await resp.json();
+  const candidate = data?.candidates?.[0];
+  const parts = candidate?.content?.parts || [];
+  const sourceUrls = (candidate?.groundingMetadata?.groundingChunks || [])
+    .map((chunk: any) => chunk?.web?.uri)
+    .filter((value: unknown): value is string => typeof value === "string" && value.startsWith("http"));
+  return {
+    text: parts.map((part: any) => part?.text || "").join(""),
+    sourceUrls: [...new Set(sourceUrls)],
+  };
+}
+
 // Streaming generation translated to OpenAI-style SSE chunks
 // (`data: {choices:[{delta:{content}}]}`) so existing clients keep working.
 export async function geminiStreamSSE(opts: {

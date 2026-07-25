@@ -9,66 +9,12 @@ import { CompareToggleButton } from "@/components/CompareToggleButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { PriorityBadge } from "@/components/PriorityBadge";
 
-function getInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 3)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-}
-
-function mediaIdentity(url: string) {
-  return url.trim().split(/[?#]/, 1)[0].replace(/\/+$/, "");
-}
-
-export function hasDistinctCollegeLogo(college: DbCollege) {
-  const logo = String((college as any).logo || "").trim();
-  const image = String(college.image || "").trim();
-  return Boolean(logo && mediaIdentity(logo) !== mediaIdentity(image));
-}
-
-function LogoAvatar({ college }: { college: DbCollege }) {
-  if (!hasDistinctCollegeLogo(college)) return null;
-  const logoUrl = String((college as any).logo).trim();
-  const initials = getInitials(college.short_name || college.name);
-  const bgGradient = `linear-gradient(135deg, hsl(${Math.abs(college.name.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % 360} 70% 60%), hsl(${(Math.abs(college.name.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) + 40) % 360} 70% 50%))`;
-
-  return (
-    <div
-      className="absolute -bottom-5 left-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-[3px] border-card bg-background shadow-md z-10 md:-bottom-6 md:h-14 md:w-14 md:rounded-2xl"
-      style={{ background: bgGradient }}
-    >
-      {logoUrl ? (
-        <img
-          src={logoUrl}
-          alt={`${college.short_name || college.name} logo`}
-          className="h-full w-full object-contain p-1"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-            const fallback = (e.target as HTMLImageElement).parentElement?.querySelector(".logo-fallback");
-            if (fallback) fallback.classList.remove("hidden");
-          }}
-        />
-      ) : null}
-      <span
-        className={`logo-fallback text-[13px] font-extrabold text-white tracking-tight leading-none ${logoUrl ? "hidden" : ""}`}
-      >
-        {initials}
-      </span>
-    </div>
-  );
-}
-
-
 interface CollegeCardProps {
   college: DbCollege;
   index: number;
 }
 
 export function CollegeCard({ college, index }: CollegeCardProps) {
-  const hasLogo = hasDistinctCollegeLogo(college);
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -111,10 +57,8 @@ export function CollegeCard({ college, index }: CollegeCardProps) {
           </div>
         </div>
 
-        {hasLogo && <LogoAvatar college={college} />}
-
         {/* Content */}
-        <div className={`p-4 ${hasLogo ? "pt-8" : "pt-4"} space-y-3 flex-1 flex flex-col`}>
+        <div className="p-4 space-y-3 flex-1 flex flex-col">
           <Link to={buildCollegeHref(college)} className="block group">
             <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{college.short_name}</h2>
             <p className="text-sm text-muted-foreground line-clamp-1">

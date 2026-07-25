@@ -203,7 +203,7 @@ export function FloatingBot() {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             onClick={handleOpen}
-            className="fixed bottom-20 right-3 z-50 flex w-14 flex-col items-center gap-1 text-primary transition-transform hover:scale-[1.04] active:scale-95 md:bottom-6 md:right-6"
+            className="fixed bottom-20 right-4 z-50 h-14 w-14 text-primary transition-transform hover:scale-[1.04] active:scale-95 lg:bottom-6 lg:right-6"
             aria-label="Ask Diya - AI education counselor"
           >
               <span className="relative h-14 w-14">
@@ -214,7 +214,7 @@ export function FloatingBot() {
                 </span>
               <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[8px] font-black text-white ring-1 ring-white">AI</span>
             </span>
-            <span className="whitespace-nowrap text-center text-[10px] font-extrabold leading-none text-primary">Ask Diya</span>
+            <span className="absolute left-1/2 top-[calc(100%+4px)] -translate-x-1/2 whitespace-nowrap text-center text-[10px] font-extrabold leading-none text-primary">Ask Diya</span>
           </motion.button>
         )}
       </AnimatePresence>

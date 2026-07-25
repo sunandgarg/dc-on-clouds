@@ -51,6 +51,7 @@ import { CourseDecisionRail } from "@/components/detail/CourseDecisionRail";
 import { trackEvent } from "@/lib/analytics";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowRight } from "lucide-react";
+import { compactEntityLabel } from "@/lib/compactEntityLabel";
 
 type ScrollSection = { id: string; label: string };
 
@@ -256,7 +257,7 @@ export default function CourseDetail() {
                 url={(course as any).youtube_video_url}
                 category="course"
                 title={`${course.name} Overview`}
-                label={`Watch ${course.name} Video`}
+                label={`Watch ${compactEntityLabel(course.name)}`}
                 className="h-9 rounded-full px-4 text-xs"
               />
             </div>

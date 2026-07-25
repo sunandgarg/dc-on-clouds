@@ -3,7 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { generateBlogJson, loadBlogAiConfig, resolveClaudeTextModel, type BlogAiConfig } from "../_shared/blog-ai.ts";
 import { logAiUsage } from "../_shared/ai-usage.ts";
 import { getAiRuntimeControl } from "../_shared/ai-control.ts";
-import { geminiGenerate } from "../_shared/gemini.ts";
+import { geminiGenerate, geminiGroundedGenerate } from "../_shared/gemini.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +28,9 @@ const ALLOWED_FIELDS: Record<string, string[]> = {
     "official_website", "name", "short_name", "description", "page_summary", "established", "type", "category",
     "categories", "city", "state", "location", "fees", "admission_process", "eligibility_criteria", "cutoff",
     "admission_deadline", "scholarship_available", "scholarship_details", "placement", "placement_content",
-    "rankings_content", "facilities", "facilities_content", "highlights", "approvals", "affiliation_kind", "parent_university_slug",
+    "ranking", "rankings_content", "facilities", "facilities_content", "highlights", "tags", "approvals",
+    "affiliation_kind", "parent_university_slug", "secondary_city", "secondary_state", "admission_criteria_points",
+    "related_courses", "related_exams",
     "naac_grade", "top_recruiters", "hostel_life", "course_fee_content", "meta_title", "meta_description", "meta_keywords",
     "image", "logo", "carousel_images", "gallery_images", "brochure_url", "approval_logos", "banner_ad_image", "square_ad_image",
   ],
@@ -43,7 +45,8 @@ const ALLOWED_FIELDS: Record<string, string[]> = {
   exams: [
     "official_website", "website", "name", "short_name", "full_name", "description", "page_summary", "category", "categories",
     "exam_type", "level", "mode", "frequency", "duration", "language", "eligibility", "age_limit", "application_mode",
-    "application_start_date", "application_end_date", "exam_date", "result_date", "registration_url", "brochure_url",
+    "application_start_date", "application_end_date", "exam_date", "result_date", "registration_url", "brochure_url", "sample_paper_url",
+    "applicants", "question_paper", "question_papers",
     "application_process", "exam_pattern", "negative_marking", "cast_wise_fee", "gender_wise", "important_dates", "syllabus",
     "seats", "summary_content", "dates_content", "cutoff_content", "result_content", "counselling_content", "center_content",
     "preparation_tips", "meta_title", "meta_description", "meta_keywords", "image", "logo",
@@ -66,6 +69,14 @@ const ALLOWED_FIELDS: Record<string, string[]> = {
 };
 
 const MEDIA_ARRAY_FIELDS = new Set(["carousel_images", "gallery_images", "approval_logos"]);
+const ARRAY_FIELDS = new Set([
+  ...MEDIA_ARRAY_FIELDS,
+  "approvals", "categories", "facilities", "highlights", "tags", "top_recruiters", "related_courses", "related_exams",
+  "careers", "specializations", "subjects", "top_exams", "syllabus",
+]);
+const JSON_FIELDS = new Set(["admission_criteria_points", "important_dates", "question_papers"]);
+const BOOLEAN_FIELDS = new Set(["negative_marking"]);
+const NUMBER_FIELDS = new Set(["established", "fee", "low_fee", "high_fee"]);
 const MEDIA_URL_FIELDS = new Set([
   "image", "logo", "cover_image", "featured_image", "brochure_url", "syllabus_pdf_url",
   "banner_ad_image", "square_ad_image",
@@ -188,6 +199,35 @@ async function fetchOfficialPage(url: string) {
   } catch { return ""; } finally { clearTimeout(timer); }
 }
 
+async function discoverOfficialPage(entityType: string, row: Record<string, unknown>) {
+  const name = cleanString(row.name || row.title || row.slug, 300);
+  if (!name) return { url: "", text: "", sourceUrls: [] as string[] };
+  const location = [row.city, row.state, row.location].filter(Boolean).join(", ");
+  const request = {
+    system: "Find first-party official education sources only. Never return an education directory, aggregator, social profile, forum or Wikipedia.",
+    prompt: `Find the official first-party website for this ${entityType} record.
+Name: ${name}
+Location or context: ${location || "not provided"}
+
+Return JSON only:
+{"official_url":"https://...","confidence":0.0}
+The URL must belong to the institution, examination authority, government, regulator or official course provider.`,
+  };
+  let grounded;
+  try {
+    grounded = await geminiGroundedGenerate({ ...request, model: "gemini-3.5-flash-lite" });
+  } catch {
+    grounded = await geminiGroundedGenerate({ ...request, model: "gemini-3.5-flash" });
+  }
+  const parsed = parseJson(grounded.text);
+  const candidate = normalizeUrl(parsed.official_url);
+  const candidateHost = hostOf(candidate);
+  if (!candidate || isBlockedHost(candidateHost)) return { url: "", text: "", sourceUrls: grounded.sourceUrls };
+  const text = await fetchOfficialPage(candidate);
+  if (!text || !pageMatchesEntity(text, name)) return { url: "", text: "", sourceUrls: grounded.sourceUrls };
+  return { url: candidate, text, sourceUrls: [...new Set([candidate, ...grounded.sourceUrls])] };
+}
+
 async function resolveOpenAiKey(admin: any, config: BlogAiConfig) {
   const environmentKey = String(Deno.env.get("OPENAI_API_KEY") || "").trim();
   if (environmentKey) return environmentKey;
@@ -207,9 +247,39 @@ async function researchWithAi(admin: any, config: BlogAiConfig, entityType: stri
   const runtime = await getAiRuntimeControl(admin, "data-cleaner");
   const provider = runtime.provider || "anthropic";
   const name = String(row.name || row.title || row.slug || "");
-  const seedUrl = seedOfficialUrl(row);
-  const directText = await fetchOfficialPage(seedUrl);
+  let seedUrl = seedOfficialUrl(row);
+  let directText = await fetchOfficialPage(seedUrl);
+  let discoverySources: string[] = [];
+  if ((provider === "gemini" || provider === "openai") && (!seedUrl || !directText || !pageMatchesEntity(directText, name))) {
+    try {
+      const discovered = await discoverOfficialPage(entityType, row);
+      if (discovered.url && discovered.text) {
+        seedUrl = discovered.url;
+        directText = discovered.text;
+        discoverySources = discovered.sourceUrls;
+      }
+    } catch (error) {
+      console.warn("[data-cleaner] official source discovery failed", error);
+    }
+  }
   const allowedFields = ALLOWED_FIELDS[entityType] || [];
+  const fieldTypeHints = Object.fromEntries(allowedFields.map((field) => {
+    const current = row[field];
+    const type = ARRAY_FIELDS.has(field)
+      ? "array"
+      : JSON_FIELDS.has(field)
+        ? "json"
+        : BOOLEAN_FIELDS.has(field)
+          ? "boolean"
+          : NUMBER_FIELDS.has(field)
+            ? "number"
+            : Array.isArray(current)
+              ? "array"
+              : current === null || current === undefined
+                ? "string-or-null"
+                : typeof current;
+    return [field, type];
+  }));
   const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Audit this DekhoCampus ${entityType} record using ONLY first-party official sources: the institution or exam authority website, a government portal, statutory regulator, official scholarship provider, or official issuer. Never use education directories, aggregators, Wikipedia, forums, social media, snippets copied from third parties, or inferred facts.
 
 Entity: ${name}
@@ -217,8 +287,9 @@ Existing record: ${JSON.stringify(compactExisting(row, entityType))}
 Known official URL candidate: ${seedUrl || "none"}
 Official page text, if directly retrievable: ${directText || "not available"}
 Fields you may propose: ${allowedFields.join(", ")}
+Database field type hints: ${JSON.stringify(fieldTypeHints)}
 
-Find and verify the official website. Use current official facts only. Do not overwrite a valid field merely to rephrase it. Never invent fees, dates, rankings, placements, salary, cutoffs, approvals, URLs, or statistics. For fee ranges, store plain numeric values only in numeric fields and concise human-readable values in text fields. Established must be a four-digit integer. Dates must be unambiguous. Write useful, original SEO/GEO/AEO copy grounded only in verified facts, with clear headings where HTML is appropriate. Do not use an em dash.
+Find and verify the official website. Populate every currently empty allowed field that the official material directly supports, and map every value to the exact database field name and type above. Preserve any field that cannot be verified. Use current official facts only. Do not overwrite a valid field merely to rephrase it. Never invent fees, dates, rankings, placements, salary, cutoffs, approvals, URLs, or statistics. For fee ranges, store plain numeric values only in numeric fields and concise human-readable values in text fields. Established must be a four-digit integer. Dates must be unambiguous. Write useful, original SEO/GEO/AEO copy grounded only in verified facts, with clear headings where HTML is appropriate. Do not use an em dash.
 
 For media fields, return only direct HTTPS links found on the verified official website: the institution logo, primary campus or content image, official gallery images, and official brochure/PDF where available. Do not use Google Images, social media, stock photos, hotlinked education-directory images, screenshots, or generated images. Leave a media field unchanged when the official source does not expose a suitable asset.
 
@@ -251,7 +322,7 @@ Every updated factual field must have field_evidence. If no official source can 
       system: "You are a conservative education data auditor. Official sources only. Return valid JSON only.",
       prompt: `${prompt}\nGemini mode rule: use only the supplied official page text and known official URL. Do not claim any external research beyond that page.`,
     });
-    return { parsed: await parseOrRepair({ ...config, textModel: model }, raw), citationUrls: [seedUrl], model, usage: {}, provider };
+    return { parsed: await parseOrRepair({ ...config, textModel: model }, raw), citationUrls: [...new Set([seedUrl, ...discoverySources])], model, usage: {}, provider };
   }
 
   if (provider === "openai") {
@@ -292,7 +363,7 @@ Every updated factual field must have field_evidence. If no official source can 
     const raw = payload.choices?.[0]?.message?.content || "{}";
     return {
       parsed: await parseOrRepair({ ...config, openaiKey, textModel: model }, raw),
-      citationUrls: [seedUrl],
+      citationUrls: [...new Set([seedUrl, ...discoverySources])],
       model,
       usage: payload.usage || {},
       provider,
@@ -334,13 +405,19 @@ function normalizeValue(field: string, value: unknown, current: unknown) {
     const year = Number(String(value).match(/(?:18|19|20)\d{2}/)?.[0]);
     return year >= 1800 && year <= new Date().getFullYear() ? year : undefined;
   }
-  if (typeof current === "number" || ["fee", "low_fee", "high_fee"].includes(field)) {
+  if (typeof current === "number" || NUMBER_FIELDS.has(field)) {
     const number = Number(String(value).replace(/[^0-9.]/g, ""));
     return Number.isFinite(number) && number >= 0 ? number : undefined;
   }
-  if (typeof current === "boolean") return typeof value === "boolean" ? value : undefined;
-  if (Array.isArray(current) || MEDIA_ARRAY_FIELDS.has(field)) return Array.isArray(value) ? [...new Set(value.map((item) => normalizeUrl(item)).filter(Boolean))].slice(0, 100) : undefined;
-  if (typeof current === "object" && current !== null) return typeof value === "object" ? value : undefined;
+  if (typeof current === "boolean" || BOOLEAN_FIELDS.has(field)) return typeof value === "boolean" ? value : undefined;
+  if (Array.isArray(current) || ARRAY_FIELDS.has(field)) {
+    if (!Array.isArray(value)) return undefined;
+    if (MEDIA_ARRAY_FIELDS.has(field)) return [...new Set(value.map((item) => normalizeUrl(item)).filter(Boolean))].slice(0, 100);
+    return [...new Set(value.map((item) => cleanString(item, 500)).filter(Boolean))].slice(0, 100);
+  }
+  if ((typeof current === "object" && current !== null) || JSON_FIELDS.has(field)) {
+    return typeof value === "object" ? value : undefined;
+  }
   if (field === "meta_title") return cleanString(value, 65);
   if (field === "meta_description") return cleanString(value, 170);
   if (field === "page_summary") return cleanString(value, 600);
@@ -397,11 +474,14 @@ async function processItem(admin: any, config: BlogAiConfig, item: any) {
     const confidence = Math.max(0, Math.min(1, Number(result.parsed.confidence || 0)));
     const verified = buildVerifiedUpdate(item.entity_type, row, result.parsed, result.citationUrls);
     const changedFields = Object.keys(verified.update).filter((field) => JSON.stringify(row[field]) !== JSON.stringify(verified.update[field]));
-    if (confidence < 0.95 || !verified.sources.length || !changedFields.length) {
+    if (!verified.sources.length || !changedFields.length) {
       return completeItem(admin, item, "skipped", {
         official_url: normalizeUrl(result.parsed.official_url), source_urls: verified.sources, confidence,
         before_data: compactExisting(row, item.entity_type), proposed_data: verified.update, changed_fields: changedFields,
-        warnings: verified.warnings, error_message: confidence < 0.95 ? "Not enough official evidence - left unchanged" : "No verified changes found",
+        warnings: verified.warnings,
+        error_message: !verified.sources.length
+          ? "No verified official source found - existing values preserved"
+          : "No new verified field values found - existing values preserved",
       });
     }
 
@@ -465,6 +545,38 @@ Deno.serve(async (req) => {
     }
 
     const user = await requireAdmin(req, admin);
+    if (action === "enrich_draft") {
+      const entityType = String(body.entity_type || "");
+      if (!["colleges", "courses", "exams"].includes(entityType)) {
+        return json({ error: "Draft enrichment supports colleges, courses and exams" }, 400);
+      }
+      const record = body.record && typeof body.record === "object" ? body.record as Record<string, unknown> : {};
+      if (!cleanString(record.name || record.title, 300)) return json({ error: "Enter a record name first" }, 400);
+      const config = await loadBlogAiConfig(admin, serviceRole);
+      const result = await researchWithAi(admin, config, entityType, record);
+      const confidence = Math.max(0, Math.min(1, Number(result.parsed.confidence || 0)));
+      const verified = buildVerifiedUpdate(entityType, record, result.parsed, result.citationUrls);
+      const changedFields = Object.keys(verified.update).filter((field) => JSON.stringify(record[field]) !== JSON.stringify(verified.update[field]));
+      await logAiUsage(admin, {
+        provider: result.provider || "unknown",
+        model: result.model,
+        feature: "data-cleaner",
+        operation: `${entityType}-draft-enrichment`,
+        inputTokens: result.usage?.input_tokens ?? result.usage?.prompt_tokens,
+        outputTokens: result.usage?.output_tokens ?? result.usage?.completion_tokens,
+        userId: user.id,
+        metadata: { changed_fields: changedFields },
+      });
+      return json({
+        success: true,
+        official_url: normalizeUrl(result.parsed.official_url || verified.update.official_website),
+        source_urls: verified.sources,
+        confidence,
+        proposed_data: verified.update,
+        changed_fields: changedFields,
+        warnings: verified.warnings,
+      });
+    }
     if (action === "start") {
       const entityTypes = [...new Set((Array.isArray(body.entity_types) ? body.entity_types : []).filter((type: string) => TABLES[type]))];
       const { data: jobId, error } = await admin.rpc("create_data_cleaning_job", {
@@ -482,6 +594,26 @@ Deno.serve(async (req) => {
       if (error) throw error;
       if (action === "cancel") await admin.from("data_cleaning_items").update({ status: "cancelled", completed_at: new Date().toISOString() }).eq("job_id", body.job_id).eq("status", "queued");
       if (action === "resume") EdgeRuntime.waitUntil(processTick(admin, serviceRole, `${supabaseUrl}/functions/v1/admin-data-cleaner`).catch((error) => console.error("[data-cleaner] resume tick failed", error)));
+      return json({ success: true });
+    }
+    if (action === "retry_skipped") {
+      const { error: retryError } = await admin.from("data_cleaning_items").update({
+        status: "queued",
+        error_message: null,
+        completed_at: null,
+        started_at: null,
+        updated_at: new Date().toISOString(),
+      }).eq("job_id", body.job_id).eq("status", "skipped");
+      if (retryError) throw retryError;
+      const { error: jobError } = await admin.from("data_cleaning_jobs").update({
+        status: "running",
+        completed_at: null,
+        message: "Retrying previously skipped records with field-level verification",
+        updated_at: new Date().toISOString(),
+      }).eq("id", body.job_id);
+      if (jobError) throw jobError;
+      await admin.rpc("refresh_data_cleaning_job", { _job_id: body.job_id });
+      EdgeRuntime.waitUntil(processTick(admin, serviceRole, `${supabaseUrl}/functions/v1/admin-data-cleaner`).catch((error) => console.error("[data-cleaner] retry tick failed", error)));
       return json({ success: true });
     }
     if (["approve", "reject"].includes(action)) {
@@ -502,7 +634,7 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
     if (action === "approve_all") {
-      const { data: reviewItems, error } = await admin.from("data_cleaning_items").select("*").eq("job_id", body.job_id).eq("status", "review").gte("confidence", 0.95).limit(5000);
+      const { data: reviewItems, error } = await admin.from("data_cleaning_items").select("*").eq("job_id", body.job_id).eq("status", "review").limit(5000);
       if (error) throw error;
       let approved = 0;
       const failures: string[] = [];

@@ -29,6 +29,7 @@ import { BulkEditToggle } from "@/components/admin/BulkEditToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminPageSizePicker } from "@/components/admin/AdminPageSizePicker";
 import { useDraftState } from "@/hooks/useDraftState";
+import { OfficialDataFillButton } from "@/components/admin/OfficialDataFillButton";
 
 const CATEGORIES = EXAM_CATEGORIES;
 const LEVELS = EXAM_LEVELS;
@@ -240,6 +241,15 @@ export default function AdminExams() {
           </DialogHeader>
           {editing && (
             <div className="space-y-4">
+              <OfficialDataFillButton
+                entityType="exams"
+                record={editing as Record<string, unknown>}
+                onApply={(updates) => setEditing((current) => current ? {
+                  ...current,
+                  ...updates,
+                  website: (updates.official_website as string) || current.website,
+                } : current)}
+              />
               {/* ── Basic Info ── */}
               <AdminFormSection title="Basic Information" icon={<Info className="w-4 h-4 text-primary" />}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -259,6 +269,7 @@ export default function AdminExams() {
                   </div>
                   <div><label className="text-xs font-medium text-muted-foreground">Name *</label><Input value={editing.name || ""} onChange={(e) => update("name", e.target.value)} className="rounded-lg h-9 text-sm" /></div>
                   <div><label className="text-xs font-medium text-muted-foreground">Slug *</label><Input value={editing.slug || ""} onChange={(e) => update("slug", e.target.value)} placeholder="jee-main-2026" className="rounded-lg h-9 text-sm" /></div>
+                  <div className="sm:col-span-2 lg:col-span-3"><label className="text-xs font-medium text-muted-foreground">Official Website</label><Input value={(editing as any).official_website || editing.website || ""} onChange={(e) => { update("official_website" as any, e.target.value); update("website", e.target.value); }} placeholder="https://official-exam-domain.example/" className="rounded-lg h-9 text-sm" /></div>
                   <div><label className="text-xs font-medium text-muted-foreground">Short Name</label><Input value={editing.short_name || ""} onChange={(e) => update("short_name", e.target.value)} className="rounded-lg h-9 text-sm" /></div>
                   <div className="sm:col-span-2"><label className="text-xs font-medium text-muted-foreground">Full Name</label><Input value={editing.full_name || ""} onChange={(e) => update("full_name", e.target.value)} className="rounded-lg h-9 text-sm" /></div>
                   <div>

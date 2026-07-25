@@ -11,6 +11,8 @@ describe("Index page layout (static source assertions)", () => {
   const cleanerSrc = readFileSync(resolve(process.cwd(), "src/pages/AdminDataCleaner.tsx"), "utf8");
   const navbarSrc = readFileSync(resolve(process.cwd(), "src/components/Navbar.tsx"), "utf8");
   const trustSrc = readFileSync(resolve(process.cwd(), "src/components/TrustedBySection.tsx"), "utf8");
+  const collegeCardSrc = readFileSync(resolve(process.cwd(), "src/components/CollegeCard.tsx"), "utf8");
+  const disclaimerSrc = readFileSync(resolve(process.cwd(), "src/components/ThirdPartyNotice.tsx"), "utf8");
 
   it("does NOT import or render the LoanReferStrip below scholarships", () => {
     expect(indexSrc).not.toMatch(/LoanReferStrip/);
@@ -65,5 +67,15 @@ describe("Index page layout (static source assertions)", () => {
 
   it("does not publish unsupported trust-stat counters", () => {
     expect(trustSrc).not.toMatch(/1M\+|5,000\+|50K\+|Students Guided|Verified Colleges|Success Rate|Placements Assisted|Trusted by Millions|value:\s*"95%"/);
+  });
+
+  it("does not render a floating logo overlay on college cards", () => {
+    expect(collegeCardSrc).not.toMatch(/LogoAvatar|logo-fallback|-bottom-5/);
+  });
+
+  it("shows the independent-platform disclaimer on every public page", () => {
+    expect(navbarSrc).toMatch(/<ThirdPartyNotice/);
+    expect(disclaimerSrc).toMatch(/third-party information platform/i);
+    expect(disclaimerSrc).toMatch(/official documents and official websites/i);
   });
 });

@@ -322,8 +322,8 @@ export default function AdminDataCleaner() {
                 <div><Label>Maximum records this run</Label><Input type="number" min={0} value={maxRecords} onChange={(e) => setMaxRecords(Math.max(0, Number(e.target.value) || 0))} /><p className="mt-1 text-[11px] text-muted-foreground">0 means all selected records</p></div>
                 <div className="rounded-2xl border p-3"><div className="flex items-center justify-between gap-3"><div><Label>Auto-apply verified changes</Label><p className="text-[11px] text-muted-foreground">Off keeps changes for review</p></div><Switch checked={autoApply} onCheckedChange={setAutoApply} /></div></div>
               </div>
-              {autoApply && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">Only changes with at least 95% evidence confidence and matching official-domain citations are applied. Uncertain facts stay unchanged and are highlighted in red. Identity, slugs, ratings, reviews and commercial priority fields remain protected.</div>}
-              <p className="text-xs text-muted-foreground">Cost guardrail: begin with 100 records in review mode. Claude is best for web-researched verification. Gemini and GPT-4o mini are lower-cost options and require a reliable official page on the record.</p>
+              {autoApply && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">Each changed field must be backed by the verified official domain. Verified fields are applied even when other fields remain uncertain; unsupported fields keep their existing values. Identity, slugs, ratings, reviews and commercial priority fields remain protected.</div>}
+              <p className="text-xs text-muted-foreground">Cost guardrail: begin with 100 records in review mode. Missing official URLs are discovered with grounded search, then the selected model maps verified values to the exact database columns.</p>
             </CardContent>
           </Card>
 
@@ -352,6 +352,7 @@ export default function AdminDataCleaner() {
               <div className="flex flex-wrap gap-2">
                 {activeJob.status === "paused" ? <Button variant="outline" onClick={() => action.mutate({ action: "resume", job_id: activeJob.id })}><CirclePlay className="mr-2 h-4 w-4" />Resume</Button> : !terminalStatuses.has(activeJob.status) && <Button variant="outline" onClick={() => action.mutate({ action: "pause", job_id: activeJob.id })}><CirclePause className="mr-2 h-4 w-4" />Pause</Button>}
                 {!terminalStatuses.has(activeJob.status) && <Button variant="outline" className="text-destructive" onClick={() => action.mutate({ action: "cancel", job_id: activeJob.id })}><X className="mr-2 h-4 w-4" />Cancel</Button>}
+                {activeJob.skipped_items > 0 && <Button variant="outline" onClick={() => action.mutate({ action: "retry_skipped", job_id: activeJob.id })} disabled={action.isPending}><DatabaseZap className="mr-2 h-4 w-4" />Retry skipped ({activeJob.skipped_items})</Button>}
                 <select value={activeJob.id} onChange={(e) => setSelectedJob(e.target.value)} className="h-10 rounded-xl border bg-background px-3 text-sm">{(jobs.data || []).map((job: any) => <option key={job.id} value={job.id}>{new Date(job.created_at).toLocaleString()} - {job.status}</option>)}</select>
               </div>
             </div>

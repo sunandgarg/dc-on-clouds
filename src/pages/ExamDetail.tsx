@@ -33,6 +33,7 @@ import { ExamTrustBento } from "@/components/detail/ExamTrustBento";
 import { ExamAIInsight } from "@/components/detail/ExamAIInsight";
 import { ExamDecisionRail } from "@/components/detail/ExamDecisionRail";
 import { trackEvent } from "@/lib/analytics";
+import { compactEntityLabel } from "@/lib/compactEntityLabel";
 
 const EXAM_SECTIONS: ScrollSection[] = [
   { id: "overview", label: "Overview" },
@@ -128,6 +129,8 @@ export default function ExamDetail() {
     );
   }
 
+  const compactExamName = compactEntityLabel((exam as any).short_name || exam.name);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -221,8 +224,8 @@ export default function ExamDetail() {
                   <Button size="sm" variant="outline" className="rounded-xl text-xs gap-1 h-10"><Globe className="w-3.5 h-3.5" />Official Website</Button>
                 </a>
               )}
-              <YouTubeVideoButton url={(exam as any).youtube_video_url} category="exam" title={`${exam.name} Guide`} label={`Watch ${exam.name} Video`} className="h-10 rounded-xl text-xs" />
-              <YouTubeVideoButton url={(exam as any).how_to_apply_video_url} fallbackKey="how_to_apply_exam" category="exam" title={`How to Apply ${exam.name}`} label={`How to Apply ${exam.name}`} className="h-10 rounded-xl text-xs" />
+              <YouTubeVideoButton url={(exam as any).youtube_video_url} category="exam" title={`${exam.name} Guide`} label={`Watch ${compactExamName}`} className="h-10 max-w-full rounded-xl px-3 text-xs" />
+              <YouTubeVideoButton url={(exam as any).how_to_apply_video_url} fallbackKey="how_to_apply_exam" category="exam" title={`How to Apply ${exam.name}`} label={`Apply for ${compactExamName}`} className="h-10 max-w-full rounded-xl px-3 text-xs" />
             </div>
           </div>
         </motion.div>
