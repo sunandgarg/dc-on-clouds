@@ -105,11 +105,11 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
   const showDropdown = focused && query.trim().length >= 2;
 
   return (
-    <div className={`relative w-full ${isHero ? "max-w-2xl" : "mx-auto max-w-3xl"}`}>
+    <div className={`relative w-full ${isHero ? "max-w-2xl" : "mx-auto"}`}>
       <div className={`flex w-full items-center border bg-white transition focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 ${
         isHero
           ? "min-h-14 rounded-2xl border-border/70 px-2 shadow-[0_16px_45px_-24px_rgba(30,64,175,.45)]"
-          : "min-h-10 rounded-xl border-border/80 px-2 shadow-sm"
+          : "min-h-11 rounded-2xl border-slate-200 px-3 shadow-[0_1px_3px_rgba(15,23,42,.04)]"
       }`}>
         <Search className={`shrink-0 text-slate-400 ${isHero ? "ml-1 h-5 w-5" : "h-4 w-4"}`} />
         <input
@@ -118,10 +118,10 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => window.setTimeout(() => setFocused(false), 160)}
-          placeholder="Search colleges, courses, exams and careers"
+          placeholder="Search colleges, courses, exams and careers..."
           aria-label="Search the entire DekhoCampus website"
           className={`min-w-0 flex-1 border-0 bg-transparent text-foreground outline-none placeholder:text-slate-400 ${
-            isHero ? "px-3 py-3 text-base" : "px-2.5 py-2 text-sm"
+            isHero ? "px-3 py-3 text-base" : "px-3 py-2.5 text-base md:text-[15px]"
           }`}
         />
         {query && (
@@ -130,17 +130,17 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
             <X className="h-4 w-4" />
           </button>
         )}
-        <button
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={askDiya}
-          className={`ml-1 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary font-semibold text-white transition hover:bg-primary/90 ${
-            isHero ? "h-10 px-4 text-sm" : "h-8 px-3 text-xs"
-          }`}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Ask Diya</span>
-        </button>
+        {isHero && (
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={askDiya}
+            className="ml-1 inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary/90"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Ask Diya</span>
+          </button>
+        )}
       </div>
 
       {showDropdown && (

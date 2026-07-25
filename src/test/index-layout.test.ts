@@ -9,6 +9,8 @@ describe("Index page layout (static source assertions)", () => {
   const footerSrc = readFileSync(resolve(process.cwd(), "src/components/Footer.tsx"), "utf8");
   const leadFormSrc = readFileSync(resolve(process.cwd(), "src/components/LeadCaptureForm.tsx"), "utf8");
   const cleanerSrc = readFileSync(resolve(process.cwd(), "src/pages/AdminDataCleaner.tsx"), "utf8");
+  const navbarSrc = readFileSync(resolve(process.cwd(), "src/components/Navbar.tsx"), "utf8");
+  const trustSrc = readFileSync(resolve(process.cwd(), "src/components/TrustedBySection.tsx"), "utf8");
 
   it("does NOT import or render the LoanReferStrip below scholarships", () => {
     expect(indexSrc).not.toMatch(/LoanReferStrip/);
@@ -53,5 +55,15 @@ describe("Index page layout (static source assertions)", () => {
     const runtimeMutation = cleanerSrc.slice(cleanerSrc.indexOf("const updateRuntime"), cleanerSrc.indexOf("const start"));
     expect(runtimeMutation).toMatch(/from\("ai_runtime_controls"\)[\s\S]*?\.update\(payload\)/);
     expect(runtimeMutation).not.toMatch(/\.upsert\(/);
+  });
+
+  it("shows the shared fuzzy search at the top of every public page including the homepage", () => {
+    expect(navbarSrc).toMatch(/<GlobalSearchBar variant="header"/);
+    expect(navbarSrc).not.toMatch(/pathname !== "\/"/);
+    expect(navbarSrc).toMatch(/!pathname\.startsWith\("\/admin"\)/);
+  });
+
+  it("does not publish unsupported trust-stat counters", () => {
+    expect(trustSrc).not.toMatch(/1M\+|5,000\+|50K\+|Students Guided|Verified Colleges|Success Rate|Placements Assisted|Trusted by Millions|value:\s*"95%"/);
   });
 });

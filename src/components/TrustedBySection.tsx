@@ -1,19 +1,12 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Star, Shield, Award, Users, CheckCircle, TrendingUp, ChevronLeft, ChevronRight, ExternalLink, GraduationCap } from "lucide-react";
+import { Star, Shield, CheckCircle, ChevronLeft, ChevronRight, ExternalLink, GraduationCap } from "lucide-react";
 import { useTrustedPartners } from "@/hooks/useTrustedPartners";
 import { LeadCaptureForm } from "@/components/LeadCaptureForm";
 import { AILeadForm } from "@/components/AILeadForm";
 import { AIChatFullScreen } from "@/components/AIChatFullScreen";
 import { useSiteIntegration } from "@/hooks/useSiteIntegration";
 import { useCallback } from "react";
-
-const trustStats = [
-  { icon: Users, value: "1M+", label: "Students Guided", color: "from-primary to-electric-purple" },
-  { icon: Shield, value: "5,000+", label: "Verified Colleges", color: "from-success to-mint" },
-  { icon: Award, value: "95%", label: "Success Rate", color: "from-accent to-golden" },
-  { icon: TrendingUp, value: "50K+", label: "Placements Assisted", color: "from-pink to-primary" },
-];
 
 const googleReviews = [
   { name: "Ravi Shankar", rating: 5, date: "2 weeks ago", text: "DekhoCampus made my college search so much easier! The AI counselor gave me perfect recommendations based on my JEE score. Got into NIT Warangal.", avatar: "RS", verified: true },
@@ -55,34 +48,21 @@ export function TrustedBySection() {
   }, []);
 
   return (
-    <section className="py-10 md:py-16 bg-muted/30 overflow-hidden" aria-label="Trusted by millions">
+    <section className="py-10 md:py-16 bg-muted/30 overflow-hidden" aria-label="Student stories and trusted partners">
       <div className="container">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-8 md:mb-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-8 md:mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-3">
             <Shield className="w-4 h-4" />
-            Trusted by Millions
+            Student Stories
           </div>
           <h2 className="text-headline font-bold text-foreground">
-            India's Most <span className="text-gradient">Trusted</span> Education Platform
+            Why Students Choose <span className="text-gradient">DekhoCampus</span>
           </h2>
           <p className="mt-2 text-muted-foreground max-w-xl mx-auto text-sm md:text-base">
-            Join over 1 million students who found their perfect college through DekhoCampus
+            Explore student experiences, trusted partners and practical guidance for your next education decision.
           </p>
         </motion.div>
-
-        {/* Trust Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8 md:mb-12">
-          {trustStats.map((stat, i) => (
-            <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="bg-card rounded-2xl border border-border p-4 md:p-5 text-center">
-              <div className={`w-10 h-10 md:w-12 md:h-12 mx-auto rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-2 md:mb-3`}>
-                <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
-              </div>
-              <div className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</div>
-              <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
-            </motion.div>
-          ))}
-        </div>
 
         {/* Partner Logos - Admin Managed */}
         {displayPartners && (

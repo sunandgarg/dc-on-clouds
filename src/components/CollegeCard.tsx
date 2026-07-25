@@ -18,8 +18,19 @@ function getInitials(name: string) {
     .join("");
 }
 
+function mediaIdentity(url: string) {
+  return url.trim().split(/[?#]/, 1)[0].replace(/\/+$/, "");
+}
+
+export function hasDistinctCollegeLogo(college: DbCollege) {
+  const logo = String((college as any).logo || "").trim();
+  const image = String(college.image || "").trim();
+  return Boolean(logo && mediaIdentity(logo) !== mediaIdentity(image));
+}
+
 function LogoAvatar({ college }: { college: DbCollege }) {
-  const logoUrl = (college as any).logo || college.image;
+  if (!hasDistinctCollegeLogo(college)) return null;
+  const logoUrl = String((college as any).logo).trim();
   const initials = getInitials(college.short_name || college.name);
   const bgGradient = `linear-gradient(135deg, hsl(${Math.abs(college.name.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % 360} 70% 60%), hsl(${(Math.abs(college.name.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) + 40) % 360} 70% 50%))`;
 
@@ -57,6 +68,7 @@ interface CollegeCardProps {
 }
 
 export function CollegeCard({ college, index }: CollegeCardProps) {
+  const hasLogo = hasDistinctCollegeLogo(college);
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -99,10 +111,10 @@ export function CollegeCard({ college, index }: CollegeCardProps) {
           </div>
         </div>
 
-        <LogoAvatar college={college} />
+        {hasLogo && <LogoAvatar college={college} />}
 
         {/* Content */}
-        <div className="p-4 pt-8 space-y-3 flex-1 flex flex-col">
+        <div className={`p-4 ${hasLogo ? "pt-8" : "pt-4"} space-y-3 flex-1 flex flex-col`}>
           <Link to={buildCollegeHref(college)} className="block group">
             <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{college.short_name}</h2>
             <p className="text-sm text-muted-foreground line-clamp-1">
