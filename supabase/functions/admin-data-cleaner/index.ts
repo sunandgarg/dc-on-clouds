@@ -81,11 +81,31 @@ const MEDIA_URL_FIELDS = new Set([
   "image", "logo", "cover_image", "featured_image", "brochure_url", "syllabus_pdf_url",
   "banner_ad_image", "square_ad_image",
 ]);
+const OFFICIAL_ONLY_FIELDS = new Set([
+  ...MEDIA_URL_FIELDS,
+  ...MEDIA_ARRAY_FIELDS,
+  "website", "registration_url", "apply_url", "sample_paper_url",
+]);
 
 const BLOCKED_HOST_PARTS = [
-  "shiksha", "careers360", "collegedunia", "collegedekho", "collegebatch", "getmyuni", "collegepravesh",
-  "kollegeapply", "pagalguy", "wikipedia", "quora", "reddit", "facebook", "instagram", "youtube", "linkedin",
+  "collegedunia", "wikipedia", "quora", "reddit", "facebook", "instagram", "youtube", "linkedin", "pinterest",
 ];
+const AUTHORITATIVE_HOST_PARTS = [
+  ".gov.in", ".ac.in", ".edu.in", "ugc.gov.in", "aicte-india.org", "nta.ac.in", "nirfindia.org",
+  "education.gov.in", "nmc.org.in", "barcouncilofindia.org", "icai.org", "icsi.edu", "icmai.in",
+];
+const REPUTABLE_SECONDARY_HOST_PARTS = [
+  "thehindu.com", "indianexpress.com", "hindustantimes.com", "timesofindia.indiatimes.com",
+  "economictimes.indiatimes.com", "business-standard.com", "ndtv.com", "news18.com",
+  "shiksha.com", "careers360.com", "collegedekho.com", "collegepravesh.com",
+];
+const HIGH_RISK_FIELDS = new Set([
+  "fees", "fee", "low_fee", "high_fee", "avg_fees", "avg_salary", "growth", "cutoff", "cutoff_content",
+  "placement", "placement_content", "placements_content", "ranking", "rankings_content", "approvals", "naac_grade",
+  "application_start_date", "application_end_date", "exam_date", "result_date", "important_dates", "seats",
+  "applicants", "eligibility", "eligibility_criteria", "age_limit", "negative_marking", "cast_wise_fee", "gender_wise",
+]);
+const SEO_FIELDS = new Set(["meta_title", "meta_description", "meta_keywords", "page_summary"]);
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -113,6 +133,25 @@ function sameOfficialDomain(candidate: string, officialHost: string) {
   return !!host && !isBlockedHost(host) && (host === officialHost || host.endsWith(`.${officialHost}`) || officialHost.endsWith(`.${host}`));
 }
 
+function sourceTier(url: string, officialHost = "") {
+  const host = hostOf(url);
+  if (!host || isBlockedHost(host)) return 0;
+  if (officialHost && sameOfficialDomain(url, officialHost)) return 3;
+  if (AUTHORITATIVE_HOST_PARTS.some((part) => host === part.replace(/^\./, "") || host.endsWith(part) || host.includes(part))) return 3;
+  if (REPUTABLE_SECONDARY_HOST_PARTS.some((part) => host === part || host.endsWith(`.${part}`))) return 2;
+  return 1;
+}
+
+function sameSourceDomain(left: string, right: string) {
+  const leftHost = hostOf(left);
+  const rightHost = hostOf(right);
+  return !!leftHost && !!rightHost && (
+    leftHost === rightHost ||
+    leftHost.endsWith(`.${rightHost}`) ||
+    rightHost.endsWith(`.${leftHost}`)
+  );
+}
+
 function collectCitationUrls(value: unknown, output = new Set<string>()): Set<string> {
   if (Array.isArray(value)) value.forEach((item) => collectCitationUrls(item, output));
   else if (value && typeof value === "object") {
@@ -126,10 +165,21 @@ function collectCitationUrls(value: unknown, output = new Set<string>()): Set<st
   return output;
 }
 
-function pageMatchesEntity(text: string, name: string) {
+function pageMatchesEntity(text: string, aliases: string[]) {
   const normalized = text.toLowerCase().replace(/[^a-z0-9]+/g, " ");
-  const tokens = [...new Set(name.toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter((token) => token.length >= 3))];
-  return tokens.length > 0 && tokens.filter((token) => normalized.includes(token)).length >= Math.min(2, tokens.length);
+  const normalizedTokens = new Set(normalized.split(" ").filter(Boolean));
+  return aliases.some((alias) => {
+    const exact = alias.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (exact.length >= 4 && normalized.includes(exact)) return true;
+    const tokens = [...new Set(exact.split(" ").filter((token) => token.length >= 2 && !["the", "and", "for", "of", "in"].includes(token)))];
+    return tokens.length > 0 && tokens.filter((token) => normalizedTokens.has(token)).length >= Math.min(2, tokens.length);
+  });
+}
+
+function entityAliases(row: Record<string, unknown>) {
+  return [...new Set(["full_name", "name", "title", "short_name", "slug"]
+    .map((field) => cleanString(row[field], 300))
+    .filter(Boolean))];
 }
 
 function parseJson(raw: string) {
@@ -182,36 +232,43 @@ function seedOfficialUrl(row: Record<string, unknown>) {
   return "";
 }
 
-async function fetchOfficialPage(url: string) {
-  if (!url) return "";
+async function fetchSourcePage(url: string) {
+  if (!url) return { url: "", text: "" };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 12_000);
   try {
     const response = await fetch(url, {
       signal: controller.signal,
       redirect: "follow",
-      headers: { "User-Agent": "DekhoCampus official-data-verification/1.0", Accept: "text/html,application/xhtml+xml,text/plain" },
+      headers: { "User-Agent": "DekhoCampus cited-data-research/2.0", Accept: "text/html,application/xhtml+xml,text/plain,application/pdf" },
     });
-    if (!response.ok) return "";
-    return (await response.text()).slice(0, 180_000)
+    if (!response.ok) return { url: "", text: "" };
+    const finalUrl = normalizeUrl(response.url || url);
+    if (!finalUrl || isBlockedHost(hostOf(finalUrl))) return { url: "", text: "" };
+    const text = (await response.text()).slice(0, 180_000)
       .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ")
       .replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").slice(0, 24_000);
-  } catch { return ""; } finally { clearTimeout(timer); }
+    return { url: finalUrl, text };
+  } catch { return { url: "", text: "" }; } finally { clearTimeout(timer); }
 }
 
-async function discoverOfficialPage(entityType: string, row: Record<string, unknown>) {
+async function discoverTrustedSources(entityType: string, row: Record<string, unknown>) {
   const name = cleanString(row.name || row.title || row.slug, 300);
-  if (!name) return { url: "", text: "", sourceUrls: [] as string[] };
+  if (!name) return { officialUrl: "", dossier: "", pages: [] as Array<{ url: string; text: string }>, sourceUrls: [] as string[] };
+  const aliases = entityAliases(row);
   const location = [row.city, row.state, row.location].filter(Boolean).join(", ");
   const request = {
-    system: "Find first-party official education sources only. Never return an education directory, aggregator, social profile, forum or Wikipedia.",
-    prompt: `Find the official first-party website for this ${entityType} record.
+    system: "Research education data using a transparent source hierarchy. Prefer first-party, government and regulator sources, then reputable independent sources. Never use social media, forums, Wikipedia or Collegedunia. Return valid JSON only.",
+    prompt: `Build a concise research dossier for this DekhoCampus ${entityType} record.
 Name: ${name}
+Full name or aliases: ${aliases.join(" | ")}
 Location or context: ${location || "not provided"}
+Existing category or description: ${cleanString(row.category || row.description, 500) || "not provided"}
 
 Return JSON only:
-{"official_url":"https://...","confidence":0.0}
-The URL must belong to the institution, examination authority, government, regulator or official course provider.`,
+{"official_url":"https://... or empty","sources":[{"url":"https://...","type":"official|government|regulator|reputable_secondary","title":"..."}],"source_notes":["short verified fact with source URL"]}
+
+Find 3-6 directly relevant sources when available. Generic courses may use regulator pages, professional bodies, government curriculum/career pages, university course pages and reputable education publications. Exams and colleges should prioritize their own site, the responsible authority, government/regulator records, ranking/accreditation sources and reputable reporting. Do not copy source wording; only identify facts and URLs.`,
   };
   let grounded;
   try {
@@ -220,12 +277,20 @@ The URL must belong to the institution, examination authority, government, regul
     grounded = await geminiGroundedGenerate({ ...request, model: "gemini-3.5-flash" });
   }
   const parsed = parseJson(grounded.text);
-  const candidate = normalizeUrl(parsed.official_url);
-  const candidateHost = hostOf(candidate);
-  if (!candidate || isBlockedHost(candidateHost)) return { url: "", text: "", sourceUrls: grounded.sourceUrls };
-  const text = await fetchOfficialPage(candidate);
-  if (!text || !pageMatchesEntity(text, name)) return { url: "", text: "", sourceUrls: grounded.sourceUrls };
-  return { url: candidate, text, sourceUrls: [...new Set([candidate, ...grounded.sourceUrls])] };
+  const officialUrl = normalizeUrl(parsed.official_url);
+  const declaredSources = Array.isArray(parsed.sources)
+    ? parsed.sources.map((source: unknown) => normalizeUrl(typeof source === "string" ? source : (source as any)?.url))
+    : [];
+  const seed = seedOfficialUrl(row);
+  const candidates = [...new Set([seed, officialUrl, ...declaredSources, ...grounded.sourceUrls].filter(Boolean))].slice(0, 10);
+  const fetched = await Promise.all(candidates.map((url) => fetchSourcePage(url)));
+  const pages = fetched
+    .filter((page) => page.url && page.text && pageMatchesEntity(page.text, aliases))
+    .filter((page, index, all) => all.findIndex((candidate) => sameSourceDomain(candidate.url, page.url)) === index)
+    .slice(0, 6);
+  const sourceUrls = pages.map((page) => page.url);
+  const verifiedOfficialUrl = officialUrl && sourceUrls.some((url) => sameSourceDomain(url, officialUrl)) ? officialUrl : "";
+  return { officialUrl: verifiedOfficialUrl, dossier: grounded.text, pages, sourceUrls };
 }
 
 async function resolveOpenAiKey(admin: any, config: BlogAiConfig) {
@@ -248,18 +313,25 @@ async function researchWithAi(admin: any, config: BlogAiConfig, entityType: stri
   const provider = runtime.provider || "anthropic";
   const name = String(row.name || row.title || row.slug || "");
   let seedUrl = seedOfficialUrl(row);
-  let directText = await fetchOfficialPage(seedUrl);
+  let directText = "";
   let discoverySources: string[] = [];
-  if ((provider === "gemini" || provider === "openai") && (!seedUrl || !directText || !pageMatchesEntity(directText, name))) {
+  let researchDossier = "";
+  if (provider === "gemini" || provider === "openai") {
     try {
-      const discovered = await discoverOfficialPage(entityType, row);
-      if (discovered.url && discovered.text) {
-        seedUrl = discovered.url;
-        directText = discovered.text;
-        discoverySources = discovered.sourceUrls;
-      }
+      const discovered = await discoverTrustedSources(entityType, row);
+      seedUrl = discovered.officialUrl || seedUrl;
+      directText = discovered.pages.map((page) => `SOURCE: ${page.url}\n${page.text}`).join("\n\n");
+      discoverySources = discovered.sourceUrls;
+      researchDossier = discovered.dossier;
     } catch (error) {
-      console.warn("[data-cleaner] official source discovery failed", error);
+      console.warn("[data-cleaner] trusted source discovery failed", error);
+    }
+  } else if (seedUrl) {
+    const seedPage = await fetchSourcePage(seedUrl);
+    if (seedPage.url && seedPage.text && pageMatchesEntity(seedPage.text, entityAliases(row))) {
+      seedUrl = seedPage.url;
+      directText = `SOURCE: ${seedPage.url}\n${seedPage.text}`;
+      discoverySources = [seedPage.url];
     }
   }
   const allowedFields = ALLOWED_FIELDS[entityType] || [];
@@ -280,36 +352,48 @@ async function researchWithAi(admin: any, config: BlogAiConfig, entityType: stri
                 : typeof current;
     return [field, type];
   }));
-  const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Audit this DekhoCampus ${entityType} record using ONLY first-party official sources: the institution or exam authority website, a government portal, statutory regulator, official scholarship provider, or official issuer. Never use education directories, aggregators, Wikipedia, forums, social media, snippets copied from third parties, or inferred facts.
+  const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Research and improve this DekhoCampus ${entityType} record using a transparent evidence hierarchy:
+1. First-party institution, examination authority, government, regulator, accreditation, ranking or professional-body sources.
+2. Reputable independent news and established education publications for supporting context.
+Never use social media, forums, Wikipedia, user-generated claims or Collegedunia. Never copy source wording. Synthesize original, factual content and cite every factual field.
 
 Entity: ${name}
 Existing record: ${JSON.stringify(compactExisting(row, entityType))}
 Known official URL candidate: ${seedUrl || "none"}
-Official page text, if directly retrievable: ${directText || "not available"}
+Grounded research dossier: ${researchDossier || "not available"}
+Retrieved cited source material: ${directText || "not available"}
 Fields you may propose: ${allowedFields.join(", ")}
 Database field type hints: ${JSON.stringify(fieldTypeHints)}
 
-Find and verify the official website. Populate every currently empty allowed field that the official material directly supports, and map every value to the exact database field name and type above. Preserve any field that cannot be verified. Use current official facts only. Do not overwrite a valid field merely to rephrase it. Never invent fees, dates, rankings, placements, salary, cutoffs, approvals, URLs, or statistics. For fee ranges, store plain numeric values only in numeric fields and concise human-readable values in text fields. Established must be a four-digit integer. Dates must be unambiguous. Write useful, original SEO/GEO/AEO copy grounded only in verified facts, with clear headings where HTML is appropriate. Do not use an em dash.
+Audit every allowed field. Fill missing fields and improve thin, duplicated, outdated or unclear descriptive fields; preserve accurate existing facts that do not need changes. Map every value to the exact database field name and type above. Never invent fees, dates, rankings, placements, salary, cutoffs, approvals, URLs or statistics. High-risk facts must use an official/regulator source or at least two independent sources. For fee ranges, store plain numeric values only in numeric fields and concise human-readable values in text fields. Established must be a four-digit integer. Dates must be unambiguous.
 
-For media fields, return only direct HTTPS links found on the verified official website: the institution logo, primary campus or content image, official gallery images, and official brochure/PDF where available. Do not use Google Images, social media, stock photos, hotlinked education-directory images, screenshots, or generated images. Leave a media field unchanged when the official source does not expose a suitable asset.
+Apply people-first SEO plus answer/generative-engine optimization to every proposed text field:
+- Begin descriptions and summaries with a direct, self-contained answer that names the entity and its purpose.
+- Use clear entity names, location, level, duration, eligibility and current year only when verified.
+- Make each section distinct, concise, fact-dense and easy to quote; use descriptive headings, short paragraphs, lists or tables where HTML is appropriate.
+- Cover likely student questions naturally: what it is, who it is for, eligibility, admission/application, fees, syllabus, outcomes, dates and next steps when supported.
+- Write an accurate meta title (maximum 65 characters), meta description (maximum 170 characters) and useful semantic keywords without stuffing.
+- Avoid filler, promotional superlatives, repeated boilerplate, unsupported comparisons and awkward keyword repetition.
+
+For media fields, remain official-only: return direct HTTPS links from the verified first-party website for logos, campus/content images, galleries and brochures/PDFs. Never use secondary-site images, Google Images, social media, stock photos, screenshots or generated images. Leave media unchanged when the official source does not expose a suitable asset.
 
 Return JSON only with this shape:
-{"official_url":"https://...","confidence":0.0,"updates":{},"field_evidence":{"field":["https://official-source..."]},"warnings":[],"source_urls":["https://official-source..."]}
-Every updated factual field must have field_evidence. If no official source can verify the identity, return confidence below 0.8 and updates {}.`;
+{"official_url":"https://... or empty","confidence":0.0,"updates":{},"field_evidence":{"field":["https://source-1...","https://source-2..."]},"warnings":[],"source_urls":["https://all-sources-used..."]}
+Every updated field must have field_evidence except SEO fields derived directly from the cited record facts. Return the strongest official URL separately when one exists.`;
 
   if (provider === "gemini") {
     const model = runtime.model || "gemini-3.5-flash-lite";
-    if (!seedUrl || !directText || !pageMatchesEntity(directText, name)) {
+    if (!discoverySources.length) {
       return {
         parsed: {
           official_url: seedUrl || "",
           confidence: 0.5,
           updates: {},
           field_evidence: {},
-          warnings: ["Gemini mode requires a directly retrievable official page. No safe official page text was available for this record."],
-          source_urls: seedUrl ? [seedUrl] : [],
+          warnings: ["No retrievable trusted source could be matched to this record."],
+          source_urls: [],
         },
-        citationUrls: seedUrl ? [seedUrl] : [],
+        citationUrls: [],
         model,
         usage: {},
         provider,
@@ -319,25 +403,25 @@ Every updated factual field must have field_evidence. If no official source can 
     const raw = await geminiGenerate({
       model,
       json: true,
-      system: "You are a conservative education data auditor. Official sources only. Return valid JSON only.",
-      prompt: `${prompt}\nGemini mode rule: use only the supplied official page text and known official URL. Do not claim any external research beyond that page.`,
+      system: "You are a cited education data editor. Follow the evidence hierarchy, write original people-first content and return valid JSON only.",
+      prompt: `${prompt}\nGemini mode rule: use only the supplied grounded dossier and retrieved source material.`,
     });
     return { parsed: await parseOrRepair({ ...config, textModel: model }, raw), citationUrls: [...new Set([seedUrl, ...discoverySources])], model, usage: {}, provider };
   }
 
   if (provider === "openai") {
     const model = runtime.model || "gpt-4o-mini";
-    if (!seedUrl || !directText || !pageMatchesEntity(directText, name)) {
+    if (!discoverySources.length) {
       return {
         parsed: {
           official_url: seedUrl || "",
           confidence: 0.5,
           updates: {},
           field_evidence: {},
-          warnings: ["GPT-4o mini mode requires a directly retrievable official page. No safe official page text was available for this record."],
-          source_urls: seedUrl ? [seedUrl] : [],
+          warnings: ["No retrievable trusted source could be matched to this record."],
+          source_urls: [],
         },
-        citationUrls: seedUrl ? [seedUrl] : [],
+        citationUrls: [],
         model,
         usage: {},
         provider,
@@ -353,8 +437,8 @@ Every updated factual field must have field_evidence. If no official source can 
         model,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "You are a conservative education data auditor. Official sources only. Return valid JSON only." },
-          { role: "user", content: `${prompt}\nOpenAI mode rule: use only the supplied official page text and known official URL. Do not claim any external research beyond that page.` },
+          { role: "system", content: "You are a cited education data editor. Follow the evidence hierarchy, write original people-first content and return valid JSON only." },
+          { role: "user", content: `${prompt}\nOpenAI mode rule: use only the supplied grounded dossier and retrieved source material.` },
         ],
       }),
     });
@@ -377,7 +461,7 @@ Every updated factual field must have field_evidence. If no official source can 
     headers: { "x-api-key": config.claudeKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
     body: JSON.stringify({
       model, max_tokens: 8192,
-      system: "You are a conservative education data auditor. Official sources only. Return valid JSON only.",
+      system: "You are a cited education data editor. Follow the evidence hierarchy, corroborate sensitive facts and return valid JSON only.",
       messages: [{ role: "user", content: prompt }],
       tools: [{
         type: "web_search_20250305", name: "web_search", max_uses: 5,
@@ -386,9 +470,9 @@ Every updated factual field must have field_evidence. If no official source can 
     }),
   });
   if (!response.ok) {
-    if (!seedUrl || !directText || !pageMatchesEntity(directText, name)) throw new Error(`Claude official-source research failed (${response.status}): ${(await response.text()).slice(0, 350)}`);
-    const raw = await generateBlogJson(config, `${prompt}\nWeb search is unavailable. Use only the supplied official page text and known official URL.`);
-    return { parsed: await parseOrRepair(config, raw), citationUrls: [seedUrl], model, usage: {}, provider };
+    if (!discoverySources.length) throw new Error(`Claude trusted-source research failed (${response.status}): ${(await response.text()).slice(0, 350)}`);
+    const raw = await generateBlogJson(config, `${prompt}\nWeb search is unavailable. Use only the supplied retrieved source material.`);
+    return { parsed: await parseOrRepair(config, raw), citationUrls: discoverySources, model, usage: {}, provider };
   }
   const payload = await response.json();
   const raw = (payload.content || []).filter((block: any) => block.type === "text").map((block: any) => block.text || "").join("");
@@ -426,24 +510,42 @@ function normalizeValue(field: string, value: unknown, current: unknown) {
 }
 
 function buildVerifiedUpdate(entityType: string, row: Record<string, unknown>, research: any, citationUrls: string[]) {
-  const officialUrl = normalizeUrl(research.official_url || seedOfficialUrl(row));
+  const proposedOfficialUrl = normalizeUrl(research.official_url || seedOfficialUrl(row));
+  const proposedOfficialHost = hostOf(proposedOfficialUrl);
+  const sources = [...new Set(citationUrls.map(normalizeUrl).filter((url) => sourceTier(url) > 0))].slice(0, 30);
+  if (!sources.length) return { update: {}, sources: [], warnings: ["No acceptable cited source was verified"] };
+  const officialUrl = proposedOfficialUrl && !isBlockedHost(proposedOfficialHost) &&
+    sources.some((url) => sameOfficialDomain(url, proposedOfficialHost))
+    ? proposedOfficialUrl
+    : "";
   const officialHost = hostOf(officialUrl);
-  if (!officialUrl || isBlockedHost(officialHost)) return { update: {}, sources: [], warnings: ["No acceptable official website was verified"] };
-
-  const cited = [...new Set(citationUrls.map(normalizeUrl).filter(Boolean))];
-  const officialSources = cited.filter((url) => sameOfficialDomain(url, officialHost));
-  const sources = [...new Set(officialSources)].slice(0, 30);
-  if (!sources.length) return { update: {}, sources: [], warnings: ["The proposed source was not present in the model citations"] };
 
   const allowed = new Set(ALLOWED_FIELDS[entityType] || []);
   const evidence = research.field_evidence && typeof research.field_evidence === "object" ? research.field_evidence : {};
-  const update: Record<string, unknown> = { official_website: officialUrl };
+  const update: Record<string, unknown> = {};
+  if (officialUrl && allowed.has("official_website")) update.official_website = officialUrl;
   for (const [field, value] of Object.entries(research.updates || {})) {
-    if (!allowed.has(field)) continue;
-    const fieldSources = Array.isArray(evidence[field]) ? evidence[field].map(normalizeUrl) : [];
-    const hasOfficialEvidence = fieldSources.some((url: string) => sameOfficialDomain(url, officialHost) && sources.includes(url));
-    const isSeoField = ["meta_title", "meta_description", "meta_keywords", "page_summary"].includes(field);
-    if (!hasOfficialEvidence && !isSeoField) continue;
+    if (!allowed.has(field) || field === "official_website") continue;
+    const fieldSources = Array.isArray(evidence[field])
+      ? evidence[field].map(normalizeUrl).filter(Boolean)
+      : [];
+    const verifiedEvidence = fieldSources.filter((fieldUrl: string) =>
+      sources.some((sourceUrl) => sameSourceDomain(fieldUrl, sourceUrl))
+    );
+    const distinctEvidenceHosts = [...new Set(verifiedEvidence.map(hostOf).filter(Boolean))];
+    const hasOfficialEvidence = verifiedEvidence.some((url: string) =>
+      (officialHost && sameOfficialDomain(url, officialHost)) || sourceTier(url, officialHost) >= 3
+    );
+    const isOfficialOnlyField = OFFICIAL_ONLY_FIELDS.has(field);
+    const isHighRiskField = HIGH_RISK_FIELDS.has(field);
+    const hasEnoughEvidence = SEO_FIELDS.has(field)
+      ? sources.length > 0
+      : isOfficialOnlyField
+        ? hasOfficialEvidence
+        : isHighRiskField
+          ? hasOfficialEvidence || distinctEvidenceHosts.length >= 2
+          : verifiedEvidence.length > 0;
+    if (!hasEnoughEvidence) continue;
     const normalized = normalizeValue(field, value, row[field]);
     if (normalized !== undefined && JSON.stringify(normalized) !== JSON.stringify(row[field])) update[field] = normalized;
   }
@@ -476,19 +578,19 @@ async function processItem(admin: any, config: BlogAiConfig, item: any) {
     const changedFields = Object.keys(verified.update).filter((field) => JSON.stringify(row[field]) !== JSON.stringify(verified.update[field]));
     if (!verified.sources.length || !changedFields.length) {
       return completeItem(admin, item, "skipped", {
-        official_url: normalizeUrl(result.parsed.official_url), source_urls: verified.sources, confidence,
+        official_url: normalizeUrl(result.parsed.official_url) || verified.sources[0] || "", source_urls: verified.sources, confidence,
         before_data: compactExisting(row, item.entity_type), proposed_data: verified.update, changed_fields: changedFields,
         warnings: verified.warnings,
         error_message: !verified.sources.length
-          ? "No verified official source found - existing values preserved"
-          : "No new verified field values found - existing values preserved",
+          ? "No usable cited source found - existing values preserved"
+          : "Sources were found, but no supported field produced a verified improvement",
       });
     }
 
     const { data: job } = await admin.from("data_cleaning_jobs").select("apply_mode,status").eq("id", item.job_id).single();
     if (job?.status === "cancelled") return completeItem(admin, item, "cancelled", { error_message: "Cancelled before changes were applied" });
     const audit = {
-      official_url: verified.update.official_website, source_urls: verified.sources, confidence,
+      official_url: verified.update.official_website || verified.sources[0] || "", source_urls: verified.sources, confidence,
       before_data: compactExisting(row, item.entity_type), proposed_data: verified.update,
       changed_fields: changedFields, warnings: verified.warnings,
     };
@@ -608,7 +710,7 @@ Deno.serve(async (req) => {
       const { error: jobError } = await admin.from("data_cleaning_jobs").update({
         status: "running",
         completed_at: null,
-        message: "Retrying previously skipped records with field-level verification",
+        message: "Retrying previously skipped records with cited multi-source research",
         updated_at: new Date().toISOString(),
       }).eq("id", body.job_id);
       if (jobError) throw jobError;

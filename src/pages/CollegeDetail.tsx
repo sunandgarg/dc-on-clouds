@@ -47,6 +47,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RichSection } from "@/components/detail/RichSection";
 import { RichText } from "@/components/detail/RichText";
 import { PageSummary } from "@/components/detail/PageSummary";
+import { absoluteSiteUrl } from "@/lib/constant";
 
 const COLLEGE_SECTIONS: ScrollSection[] = [
   { id: "overview", label: "College Info" },
@@ -116,6 +117,27 @@ export default function CollegeDetail() {
     title: college ? (college.meta_title || `${college.name} - Admissions, Fees, Placements ${currentYear()}`) : undefined,
     description: college ? (college.meta_description || `${college.name} - admissions, fees, placements, courses, ranking details for ${currentYear()}`) : undefined,
     keywords: college?.meta_keywords || undefined,
+    canonical: college ? buildCollegeHref(college as any) : undefined,
+    ogImage: college?.image || undefined,
+    jsonLd: college ? {
+      "@context": "https://schema.org",
+      "@type": "CollegeOrUniversity",
+      name: college.name,
+      alternateName: college.short_name || undefined,
+      description: college.page_summary || college.description || undefined,
+      url: absoluteSiteUrl(buildCollegeHref(college as any)),
+      image: college.image || undefined,
+      logo: college.logo || undefined,
+      foundingDate: college.established ? String(college.established) : undefined,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: college.city || undefined,
+        addressRegion: college.state || undefined,
+        streetAddress: college.location || undefined,
+        addressCountry: "IN",
+      },
+      sameAs: (college as any).official_website ? [(college as any).official_website] : undefined,
+    } : undefined,
   });
 
   if (isLoading) {

@@ -27,11 +27,11 @@ export function CleanDataShortcut({ pathname }: { pathname: string }) {
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-extrabold md:text-base">Improve this {context.label} library with official-source AI</h2>
+              <h2 className="text-sm font-extrabold md:text-base">Improve this {context.label} library with cited multi-source AI</h2>
               <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">Review first</span>
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-blue-100/80 md:text-xs">
-              <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" /> Official sources only</span>
+              <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" /> Corroborated evidence</span>
               <span className="inline-flex items-center gap-1"><Image className="h-3.5 w-3.5" /> Images, logos and documents</span>
               <span className="inline-flex items-center gap-1"><Sparkles className="h-3.5 w-3.5" /> Data + SEO/GEO/AEO</span>
             </div>

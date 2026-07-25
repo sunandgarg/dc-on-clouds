@@ -6,7 +6,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { MegaMenu } from "@/components/MegaMenu";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
-import { ThirdPartyNotice } from "@/components/ThirdPartyNotice";
 
 const mobileNav = [
   { label: "Colleges", href: "/colleges" },
@@ -179,14 +178,11 @@ export function Navbar() {
         </div>
 
         {!pathname.startsWith("/admin") && !pathname.startsWith("/auth") && (
-          <>
-            <div className="border-t border-border/70 bg-white/95 px-3 py-2 backdrop-blur-xl">
-              <div className="container px-0">
-                <GlobalSearchBar variant="header" />
-              </div>
+          <div className="border-t border-border/70 bg-white/95 px-3 py-2 backdrop-blur-xl">
+            <div className="container px-0">
+              <GlobalSearchBar variant="header" />
             </div>
-            <ThirdPartyNotice />
-          </>
+          </div>
         )}
 
         {isMobileMenuOpen && (

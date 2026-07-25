@@ -34,6 +34,7 @@ import { ExamAIInsight } from "@/components/detail/ExamAIInsight";
 import { ExamDecisionRail } from "@/components/detail/ExamDecisionRail";
 import { trackEvent } from "@/lib/analytics";
 import { compactEntityLabel } from "@/lib/compactEntityLabel";
+import { absoluteSiteUrl } from "@/lib/constant";
 
 const EXAM_SECTIONS: ScrollSection[] = [
   { id: "overview", label: "Overview" },
@@ -91,6 +92,22 @@ export default function ExamDetail() {
       : (exam.meta_description || `${exam.name} ${year} exam dates, syllabus, preparation tips, cutoff`)
     ) : undefined,
     keywords: exam?.meta_keywords || undefined,
+    canonical: exam ? buildExamHref(exam as any) : undefined,
+    ogImage: exam?.image || undefined,
+    jsonLd: exam ? {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: exam.full_name || exam.name,
+      description: exam.page_summary || exam.description || undefined,
+      url: absoluteSiteUrl(buildExamHref(exam as any)),
+      primaryImageOfPage: exam.image ? { "@type": "ImageObject", url: exam.image } : undefined,
+      about: {
+        "@type": "Thing",
+        name: exam.full_name || exam.name,
+        alternateName: exam.short_name || undefined,
+        description: exam.description || undefined,
+      },
+    } : undefined,
   });
 
   // Scroll to relevant section when arriving via strategy slug

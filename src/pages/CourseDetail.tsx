@@ -52,6 +52,7 @@ import { trackEvent } from "@/lib/analytics";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowRight } from "lucide-react";
 import { compactEntityLabel } from "@/lib/compactEntityLabel";
+import { absoluteSiteUrl } from "@/lib/constant";
 
 type ScrollSection = { id: string; label: string };
 
@@ -183,6 +184,20 @@ export default function CourseDetail() {
       ? course.meta_description || `${course.name} course details - fees, top colleges, career scope for ${new Date().getFullYear()}`
       : undefined,
     keywords: course?.meta_keywords || undefined,
+    canonical: course ? buildCourseHref(course as any) : undefined,
+    ogImage: course?.image || undefined,
+    jsonLd: course ? {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      name: course.full_name || course.name,
+      alternateName: course.name,
+      description: course.page_summary || course.short_description || course.description || undefined,
+      url: absoluteSiteUrl(buildCourseHref(course as any)),
+      image: course.image || undefined,
+      timeRequired: course.duration || undefined,
+      educationalLevel: course.level || undefined,
+      teaches: course.subjects?.length ? course.subjects.join(", ") : undefined,
+    } : undefined,
   });
 
   if (isLoading) {

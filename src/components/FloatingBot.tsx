@@ -203,7 +203,7 @@ export function FloatingBot() {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             onClick={handleOpen}
-            className="fixed bottom-20 right-4 z-50 h-14 w-14 text-primary transition-transform hover:scale-[1.04] active:scale-95 lg:bottom-6 lg:right-6"
+            className="fixed bottom-20 right-4 z-50 h-14 w-14 text-primary transition-transform hover:scale-[1.04] active:scale-95 lg:bottom-20 lg:right-6"
             aria-label="Ask Diya - AI education counselor"
           >
               <span className="relative h-14 w-14">

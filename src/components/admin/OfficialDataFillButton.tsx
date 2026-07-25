@@ -3,7 +3,6 @@ import { Loader2, ShieldCheck, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ThirdPartyNotice } from "@/components/ThirdPartyNotice";
 
 type SupportedEntity = "colleges" | "courses" | "exams";
 
@@ -35,13 +34,13 @@ export function OfficialDataFillButton({ entityType, record, onApply }: Official
       if (data?.error) throw new Error(data.error);
       const changedFields = Array.isArray(data?.changed_fields) ? data.changed_fields : [];
       if (!changedFields.length) {
-        toast.info("No new field values could be verified from an official source. Existing values were preserved.");
+        toast.info("No supported field produced a cited improvement. Existing values were preserved.");
         return;
       }
       onApply(data.proposed_data || {});
-      toast.success(`Filled ${changedFields.length} verified field${changedFields.length === 1 ? "" : "s"} from official sources`);
+      toast.success(`Filled ${changedFields.length} cited field${changedFields.length === 1 ? "" : "s"} from trusted sources`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Official-source fill failed");
+      toast.error(error instanceof Error ? error.message : "Cited data fill failed");
     } finally {
       setLoading(false);
     }
@@ -53,18 +52,17 @@ export function OfficialDataFillButton({ entityType, record, onApply }: Official
         <div className="flex items-start gap-2">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div>
-            <p className="text-xs font-bold text-foreground">Official-source AI fill</p>
+            <p className="text-xs font-bold text-foreground">Cited multi-source AI fill</p>
             <p className="text-[11px] leading-4 text-muted-foreground">
-              Matches the result to this form's database columns. Verified fields are filled; unsupported fields stay unchanged.
+              Uses official, regulator and corroborated secondary sources, then maps supported facts to the exact database columns.
             </p>
           </div>
         </div>
         <Button type="button" variant="outline" size="sm" disabled={loading || !name} onClick={fill} className="shrink-0 rounded-xl bg-white">
           {loading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <WandSparkles className="mr-2 h-3.5 w-3.5" />}
-          {loading ? "Checking official sources..." : "Fill verified details"}
+          {loading ? "Researching trusted sources..." : "Fill cited details"}
         </Button>
       </div>
-      <ThirdPartyNotice compact />
     </div>
   );
 }

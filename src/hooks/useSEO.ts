@@ -1,41 +1,90 @@
 import { useEffect } from "react";
+import { absoluteCanonical } from "@/lib/constant";
 
-export function useSEO({ 
-  title, 
-  description, 
-  keywords 
-}: { 
-  title?: string; 
-  description?: string; 
+type SEOOptions = {
+  title?: string;
+  description?: string;
   keywords?: string;
-}) {
+  canonical?: string;
+  ogImage?: string;
+  ogType?: string;
+  jsonLd?: object | object[];
+};
+
+export function useSEO({
+  title,
+  description,
+  keywords,
+  canonical,
+  ogImage,
+  ogType = "website",
+  jsonLd,
+}: SEOOptions) {
+  const jsonLdKey = JSON.stringify(jsonLd ?? null);
+
   useEffect(() => {
     if (title) {
-      document.title = `${title} | DekhoCampus`;
-    }
-    
-    if (description) {
-      let meta = document.querySelector('meta[name="description"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('name', 'description');
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', description);
+      document.title = title.includes("DekhoCampus") ? title : `${title} | DekhoCampus`;
     }
 
-    if (keywords) {
-      let meta = document.querySelector('meta[name="keywords"]');
+    const setNameMeta = (name: string, content?: string) => {
+      if (!content) return;
+      let meta = document.querySelector(`meta[name="${name}"]`);
       if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('name', 'keywords');
+        meta = document.createElement("meta");
+        meta.setAttribute("name", name);
         document.head.appendChild(meta);
       }
-      meta.setAttribute('content', keywords);
+      meta.setAttribute("content", content);
+    };
+
+    const setPropertyMeta = (property: string, content?: string) => {
+      if (!content) return;
+      let meta = document.querySelector(`meta[property="${property}"]`);
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("property", property);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", content);
+    };
+
+    const canonicalUrl = absoluteCanonical(canonical);
+    const imageUrl = absoluteCanonical(ogImage);
+    setNameMeta("description", description);
+    setNameMeta("keywords", keywords);
+    setNameMeta("twitter:card", imageUrl ? "summary_large_image" : "summary");
+    setNameMeta("twitter:title", title);
+    setNameMeta("twitter:description", description);
+    setNameMeta("twitter:url", canonicalUrl);
+    setNameMeta("twitter:image", imageUrl);
+    setPropertyMeta("og:title", title);
+    setPropertyMeta("og:description", description);
+    setPropertyMeta("og:url", canonicalUrl);
+    setPropertyMeta("og:type", ogType);
+    setPropertyMeta("og:image", imageUrl);
+
+    if (canonicalUrl) {
+      let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "canonical";
+        document.head.appendChild(link);
+      }
+      link.href = canonicalUrl;
+    }
+
+    document.getElementById("ld-json-page")?.remove();
+    if (jsonLd) {
+      const script = document.createElement("script");
+      script.id = "ld-json-page";
+      script.type = "application/ld+json";
+      script.text = JSON.stringify(jsonLd);
+      document.head.appendChild(script);
     }
 
     return () => {
-      document.title = 'DekhoCampus - Find Your Dream College';
+      document.title = "DekhoCampus - Find Your Dream College";
     };
-  }, [title, description, keywords]);
+  }, [title, description, keywords, canonical, ogImage, ogType, jsonLdKey]);
 }
