@@ -3,7 +3,6 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { FixedCounsellingCTA } from "@/components/FixedCounsellingCTA";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { LeadCaptureForm } from "@/components/LeadCaptureForm";
@@ -106,7 +105,6 @@ export default function ToolPage() {
         </div>
       </main>
       <Footer />
-      <FloatingBot />
       <FixedCounsellingCTA />
     </div>
   );

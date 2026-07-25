@@ -17,9 +17,11 @@ import { FAQSection } from "@/components/FAQSection";
 import { TrustedBySection } from "@/components/TrustedBySection";
 import { Footer } from "@/components/Footer";
 import { PeriodicLeadPopup } from "@/components/PeriodicLeadPopup";
+import { QuickLinksBar } from "@/components/QuickLinksBar";
 
 export default function HomeBelowFold() {
   return <>
+    <QuickLinksBar compact />
     <div className="container"><AlsoCheckSection variant="strip" /></div>
     <div className="container"><TopRankedColleges /></div>
     <div className="container"><HeroBannerCarousel /></div>

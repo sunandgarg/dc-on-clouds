@@ -1,31 +1,31 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { hydrateBootstrap } from "@/lib/bootstrap";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
-import { Suspense } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CompareProvider } from "@/contexts/CompareContext";
-import { CompareFloatingBar } from "@/components/CompareFloatingBar";
-import { LockTargetFloatingPromo } from "@/components/LockTargetFloatingPromo";
-import { FloatingBot } from "@/components/FloatingBot";
 
-import { UserTrackingProvider } from "@/hooks/useUserTracking";
-import { IntentTrackingProvider } from "@/components/IntentTrackingProvider";
-import { CookieConsent } from "@/components/CookieConsent";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { ScrollLockGuard } from "@/components/ScrollLockGuard";
 import { lazyRetry } from "@/lib/lazyRetry";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
-import { DeploymentUpdateCoordinator } from "@/components/DeploymentUpdateCoordinator";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { NewsCallButton } from "@/components/NewsCallButton";
 import { useLocation } from "react-router-dom";
+
+const CompareFloatingBar = lazy(() => import("@/components/CompareFloatingBar").then((module) => ({ default: module.CompareFloatingBar })));
+const LockTargetFloatingPromo = lazy(() => import("@/components/LockTargetFloatingPromo").then((module) => ({ default: module.LockTargetFloatingPromo })));
+const FloatingBot = lazy(() => import("@/components/FloatingBot").then((module) => ({ default: module.FloatingBot })));
+const CookieConsent = lazy(() => import("@/components/CookieConsent").then((module) => ({ default: module.CookieConsent })));
+const DeploymentUpdateCoordinator = lazy(() => import("@/components/DeploymentUpdateCoordinator").then((module) => ({ default: module.DeploymentUpdateCoordinator })));
+const WhatsAppButton = lazy(() => import("@/components/WhatsAppButton").then((module) => ({ default: module.WhatsAppButton })));
+const NewsCallButton = lazy(() => import("@/components/NewsCallButton").then((module) => ({ default: module.NewsCallButton })));
+const SiteIntegrations = lazy(() => import("@/components/SiteIntegrations").then((module) => ({ default: module.SiteIntegrations })));
+const AdsenseLoader = lazy(() => import("@/components/ads/AdsenseLoader").then((module) => ({ default: module.AdsenseLoader })));
+const UserTrackingProvider = lazy(() => import("@/hooks/useUserTracking").then((module) => ({ default: module.UserTrackingProvider })));
+const IntentTrackingProvider = lazy(() => import("@/components/IntentTrackingProvider").then((module) => ({ default: module.IntentTrackingProvider })));
 
 function GlobalWhatsApp() {
   const { pathname } = useLocation();
@@ -45,6 +45,42 @@ function GlobalDiya() {
   const { pathname } = useLocation();
   if (pathname.startsWith("/admin") || pathname.startsWith("/auth")) return null;
   return <FloatingBot />;
+}
+
+function DeferredGlobalUi() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let timer = 0;
+    let idleHandle: number | undefined;
+    const show = () => setReady(true);
+    if ("requestIdleCallback" in window) {
+      idleHandle = window.requestIdleCallback(show, { timeout: 2500 });
+    } else {
+      timer = window.setTimeout(show, 2200);
+    }
+    return () => {
+      if (idleHandle !== undefined && "cancelIdleCallback" in window) window.cancelIdleCallback(idleHandle);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
+
+  if (!ready) return null;
+  return (
+    <Suspense fallback={null}>
+      <DeploymentUpdateCoordinator />
+      <SiteIntegrations />
+      <AdsenseLoader />
+      <CompareFloatingBar />
+      <LockTargetFloatingPromo />
+      <CookieConsent />
+      <UserTrackingProvider>{null}</UserTrackingProvider>
+      <IntentTrackingProvider>{null}</IntentTrackingProvider>
+      <GlobalWhatsApp />
+      <NewsOnlyCall />
+      <GlobalDiya />
+    </Suspense>
+  );
 }
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -103,8 +139,6 @@ const AdminLegalPages = lazyRetry(() => import("./pages/AdminLegalPages"), "Admi
 const AdminSitemap = lazyRetry(() => import("./pages/AdminSitemap"), "AdminSitemap");
 const AdminIntegrations = lazyRetry(() => import("./pages/AdminIntegrations"), "AdminIntegrations");
 const AdminAlsoCheck = lazyRetry(() => import("./pages/AdminAlsoCheck"), "AdminAlsoCheck");
-import { SiteIntegrations } from "@/components/SiteIntegrations";
-import { AdsenseLoader } from "@/components/ads/AdsenseLoader";
 const AdminCareers = lazyRetry(() => import("./pages/AdminCareers"), "AdminCareers");
 const AdminJobs = lazyRetry(() => import("./pages/AdminJobs"), "AdminJobs");
 const AllJobs = lazyRetry(() => import("./pages/AllJobs"), "AllJobs");
@@ -199,19 +233,12 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 10 * 60 * 1000,
-      gcTime: 24 * 60 * 60 * 1000, // 24h - needed for persistence
+      gcTime: 30 * 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
     },
   },
-});
-
-// Persist cache to localStorage so repeat visits paint instantly from disk.
-const persister = createSyncStoragePersister({
-  storage: typeof window !== "undefined" ? window.localStorage : undefined as any,
-  key: "dc-rq-cache-v1",
-  throttleTime: 1000,
 });
 
 function BootstrapHydrator() {
@@ -232,26 +259,7 @@ function PageLoader() {
 }
 
 const App = () => (
-  <PersistQueryClientProvider
-    client={queryClient}
-    persistOptions={{
-      persister,
-      maxAge: 24 * 60 * 60 * 1000,
-      buster: "v1",
-      // Only persist long-lived reference data - not user-specific or auth queries.
-      dehydrateOptions: {
-        shouldDehydrateQuery: (q) => {
-          const k = String(q.queryKey?.[0] ?? "");
-          return [
-            "hero-banners","hero_settings","featured-colleges","trusted-partners",
-            "lead-form-settings","feature-toggles","ads","site-integration",
-            "vacancies","colleges","courses","exams","articles","careers","scholarships",
-            "cat-universe",
-          ].some((p) => k === p || k.startsWith(p));
-        },
-      },
-    }}
-  >
+  <QueryClientProvider client={queryClient}>
     <BootstrapHydrator />
 
     <AuthProvider>
@@ -260,17 +268,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <DeploymentUpdateCoordinator />
             <ScrollToTop />
             <ScrollLockGuard />
-            <UserTrackingProvider>
-            <IntentTrackingProvider>
-            <SiteIntegrations />
-            <AdsenseLoader />
-            <CompareFloatingBar />
-            <LockTargetFloatingPromo />
-
-            <CookieConsent />
             <ChunkErrorBoundary>
             <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -427,16 +426,12 @@ const App = () => (
             </Routes>
            </Suspense>
            </ChunkErrorBoundary>
-           <GlobalWhatsApp />
-           <NewsOnlyCall />
-           <GlobalDiya />
-            </IntentTrackingProvider>
-            </UserTrackingProvider>
+           <DeferredGlobalUi />
          </BrowserRouter>
         </TooltipProvider>
       </CompareProvider>
     </AuthProvider>
-  </PersistQueryClientProvider>
+  </QueryClientProvider>
 );
 
 export default App;

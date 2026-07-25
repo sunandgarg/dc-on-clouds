@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Bot, User, Loader2 } from "lucide-react";
-import diyaAiLogo from "@/assets/diya-ai-logo.png";
+import diyaAiLogo from "@/assets/diya-ai-logo-small.webp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
@@ -203,16 +203,18 @@ export function FloatingBot() {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             onClick={handleOpen}
-            className="fixed bottom-20 right-3 z-50 flex items-center gap-2 rounded-full bg-primary px-2 py-1.5 text-white shadow-[0_14px_36px_-12px_rgba(37,99,235,.65)] ring-1 ring-primary/20 transition-transform hover:scale-[1.03] active:scale-95 md:bottom-6 md:right-6"
+            className="fixed bottom-20 right-3 z-50 flex flex-col items-center gap-1 text-primary transition-transform hover:scale-[1.04] active:scale-95 md:bottom-6 md:right-6"
             aria-label="Ask Diya - AI education counselor"
           >
-              <span className="relative h-9 w-9">
-                <span className="flex h-9 w-9 overflow-hidden rounded-full bg-white ring-1 ring-white/70">
-                <img src={diyaAiLogo} alt="" className="h-full w-full rounded-full object-contain p-0.5" />
+              <span className="relative h-12 w-12">
+                <span className="flex h-12 w-12 overflow-hidden rounded-full bg-primary p-1 shadow-[0_8px_24px_-8px_rgba(37,99,235,.8)] ring-2 ring-white">
+                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white">
+                  <img src={diyaAiLogo} alt="" className="h-full w-full object-contain p-0.5" />
                 </span>
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[8px] font-black text-primary ring-1 ring-primary/10">AI</span>
+                </span>
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[8px] font-black text-white ring-1 ring-white">AI</span>
             </span>
-            <span className="pr-2 text-xs font-bold leading-none text-white">Ask Diya</span>
+            <span className="rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-extrabold leading-none text-primary shadow-sm ring-1 ring-slate-200/80">Ask Diya</span>
           </motion.button>
         )}
       </AnimatePresence>

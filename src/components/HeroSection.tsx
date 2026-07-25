@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   Sparkles,
@@ -17,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useHeroSettings } from "@/hooks/useHeroSettings";
-import dcLogo from "@/assets/dc-logo.png";
+import dcLogo from "@/assets/dc-logo-small.webp";
 import { HeroCounsellingCard } from "@/components/HeroCounsellingCard";
 import { useHeroCategories } from "@/hooks/useHeroCategories";
 
@@ -273,13 +272,8 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     >
       {/* Background - bold campus image at top, smoothly fading to background where search bar sits */}
       {bgImages.length > 0 && <div className="absolute inset-x-0 top-0 h-[58%] md:h-[62%] overflow-hidden" aria-hidden="true">
-        <AnimatePresence mode="sync">
-          <motion.div
+          <div
             key={bgIndex}
-            initial={{ opacity: 0, scale: 1.04 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ opacity: { duration: 1.6, ease: "easeInOut" }, scale: { duration: rotationMs / 1000, ease: "linear" } }}
             className="absolute inset-0"
             style={{
               backgroundImage: `url(${bgImages[bgIndex % bgImages.length]})`,
@@ -293,7 +287,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
               maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.95) 35%, rgba(0,0,0,0.6) 75%, rgba(0,0,0,0) 100%)",
             }}
           />
-        </AnimatePresence>
         {/* Admin-configurable tint/overlay */}
         {heroSettings && heroSettings.overlay_mode !== "none" && (
           <div className="absolute inset-0 pointer-events-none" style={{
@@ -318,22 +311,16 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           }}
         />
         {/* 2026 aurora orbs - ambitio-style ambient gradient glow */}
-        <motion.div
+        <div
           aria-hidden
-          animate={{ x: [0, 40, -20, 0], y: [0, -30, 20, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-[-10%] left-[10%] w-[520px] h-[520px] bg-accent/20 rounded-full blur-[140px]"
         />
-        <motion.div
+        <div
           aria-hidden
-          animate={{ x: [0, -30, 25, 0], y: [0, 25, -15, 0] }}
-          transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-[10%] right-[5%] w-[460px] h-[460px] bg-primary/20 rounded-full blur-[140px]"
         />
-        <motion.div
+        <div
           aria-hidden
-          animate={{ x: [0, 25, -25, 0], y: [0, -20, 15, 0] }}
-          transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
           className="absolute bottom-[-5%] left-[35%] w-[380px] h-[380px] bg-accent/8 rounded-full blur-[140px]"
         />
         <div className="absolute -right-40 top-24 h-[520px] w-[520px] rounded-full border-[70px] border-primary/[0.035]" />
@@ -345,12 +332,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] lg:gap-12">
             <div className="space-y-5 text-left md:space-y-6">
               {/* AI Badge + Built by IIT Delhi Alumni hero statement */}
-              <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="flex flex-col items-start justify-start gap-3"
-          >
+              <div className="flex flex-col items-start justify-start gap-3">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/25">
               <img src={dcLogo} alt="DekhoCampus" className="w-4 h-4 object-contain" />
               <span className="text-[11px] md:text-xs font-bold tracking-[0.12em] uppercase text-accent">
@@ -365,40 +347,26 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                 </span>
                 1L+ students already guided
               </span>
-          </motion.div>
+          </div>
 
           {/* Primary promise */}
-          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <div>
             <h1 className="max-w-4xl text-[42px] font-black leading-[0.98] tracking-[-0.055em] text-foreground sm:text-[56px] md:text-[68px] lg:text-[84px]">
               <span className="block">Discover Your Ideal</span>
               <span className="relative mt-1 block min-h-[1.05em] text-primary">
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={rotatingWords[headlineIndex]}
-                    initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: -18, filter: "blur(8px)" }}
-                    transition={{ duration: 0.42, ease: "easeOut" }}
-                    className="absolute left-0 top-0 bg-gradient-to-r from-primary via-blue-600 to-primary bg-clip-text text-transparent"
-                  >
+                  <span key={rotatingWords[headlineIndex]} className="absolute left-0 top-0 bg-gradient-to-r from-primary via-blue-600 to-primary bg-clip-text text-transparent">
                     {rotatingWords[headlineIndex]}
-                  </motion.span>
-                </AnimatePresence>
+                  </span>
                 <span className="invisible">{rotatingWords[0]}</span>
               </span>
             </h1>
             <p className="mt-5 max-w-2xl text-sm font-medium leading-6 text-slate-600 sm:text-base md:text-lg md:leading-8">
               Search verified colleges, courses and exams, then move forward with clear guidance, transparent information and human support when you need it.
             </p>
-          </motion.div>
+          </div>
 
           {/* Unified Search Bar with AI icon */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-                className="max-w-2xl"
-              >
+          <div className="max-w-2xl">
             <form onSubmit={handleAskAI}>
               <div className="relative">
                 <div
@@ -437,11 +405,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
                 {/* Search Results Dropdown */}
                 {showDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50"
-                  >
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50">
                     <div className="py-2">
                       {dbResults.map((item) => (
                         <button
@@ -482,7 +446,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                         </div>
                       </button>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
               </div>
             </form>
@@ -514,7 +478,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
 
             </div>
 
@@ -522,32 +486,24 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           </div>
 
           {/* Big stat tiles (dekhocampus-style) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mx-auto mt-8 max-w-7xl px-4 pt-3 -mx-4 md:mx-0 md:px-0 lg:mt-10"
-          >
-            <div className="hidden md:grid md:grid-cols-6 gap-5 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory pb-1">
+          <div className="mx-auto mt-8 max-w-7xl px-4 pt-3 -mx-4 md:mx-0 md:px-0 lg:mt-10">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 md:grid md:grid-cols-6 md:gap-5 md:overflow-visible">
               {quickCategories.map((cat, index) => (
-                <motion.a
+                <a
                   key={cat.label}
                   href={cat.href}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 + index * 0.04 }}
-                  className={`snap-start shrink-0 basis-[22%] min-w-[78px] md:min-w-0 flex flex-col items-center justify-center gap-2 md:gap-3 p-3 md:p-5 min-h-[112px] md:min-h-[160px] rounded-2xl md:rounded-3xl border shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 group text-center ${cat.tint}`}
+                  className={`group flex min-h-[108px] min-w-[112px] basis-[30%] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg md:min-h-[160px] md:min-w-0 md:gap-3 md:rounded-3xl md:p-5 ${cat.tint}`}
                 >
                   <div className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center transition-transform group-hover:scale-110">
-                    <img src={cat.img} alt="" className="w-full h-full object-contain" loading="lazy" />
+                    <img src={cat.img} alt="" className="w-full h-full object-contain" loading={index < 3 ? "eager" : "lazy"} decoding="async" />
                   </div>
                   <span className="text-[11px] md:text-[14px] font-semibold text-foreground leading-tight line-clamp-2 [overflow-wrap:normal] [word-break:keep-all]">
                     {cat.label}
                   </span>
-                </motion.a>
+                </a>
               ))}
             </div>
-          </motion.div>
+          </div>
 
         </div>
       </div>

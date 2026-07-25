@@ -25,7 +25,6 @@ import { RichText } from "@/components/detail/RichText";
 
 // Heavy below-the-fold components - lazy loaded for faster initial paint
 const AlsoCheckSection = lazy(() => import("@/components/AlsoCheckSection").then(m => ({ default: m.AlsoCheckSection })));
-const FloatingBot = lazy(() => import("@/components/FloatingBot").then(m => ({ default: m.FloatingBot })));
 const DynamicAdBanner = lazy(() => import("@/components/DynamicAdBanner").then(m => ({ default: m.DynamicAdBanner })));
 const GoogleAd = lazy(() => import("@/components/ads/GoogleAd").then(m => ({ default: m.GoogleAd })));
 const FAQSection = lazy(() => import("@/components/FAQSection").then(m => ({ default: m.FAQSection })));
@@ -657,9 +656,6 @@ export default function ArticleDetail() {
         <AlsoCheckSection />
       </DeferUntilVisible>
       <Footer />
-      <DeferUntilVisible minHeight={0} fallbackDelay={2500}>
-        <FloatingBot />
-      </DeferUntilVisible>
     </div>
   );
 }

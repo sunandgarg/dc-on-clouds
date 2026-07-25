@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { LeadCaptureForm } from "@/components/LeadCaptureForm";
 import { DynamicAdBanner } from "@/components/DynamicAdBanner";
@@ -249,7 +248,6 @@ export default function AllCourses() {
         </div>
       </main>
       <Footer />
-      <FloatingBot />
 
       <MobileBottomFilter activeCount={activeFilters.length} onOpen={() => setFilterOpen(true)} />
       <MobileFilterSheet filters={filterConfigs} activeCount={activeFilters.length} onClearAll={clearAll} open={filterOpen} onOpenChange={setFilterOpen} />

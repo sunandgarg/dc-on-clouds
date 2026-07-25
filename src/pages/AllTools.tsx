@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { FixedCounsellingCTA } from "@/components/FixedCounsellingCTA";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { DynamicAdBanner } from "@/components/DynamicAdBanner";
@@ -88,7 +87,6 @@ export default function AllTools() {
         </div>
       </main>
       <Footer />
-      <FloatingBot />
       <FixedCounsellingCTA />
     </div>
   );

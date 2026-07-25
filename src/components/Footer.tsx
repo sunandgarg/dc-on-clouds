@@ -4,8 +4,8 @@ import { LeadCaptureForm } from "@/components/LeadCaptureForm";
 import { Link } from "react-router-dom";
 import { GoogleGLogo } from "@/components/GoogleGLogo";
 import logo from "@/assets/dekhocampus-footer-logo.png";
-import dcLogo from "@/assets/dc-logo.png";
-import { GlobalDiscoveryBar } from "@/components/GlobalDiscoveryBar";
+import dcLogo from "@/assets/dc-logo-small.webp";
+import { QuickLinksBar } from "@/components/QuickLinksBar";
 
 const footerLinks = {
   explore: [
@@ -48,6 +48,8 @@ const socialLinks = [
 
 export function Footer() {
   return (
+    <>
+    <QuickLinksBar />
     <footer className="bg-foreground text-background" role="contentinfo">
       {/* Built by IIT Delhi Alumni strip - shown on every page */}
       <div className="bg-background text-foreground border-b border-border/40">
@@ -61,8 +63,6 @@ export function Footer() {
           </p>
         </div>
       </div>
-
-      <GlobalDiscoveryBar />
 
       {/* Lead Capture Section */}
       <div className="border-b border-background/10">
@@ -201,5 +201,6 @@ export function Footer() {
         </div>
       </div>
     </footer>
+    </>
   );
 }
