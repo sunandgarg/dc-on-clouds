@@ -14,7 +14,6 @@ import { useInlineOtp, isValidIndianMobile, PHONE_HINT, sanitizeIndianMobile } f
 import { ProgramModeToggle, type ProgramMode } from "@/components/ProgramModeToggle";
 import { detectDeviceType, inferSourceCategory } from "@/lib/leadTracking";
 import { functionUrl } from "@/lib/backendMode";
-import { UrgencyInlineNote } from "@/components/UrgencyHooks";
 
 const LEAD_URL = functionUrl("save-lead");
 
@@ -148,7 +147,6 @@ export function AILeadForm({ isOpen, onClose, onSubmit }: AILeadFormProps) {
 
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           <div className="rounded-2xl bg-emerald-50 px-3.5 py-2.5 text-xs font-semibold text-emerald-800 flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Personalised guidance with a clear shortlist and next steps</div>
-          <UrgencyInlineNote className="-mt-1" />
 
           {/* Name */}
           <div className="relative">

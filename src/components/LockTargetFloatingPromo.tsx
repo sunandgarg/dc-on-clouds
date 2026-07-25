@@ -41,31 +41,31 @@ export function LockTargetFloatingPromo() {
 
   return (
     <div
-      className="fixed z-[60] left-3 md:left-5 bottom-20 md:bottom-24 max-w-[300px] animate-in slide-in-from-bottom-2 fade-in"
+      className="fixed z-[49] left-3 md:left-5 bottom-20 md:bottom-24 w-[min(238px,calc(100vw-7.5rem))] animate-in slide-in-from-bottom-2 fade-in"
       role="dialog"
       aria-label="Lock your dream college"
     >
-      <div className="relative rounded-2xl bg-[#FF6A2C] text-white shadow-xl ring-1 ring-black/5 p-3 pr-9">
+      <div className="relative rounded-2xl border border-slate-200/90 bg-white/95 text-slate-900 shadow-lg backdrop-blur-sm p-2.5 pr-8">
         <button
           onClick={dismiss}
           aria-label="Dismiss"
-          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"
+          className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
         >
           <X className="w-3.5 h-3.5" />
         </button>
         <Link to={user ? "/target-dashboard" : "/lock-target"} onClick={() => sessionStorage.setItem(DISMISS_KEY, "1")} className="block">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-white text-[#FF6A2C] flex items-center justify-center shrink-0 shadow-sm">
-              <Target className="w-5 h-5" strokeWidth={2.5} />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-primary">
+              <Target className="w-4.5 h-4.5" strokeWidth={2.5} />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-extrabold uppercase tracking-wider text-white/95">
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
                 Dream College
               </div>
-              <div className="text-[15px] font-extrabold leading-tight">
+              <div className="text-[13px] font-extrabold leading-tight">
                 {user ? "Open my dashboard" : "Lock your dream college 🔒"}
               </div>
-              <div className="text-[11px] text-white/90 leading-tight mt-0.5">
+              <div className="mt-0.5 text-[10px] leading-tight text-slate-500">
                 {user ? "Predicted fit, exams & roadmap →" : "Free roadmap + PDF. Tap to start →"}
               </div>
             </div>

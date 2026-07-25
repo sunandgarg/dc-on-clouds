@@ -130,6 +130,14 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
     }
   };
 
+  const changeNumber = () => {
+    setOtp("");
+    setOtpToken(null);
+    setSentOtp(null);
+    setResendCooldown(0);
+    setStep("form");
+  };
+
   const verifyAndDownload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length !== 6) { toast.error("Enter 6-digit OTP"); return; }
@@ -241,7 +249,7 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify & Download"}
             </Button>
             <div className="flex items-center justify-between text-xs">
-              <button type="button" onClick={() => setStep("form")} className="text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={changeNumber} className="text-muted-foreground hover:text-foreground">
                 ← Change number
               </button>
               <button type="button" onClick={resendOtp} disabled={loading || resendCooldown > 0} className="inline-flex items-center gap-1 text-primary font-medium disabled:text-muted-foreground">

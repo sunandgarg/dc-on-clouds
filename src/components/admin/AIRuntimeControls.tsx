@@ -20,7 +20,7 @@ type Control = {
 
 const PROVIDERS: Record<string, string[]> = {
   counselor: ["gemini"],
-  "data-cleaner": ["anthropic", "gemini"],
+  "data-cleaner": ["anthropic", "gemini", "openai"],
   "blog-studio": ["anthropic", "gemini", "openai"],
   "blog-agent": ["anthropic", "gemini", "openai"],
   "admin-ai-generate": ["anthropic", "gemini", "openai"],
@@ -41,6 +41,7 @@ const MODELS: Record<string, Array<{ value: string; label: string }>> = {
     { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   ],
   openai: [
+    { value: "gpt-4o-mini", label: "GPT-4o mini - low cost" },
     { value: "gpt-5", label: "GPT-5" },
     { value: "gpt-4.1", label: "GPT-4.1" },
     { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },

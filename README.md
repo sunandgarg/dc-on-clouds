@@ -162,6 +162,40 @@ Rerun the same controlled batch command until inventory reaches zero. Use
 The command requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the local
 terminal. The key must never be committed or exposed to browser code.
 
+### Collegedunia watermark sanitization
+
+`sanitize:collegedunia` removes the bottom 12% from every referenced legacy
+public-bucket image. It covers all current string and string-array image fields,
+including college galleries, course/exam images, logos, articles, careers,
+faculty, promotional content, and study resources.
+
+The sanitizer never overwrites or deletes an original. It writes a verified
+WebP under `sanitized/bottom-12-v1/` and updates a database reference only after
+the new object exists. New object URLs also prevent stale one-year browser/CDN
+caches from continuing to serve the old watermarked image. Reruns are safe and
+resume from the remaining unsanitized references.
+
+Inventory first:
+
+```sh
+npm run sanitize:collegedunia -- \
+  --project-ref kozdctbbvrnyddlftmvf \
+  --report reports/collegedunia-watermark-inventory.json
+```
+
+Apply in batches:
+
+```sh
+npm run sanitize:collegedunia -- \
+  --project-ref kozdctbbvrnyddlftmvf \
+  --apply --limit 500 --concurrency 8 \
+  --report reports/collegedunia-watermark-sanitization.json
+```
+
+Repeat until inventory reports `unique_assets: 0`, or use `--all` for a
+deliberate full run. The command requires `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`.
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID

@@ -5,6 +5,10 @@ import { resolve } from "path";
 describe("Index page layout (static source assertions)", () => {
   const indexSrc = readFileSync(resolve(process.cwd(), "src/pages/Index.tsx"), "utf8");
   const belowFoldSrc = readFileSync(resolve(process.cwd(), "src/components/HomeBelowFold.tsx"), "utf8");
+  const heroSrc = readFileSync(resolve(process.cwd(), "src/components/HeroSection.tsx"), "utf8");
+  const footerSrc = readFileSync(resolve(process.cwd(), "src/components/Footer.tsx"), "utf8");
+  const leadFormSrc = readFileSync(resolve(process.cwd(), "src/components/LeadCaptureForm.tsx"), "utf8");
+  const cleanerSrc = readFileSync(resolve(process.cwd(), "src/pages/AdminDataCleaner.tsx"), "utf8");
 
   it("does NOT import or render the LoanReferStrip below scholarships", () => {
     expect(indexSrc).not.toMatch(/LoanReferStrip/);
@@ -27,5 +31,27 @@ describe("Index page layout (static source assertions)", () => {
   it("does NOT render the removed LiveScholarshipsStrip", () => {
     expect(indexSrc).not.toMatch(/LiveScholarshipsStrip/);
     expect(belowFoldSrc).not.toMatch(/LiveScholarshipsStrip/);
+  });
+
+  it("renders the complete quick links near the homepage top and above the global footer", () => {
+    expect(belowFoldSrc).toMatch(/QuickLinksBar compact/);
+    expect(footerSrc).toMatch(/QuickLinksBar/);
+    expect(footerSrc).not.toMatch(/GlobalDiscoveryBar/);
+  });
+
+  it("does not render the six college, course, exam, application, review, and news cards", () => {
+    expect(heroSrc).not.toMatch(/useHeroCategories|quickCategories/);
+    expect(footerSrc).not.toMatch(/GlobalDiscoveryBar/);
+  });
+
+  it("removes countdown and promotional-price urgency from shared lead forms", () => {
+    expect(indexSrc).not.toMatch(/HomeUrgencyStrip/);
+    expect(leadFormSrc).not.toMatch(/UrgencyHooks|FREE ₹999|Priority callback|Closes in/);
+  });
+
+  it("persists the Clean Data AI provider with UPDATE rather than an INSERT-requiring upsert", () => {
+    const runtimeMutation = cleanerSrc.slice(cleanerSrc.indexOf("const updateRuntime"), cleanerSrc.indexOf("const start"));
+    expect(runtimeMutation).toMatch(/from\("ai_runtime_controls"\)[\s\S]*?\.update\(payload\)/);
+    expect(runtimeMutation).not.toMatch(/\.upsert\(/);
   });
 });

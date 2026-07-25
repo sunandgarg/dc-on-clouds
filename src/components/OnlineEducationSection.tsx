@@ -233,7 +233,7 @@ export function OnlineEducationSection() {
         open={showLead}
         onOpenChange={setShowLead}
         title={leadSource.includes("abroad") ? "🌍 Get Study Abroad Guidance - Free!" : "💻 Get Online Degree Guidance - Free!"}
-        subtitle="Fill the form & get ₹999 counselling session FREE!"
+        subtitle="Share a few details and our team will guide you."
         source={leadSource}
         onSuccess={onLeadSuccess}
         forceShow

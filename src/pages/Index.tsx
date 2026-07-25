@@ -2,7 +2,6 @@ import { lazy, Suspense, useCallback, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { HeroSection } from "@/components/HeroSection";
-import { HomeUrgencyStrip } from "@/components/UrgencyHooks";
 import { DeferredRender } from "@/components/DeferredRender";
 
 const HomeBelowFold = lazy(() => import("@/components/HomeBelowFold"));
@@ -31,7 +30,6 @@ export default function Index() {
 
   return <div className="min-h-screen bg-background overflow-x-clip">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg">Skip to main content</a>
-    <HomeUrgencyStrip onClick={() => setIsLeadFormOpen(true)} />
     <Navbar />
     <ProfileCompletionBanner />
     <main id="main-content">

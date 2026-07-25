@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { generateBlogJson, loadBlogAiConfig, resolveClaudeTextModel, type BlogAiConfig } from "../_shared/blog-ai.ts";
 import { logAiUsage } from "../_shared/ai-usage.ts";
-import { applyClaudeRuntimeControl, getAiRuntimeControl } from "../_shared/ai-control.ts";
+import { getAiRuntimeControl } from "../_shared/ai-control.ts";
 import { geminiGenerate } from "../_shared/gemini.ts";
 
 const cors = {
@@ -127,7 +127,7 @@ function parseJson(raw: string) {
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
-    throw new Error("Claude did not return a JSON object");
+    throw new Error("The selected AI provider did not return a JSON object");
   }
 }
 
@@ -188,6 +188,21 @@ async function fetchOfficialPage(url: string) {
   } catch { return ""; } finally { clearTimeout(timer); }
 }
 
+async function resolveOpenAiKey(admin: any, config: BlogAiConfig) {
+  const environmentKey = String(Deno.env.get("OPENAI_API_KEY") || "").trim();
+  if (environmentKey) return environmentKey;
+  if (config.openaiKey) return config.openaiKey;
+  const { data } = await admin
+    .from("ai_providers")
+    .select("api_key_encrypted")
+    .eq("provider_name", "openai")
+    .not("api_key_encrypted", "is", null)
+    .order("is_active", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return String(data?.api_key_encrypted || "").trim();
+}
+
 async function researchWithAi(admin: any, config: BlogAiConfig, entityType: string, row: Record<string, unknown>) {
   const runtime = await getAiRuntimeControl(admin, "data-cleaner");
   const provider = runtime.provider || "anthropic";
@@ -212,7 +227,7 @@ Return JSON only with this shape:
 Every updated factual field must have field_evidence. If no official source can verify the identity, return confidence below 0.8 and updates {}.`;
 
   if (provider === "gemini") {
-    const model = runtime.model || "gemini-3.5-flash";
+    const model = runtime.model || "gemini-3.5-flash-lite";
     if (!seedUrl || !directText || !pageMatchesEntity(directText, name)) {
       return {
         parsed: {
@@ -226,6 +241,7 @@ Every updated factual field must have field_evidence. If no official source can 
         citationUrls: seedUrl ? [seedUrl] : [],
         model,
         usage: {},
+        provider,
       };
     }
 
@@ -235,7 +251,52 @@ Every updated factual field must have field_evidence. If no official source can 
       system: "You are a conservative education data auditor. Official sources only. Return valid JSON only.",
       prompt: `${prompt}\nGemini mode rule: use only the supplied official page text and known official URL. Do not claim any external research beyond that page.`,
     });
-    return { parsed: await parseOrRepair(config, raw), citationUrls: [seedUrl], model, usage: {} };
+    return { parsed: await parseOrRepair({ ...config, textModel: model }, raw), citationUrls: [seedUrl], model, usage: {}, provider };
+  }
+
+  if (provider === "openai") {
+    const model = runtime.model || "gpt-4o-mini";
+    if (!seedUrl || !directText || !pageMatchesEntity(directText, name)) {
+      return {
+        parsed: {
+          official_url: seedUrl || "",
+          confidence: 0.5,
+          updates: {},
+          field_evidence: {},
+          warnings: ["GPT-4o mini mode requires a directly retrievable official page. No safe official page text was available for this record."],
+          source_urls: seedUrl ? [seedUrl] : [],
+        },
+        citationUrls: seedUrl ? [seedUrl] : [],
+        model,
+        usage: {},
+        provider,
+      };
+    }
+
+    const openaiKey = await resolveOpenAiKey(admin, config);
+    if (!openaiKey) throw new Error("OpenAI API key is not configured. Save the existing OpenAI key in Admin - AI Providers.");
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${openaiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: "You are a conservative education data auditor. Official sources only. Return valid JSON only." },
+          { role: "user", content: `${prompt}\nOpenAI mode rule: use only the supplied official page text and known official URL. Do not claim any external research beyond that page.` },
+        ],
+      }),
+    });
+    if (!response.ok) throw new Error(`OpenAI data cleaning failed (${response.status}): ${(await response.text()).slice(0, 350)}`);
+    const payload = await response.json();
+    const raw = payload.choices?.[0]?.message?.content || "{}";
+    return {
+      parsed: await parseOrRepair({ ...config, openaiKey, textModel: model }, raw),
+      citationUrls: [seedUrl],
+      model,
+      usage: payload.usage || {},
+      provider,
+    };
   }
 
   const model = await resolveClaudeTextModel(config);
@@ -256,11 +317,11 @@ Every updated factual field must have field_evidence. If no official source can 
   if (!response.ok) {
     if (!seedUrl || !directText || !pageMatchesEntity(directText, name)) throw new Error(`Claude official-source research failed (${response.status}): ${(await response.text()).slice(0, 350)}`);
     const raw = await generateBlogJson(config, `${prompt}\nWeb search is unavailable. Use only the supplied official page text and known official URL.`);
-    return { parsed: await parseOrRepair(config, raw), citationUrls: [seedUrl], model, usage: {} };
+    return { parsed: await parseOrRepair(config, raw), citationUrls: [seedUrl], model, usage: {}, provider };
   }
   const payload = await response.json();
   const raw = (payload.content || []).filter((block: any) => block.type === "text").map((block: any) => block.text || "").join("");
-  return { parsed: await parseOrRepair(config, raw), citationUrls: [...collectCitationUrls(payload)], model, usage: payload.usage || {} };
+  return { parsed: await parseOrRepair(config, raw), citationUrls: [...collectCitationUrls(payload)], model, usage: payload.usage || {}, provider };
 }
 
 function cleanString(value: unknown, max = 100_000) {
@@ -328,8 +389,9 @@ async function processItem(admin: any, config: BlogAiConfig, item: any) {
     if (!row) return completeItem(admin, item, "skipped", { error_message: "Record no longer exists" });
     const result = await researchWithAi(admin, config, item.entity_type, row);
     await logAiUsage(admin, {
-      provider: String(result.model || "").startsWith("gemini") ? "gemini" : "anthropic", model: result.model, feature: "data-cleaner", operation: item.entity_type,
-      inputTokens: result.usage?.input_tokens, outputTokens: result.usage?.output_tokens,
+      provider: result.provider || (String(result.model || "").startsWith("gemini") ? "gemini" : "anthropic"), model: result.model, feature: "data-cleaner", operation: item.entity_type,
+      inputTokens: result.usage?.input_tokens ?? result.usage?.prompt_tokens,
+      outputTokens: result.usage?.output_tokens ?? result.usage?.completion_tokens,
       requestId: item.id, metadata: { job_id: item.job_id, entity_id: item.entity_id },
     });
     const confidence = Math.max(0, Math.min(1, Number(result.parsed.confidence || 0)));
@@ -370,7 +432,7 @@ async function processTick(admin: any, serviceRole: string, functionUrl: string)
   console.log("[data-cleaner] tick started");
   const { data: settings } = await admin.from("data_cleaning_settings").select("worker_concurrency,scheduler_token").eq("id", "default").single();
   const config = await loadBlogAiConfig(admin, serviceRole);
-  await applyClaudeRuntimeControl(admin, "data-cleaner", config);
+  await getAiRuntimeControl(admin, "data-cleaner");
   console.log("[data-cleaner] AI configuration loaded");
   const { data: items, error } = await admin.rpc("claim_data_cleaning_items", { _limit: settings?.worker_concurrency || 2 });
   if (error) throw error;

@@ -12,13 +12,13 @@ type QL =
 const links: QL[] = [
   // Priority order requested
   { icon: Laptop, label: "Online Degrees", sectionId: "online-education-heading" },
-  { icon: Sparkles, label: "CAT Universe", href: "/cat-universe" },
   { icon: Sparkles, label: "Earn IIT/IIM/Dr. Tag", sectionId: "trending-programs-heading" },
   { icon: Globe, label: "Study Abroad", sectionId: "online-education-heading" },
   // Then the rest
   { icon: GraduationCap, label: "Top Colleges", href: "/colleges" },
   { icon: BookOpen, label: "Courses", href: "/courses" },
   { icon: FileText, label: "Exams", href: "/exams" },
+  { icon: Star, label: "Live Scholarships", href: "/scholarships" },
   { icon: Layers, label: "Explore by Category", sectionId: "explore-heading" },
   { icon: Star, label: "Featured Colleges", sectionId: "top-colleges-heading" },
   { icon: ImageIcon, label: "Recommended", sectionId: "recommended-colleges-heading" },
@@ -40,7 +40,7 @@ function scrollToId(id: string) {
   window.scrollTo({ top, behavior: "smooth" });
 }
 
-const cls = "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap border border-border/60 bg-card hover:border-primary hover:bg-primary/5 hover:text-primary transition-all shadow-sm hover:shadow-md";
+const cls = "flex items-center gap-2 rounded-full border border-border/60 bg-card px-3.5 py-2 text-xs font-semibold whitespace-nowrap shadow-sm transition-all hover:border-primary hover:bg-primary/5 hover:text-primary hover:shadow-md md:px-4 md:py-2.5 md:text-sm";
 
 function Item({ link }: { link: QL }) {
   const Icon = link.icon;
@@ -68,7 +68,7 @@ function Item({ link }: { link: QL }) {
 export function QuickLinksBar({ compact = false }: { compact?: boolean } = {}) {
   return (
     <section
-      className={compact ? "py-4" : "py-6 md:py-8 border-b border-border/60 bg-gradient-to-b from-background to-card/30"}
+      className={compact ? "border-y border-border/60 bg-background py-3" : "border-y border-border/60 bg-gradient-to-b from-background to-card/30 py-5 md:py-6"}
       aria-label="Quick Links"
     >
       <div className="overflow-x-auto scrollbar-thin -mx-3 px-3">

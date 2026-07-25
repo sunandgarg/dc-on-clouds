@@ -31,7 +31,7 @@ export function LeadGateDialog({
   open,
   onOpenChange,
   title = "🎯 Apply Now - Get Free Counseling!",
-  subtitle = "Fill the form & get ₹999 counselling session FREE!",
+  subtitle = "Share a few details and our team will guide you.",
   source = "lead_gate",
   onSuccess,
   forceShow = false,

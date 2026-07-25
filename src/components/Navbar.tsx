@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown, User, Sparkles, Shield, LogOut, Home, Gift, FileText, Settings, BookOpen } from "lucide-react";
-import logo from "@/assets/dekhocampus-logo.png";
+import logo from "@/assets/dekhocampus-logo-small.webp";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { MegaMenu } from "@/components/MegaMenu";
+import { GlobalSearchBar } from "@/components/GlobalSearchBar";
 
 const mobileNav = [
   { label: "Colleges", href: "/colleges" },
@@ -37,6 +37,7 @@ export function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, isAdmin, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   // Sticky on every page (homepage too) per latest UX requirement.
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -95,14 +96,8 @@ export function Navbar() {
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </button>
 
-                <AnimatePresence>
-                  {isUserMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      className="absolute right-0 top-full mt-2 w-64 bg-card rounded-xl border border-border shadow-lg overflow-hidden z-50"
-                    >
+                {isUserMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-card rounded-xl border border-border shadow-lg overflow-hidden z-50">
                       <div className="p-4 bg-muted/50 border-b border-border">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-lg font-bold text-primary">
@@ -142,9 +137,8 @@ export function Navbar() {
                           Sign Out
                         </button>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    </div>
+                )}
               </div>
             ) : (
               <>
@@ -183,14 +177,14 @@ export function Navbar() {
           </div>
         </div>
 
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden border-t border-border"
-            >
+        {pathname !== "/" && !pathname.startsWith("/admin") && (
+          <div className="border-t border-border/70 bg-white/95 px-3 py-2 backdrop-blur-xl md:px-4">
+            <GlobalSearchBar variant="header" />
+          </div>
+        )}
+
+        {isMobileMenuOpen && (
+            <div className="lg:hidden border-t border-border">
               <div className="container py-4 space-y-1 bg-card max-h-[80vh] overflow-y-auto">
                 {mobileNav.map((item: any) => (
                   <MobileNavItem key={item.label} item={item} onNavigate={() => setIsMobileMenuOpen(false)} />
@@ -245,9 +239,8 @@ export function Navbar() {
                   )}
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+        )}
       </nav>
     </header>
   );

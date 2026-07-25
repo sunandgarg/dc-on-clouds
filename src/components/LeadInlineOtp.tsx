@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ export function useInlineOtp(phone: string, formKey: string) {
   const isTestMode = settings?.otp_mode === "test";
 
   const [requested, setRequested] = useState(false);
+  const [requestedPhone, setRequestedPhone] = useState("");
   const [sending, setSending] = useState(false);
   const [lastChannel, setLastChannel] = useState<"sms" | "whatsapp">("sms");
   const [code, setCode] = useState("");
@@ -56,18 +57,57 @@ export function useInlineOtp(phone: string, formKey: string) {
   const [providerManaged, setProviderManaged] = useState(false);
   const [missing, setMissing] = useState(false);
   const expectedRef = useRef<string>("");
+  const cooldownRef = useRef<number | null>(null);
+  const latestPhoneRef = useRef("");
   const normalizedPhone = sanitizeIndianMobile(phone);
+  latestPhoneRef.current = normalizedPhone;
 
   const markMissing = () => setMissing(true);
   const clearMissing = () => setMissing(false);
 
   const phoneOk = isValidIndianMobile(normalizedPhone);
 
+  const clearCooldown = () => {
+    if (cooldownRef.current !== null) {
+      window.clearInterval(cooldownRef.current);
+      cooldownRef.current = null;
+    }
+    setCooldown(0);
+  };
+
+  const resetVerification = () => {
+    clearCooldown();
+    expectedRef.current = "";
+    setRequested(false);
+    setRequestedPhone("");
+    setCode("");
+    setVerified(false);
+    setProviderManaged(false);
+    setMissing(false);
+  };
+
+  // An OTP belongs to one exact phone number. If the user corrects the number,
+  // invalidate the old challenge immediately and restore the Get OTP action.
+  useEffect(() => {
+    if (requestedPhone && normalizedPhone !== requestedPhone) resetVerification();
+    // resetVerification intentionally operates on the current OTP state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedPhone, requestedPhone]);
+
+  useEffect(() => () => {
+    if (cooldownRef.current !== null) window.clearInterval(cooldownRef.current);
+  }, []);
+
   const tickCooldown = () => {
+    clearCooldown();
     setCooldown(RESEND);
-    const id = window.setInterval(() => {
+    cooldownRef.current = window.setInterval(() => {
       setCooldown((c) => {
-        if (c <= 1) { window.clearInterval(id); return 0; }
+        if (c <= 1) {
+          if (cooldownRef.current !== null) window.clearInterval(cooldownRef.current);
+          cooldownRef.current = null;
+          return 0;
+        }
         return c - 1;
       });
     }, 1000);
@@ -78,8 +118,9 @@ export function useInlineOtp(phone: string, formKey: string) {
       toast.error(PHONE_HINT);
       return;
     }
+    const phoneAtSend = normalizedPhone;
     // 🛑 WhatsApp disabled - always use SMS.
-    const channelToUse: "sms" = "sms";
+    const channelToUse = "sms" as const;
     setSending(true);
     try {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -91,19 +132,23 @@ export function useInlineOtp(phone: string, formKey: string) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ phone: `+91${normalizedPhone}`, otp, channel: channelToUse, action: "send" }),
+          body: JSON.stringify({ phone: `+91${phoneAtSend}`, otp, channel: channelToUse, action: "send" }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !body.success || body.skipped) throw new Error(body.error || "Failed to send OTP");
+        if (latestPhoneRef.current !== phoneAtSend) return;
         const usesProviderVerify = Array.isArray(body.results) && body.results.some((r: { provider?: string; channel?: string }) => ["fast2sms", "msg91"].includes(String(r.provider).toLowerCase()) && r.channel === "sms");
         setProviderManaged(Boolean(usesProviderVerify));
         setLastChannel("sms");
-        toast.success(`OTP sent via SMS to +91 ${normalizedPhone.slice(0, 5)}*****`);
+        toast.success(`OTP sent via SMS to +91 ${phoneAtSend.slice(0, 5)}*****`);
       } else {
+        if (latestPhoneRef.current !== phoneAtSend) return;
         setLastChannel("sms");
         toast.info(`OTP sent via SMS`);
       }
       setRequested(true);
+      setRequestedPhone(phoneAtSend);
+      setCode("");
       setVerified(false);
       tickCooldown();
     } catch (e: unknown) {
@@ -114,6 +159,11 @@ export function useInlineOtp(phone: string, formKey: string) {
   };
 
   const verify = async () => {
+    if (!requestedPhone || normalizedPhone !== requestedPhone) {
+      resetVerification();
+      toast.error("Phone number changed. Please request a new OTP.");
+      return;
+    }
     if (code.length !== OTP_LENGTH) {
       toast.error(`Enter the ${OTP_LENGTH}-digit code`);
       return;
@@ -214,7 +264,7 @@ export function useInlineOtp(phone: string, formKey: string) {
         <p className={`text-[11px] leading-tight ${missing ? "text-destructive font-medium" : "text-muted-foreground"}`}>
           {missing
             ? "Please verify your OTP before submitting"
-            : "Sent via SMS. Valid for 10 minutes."}
+            : `Sent to +91 ${requestedPhone.slice(0, 5)}*****. Wrong number? Edit it above.`}
         </p>
         {cooldown > 0 ? (
           <span className="text-[11px] text-muted-foreground">Resend options in {cooldown}s</span>

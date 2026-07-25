@@ -12,7 +12,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { LeadCaptureForm } from "@/components/LeadCaptureForm";
 import { DynamicAdBanner } from "@/components/DynamicAdBanner";
@@ -724,7 +723,6 @@ export default function CollegeDetail() {
 
       <AlsoCheckSection />
       <Footer />
-      <FloatingBot />
       <MobileBottomBar type="college" slug={college.slug} collegeName={college.short_name || college.name} brochureUrl={college.brochure_url || undefined} sections={COLLEGE_SECTIONS} />
     </div>
   );

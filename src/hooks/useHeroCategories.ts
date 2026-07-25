@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import iconCollege from "@/assets/cat-college.png";
-import iconCourse from "@/assets/cat-course.png";
-import iconExam from "@/assets/cat-exam.png";
-import iconApplication from "@/assets/cat-application.png";
-import iconReviews from "@/assets/cat-reviews.png";
-import iconNews from "@/assets/cat-news.png";
+import iconCollege from "@/assets/cat-college-small.webp";
+import iconCourse from "@/assets/cat-course-small.webp";
+import iconExam from "@/assets/cat-exam-small.webp";
+import iconApplication from "@/assets/cat-application-small.webp";
+import iconReviews from "@/assets/cat-reviews-small.webp";
+import iconNews from "@/assets/cat-news-small.webp";
 
 export type HeroCategory = { key: string; label: string; img: string; tint: string; href: string };
 

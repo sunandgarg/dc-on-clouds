@@ -159,6 +159,14 @@ export default function Auth() {
     }
   };
 
+  const changePhoneNumber = () => {
+    try { sessionStorage.removeItem(`dc_otp_${cleanPhone()}`); } catch { /* ignore */ }
+    sentOtpRef.current = "";
+    setOtp("");
+    setTimer(0);
+    setStep("input");
+  };
+
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
@@ -328,7 +336,7 @@ export default function Auth() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => { setStep("input"); setOtp(""); }}
+                      onClick={changePhoneNumber}
                       className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                       Change number

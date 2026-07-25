@@ -25,7 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { AuthorByline } from "@/components/AuthorByline";
 import { LeadCaptureForm } from "@/components/LeadCaptureForm";
@@ -736,7 +735,6 @@ export default function CourseDetail() {
 
       <AlsoCheckSection />
       <Footer />
-      <FloatingBot />
       <MobileBottomBar type="course" slug={course.slug} sections={COURSE_SECTIONS} />
     </div>
   );

@@ -25,14 +25,14 @@ function LogoAvatar({ college }: { college: DbCollege }) {
 
   return (
     <div
-      className="absolute -bottom-7 left-4 w-16 h-16 rounded-2xl border-[3px] border-card bg-background shadow-lg flex items-center justify-center overflow-hidden z-10"
+      className="absolute -bottom-5 left-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-[3px] border-card bg-background shadow-md z-10 md:-bottom-6 md:h-14 md:w-14 md:rounded-2xl"
       style={{ background: bgGradient }}
     >
       {logoUrl ? (
         <img
           src={logoUrl}
           alt={`${college.short_name || college.name} logo`}
-          className="w-full h-full object-contain p-1.5"
+          className="h-full w-full object-contain p-1"
           loading="lazy"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = "none";
@@ -102,7 +102,7 @@ export function CollegeCard({ college, index }: CollegeCardProps) {
         <LogoAvatar college={college} />
 
         {/* Content */}
-        <div className="p-4 pt-9 space-y-3 flex-1 flex flex-col">
+        <div className="p-4 pt-8 space-y-3 flex-1 flex flex-col">
           <Link to={buildCollegeHref(college)} className="block group">
             <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{college.short_name}</h2>
             <p className="text-sm text-muted-foreground line-clamp-1">

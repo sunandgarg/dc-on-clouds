@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Download, Lock, Phone, FileText, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Download, Lock, Phone, FileText, CheckCircle2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -199,7 +199,14 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = window.setInterval(() => setResendCooldown((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [resendCooldown]);
 
   const submitLead = async () => {
     if (!/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter a valid 10-digit Indian mobile number");
@@ -217,15 +224,23 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
     onSuccess();
   };
 
-  const sendOtp = async () => {
+  const sendOtp = async (resend = false) => {
     if (!/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter a valid 10-digit Indian mobile number");
     setBusy(true);
     const { error } = await supabase.auth.signInWithOtp({ phone: `+91${phone}` });
     setBusy(false);
     if (error) return toast.error(error.message || "Could not send OTP");
     setOtpSent(true);
+    setOtp("");
+    setResendCooldown(45);
     trackEvent("lp_otp_sent", { lp_type: "exam_ad", lp_slug: slug, source });
-    toast.success("OTP sent to your phone");
+    toast.success(resend ? "A new OTP was sent" : "OTP sent to your phone");
+  };
+
+  const changeNumber = () => {
+    setOtpSent(false);
+    setOtp("");
+    setResendCooldown(0);
   };
   const verifyOtp = async () => {
     if (otp.length < 4) return toast.error("Enter the OTP");
@@ -269,12 +284,29 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
           <div className="space-y-3">
             <div><Label className="text-xs">Mobile *</Label><Input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(normalizeIndianMobile(e.target.value))} placeholder="10-digit mobile" disabled={otpSent} /></div>
             {otpSent && (
-              <div><Label className="text-xs">OTP *</Label><Input inputMode="numeric" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="Enter OTP" /></div>
+              <>
+                <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs">
+                  <span>OTP sent to +91 {phone}</span>
+                  <button type="button" onClick={changeNumber} className="font-semibold text-primary hover:underline">Change number</button>
+                </div>
+                <div><Label className="text-xs">OTP *</Label><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="Enter OTP" /></div>
+              </>
             )}
             {!otpSent ? (
-              <Button className="lp-btn-primary w-full rounded-md" disabled={busy} onClick={sendOtp}>{busy ? "Sending…" : "Send OTP"}</Button>
+              <Button className="lp-btn-primary w-full rounded-md" disabled={busy} onClick={() => sendOtp()}>{busy ? "Sending…" : "Send OTP"}</Button>
             ) : (
-              <Button className="lp-btn-primary w-full rounded-md" disabled={busy} onClick={verifyOtp}>{busy ? "Verifying…" : "Verify & Unlock"}</Button>
+              <>
+                <Button className="lp-btn-primary w-full rounded-md" disabled={busy || otp.length !== 6} onClick={verifyOtp}>{busy ? "Verifying…" : "Verify & Unlock"}</Button>
+                <button
+                  type="button"
+                  onClick={() => sendOtp(true)}
+                  disabled={busy || resendCooldown > 0}
+                  className="mx-auto inline-flex items-center gap-1 text-xs font-semibold text-primary disabled:text-slate-400"
+                >
+                  <RefreshCw className={`h-3 w-3 ${busy ? "animate-spin" : ""}`} />
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
+                </button>
+              </>
             )}
           </div>
         )}

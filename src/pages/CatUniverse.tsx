@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { FixedCounsellingCTA } from "@/components/FixedCounsellingCTA";
 import { DynamicAdBanner } from "@/components/DynamicAdBanner";
 import { LeadCaptureForm } from "@/components/LeadCaptureForm";
@@ -69,7 +68,6 @@ export default function CatUniverse() {
         </div>
       </main>
       <Footer />
-      <FloatingBot />
       <FixedCounsellingCTA />
     </div>
   );

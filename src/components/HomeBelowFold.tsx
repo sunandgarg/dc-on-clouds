@@ -16,11 +16,12 @@ import { GoogleAd } from "@/components/ads/GoogleAd";
 import { FAQSection } from "@/components/FAQSection";
 import { TrustedBySection } from "@/components/TrustedBySection";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { PeriodicLeadPopup } from "@/components/PeriodicLeadPopup";
+import { QuickLinksBar } from "@/components/QuickLinksBar";
 
 export default function HomeBelowFold() {
   return <>
+    <QuickLinksBar compact />
     <div className="container"><AlsoCheckSection variant="strip" /></div>
     <div className="container"><TopRankedColleges /></div>
     <div className="container"><HeroBannerCarousel /></div>
@@ -44,7 +45,6 @@ export default function HomeBelowFold() {
       <div id="trusted-heading"><TrustedBySection /></div>
     </div>
     <Footer />
-    <FloatingBot />
     <PeriodicLeadPopup />
   </>;
 }
