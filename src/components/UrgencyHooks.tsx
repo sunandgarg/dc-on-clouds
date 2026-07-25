@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, Users, Clock, Gift, Shield, Sparkles } from "lucide-react";
+import { Flame, Users, Clock, Shield } from "lucide-react";
 
 /**
  * Psychology-driven urgency + scarcity hooks for lead forms.
@@ -96,14 +96,6 @@ export function UrgencyHooks({ variant = "full", className = "" }: UrgencyHooksP
         </span>
       </div>
 
-      {/* Hook row 2: free value (reciprocity) */}
-      <div className="flex items-start gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200/70 px-2.5 py-1.5">
-        <Gift className="w-3.5 h-3.5 text-emerald-700 mt-0.5 flex-shrink-0" />
-        <p className="text-[10.5px] leading-tight text-emerald-800">
-          <span className="font-bold">FREE ₹999 counselling</span> + scholarship eligibility check + personalized college shortlist
-        </p>
-      </div>
-
       {/* Hook row 3: social proof + trust */}
       <div className="flex items-center justify-between gap-2 px-1">
         <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
@@ -118,13 +110,7 @@ export function UrgencyHooks({ variant = "full", className = "" }: UrgencyHooksP
 }
 
 export function UrgencyInlineNote({ className = "" }: { className?: string }) {
-  const { label } = useCountdown(6);
-
-  return (
-    <p className={`text-[10.5px] font-medium text-muted-foreground ${className}`}>
-      Priority callback window closes in <span className="font-bold text-foreground tabular-nums">{label}</span>
-    </p>
-  );
+  return null;
 }
 
 /**

@@ -16,7 +16,6 @@ import { GoogleAd } from "@/components/ads/GoogleAd";
 import { FAQSection } from "@/components/FAQSection";
 import { TrustedBySection } from "@/components/TrustedBySection";
 import { Footer } from "@/components/Footer";
-import { FloatingBot } from "@/components/FloatingBot";
 import { PeriodicLeadPopup } from "@/components/PeriodicLeadPopup";
 
 export default function HomeBelowFold() {
@@ -44,7 +43,6 @@ export default function HomeBelowFold() {
       <div id="trusted-heading"><TrustedBySection /></div>
     </div>
     <Footer />
-    <FloatingBot />
     <PeriodicLeadPopup />
   </>;
 }

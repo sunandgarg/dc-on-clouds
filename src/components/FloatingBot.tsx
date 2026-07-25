@@ -47,6 +47,17 @@ export function FloatingBot() {
     if (isOpen && inputRef.current) setTimeout(() => inputRef.current?.focus(), 200);
   }, [isOpen]);
 
+  useEffect(() => {
+    const openFromSearch = (event: Event) => {
+      const message = (event as CustomEvent<{ message?: string }>).detail?.message;
+      if (message) setPendingQuery(message);
+      setIsOpen(true);
+      if (messages.length === 0) window.setTimeout(() => setShowLeadForm(true), 300);
+    };
+    window.addEventListener("dc:open-diya", openFromSearch);
+    return () => window.removeEventListener("dc:open-diya", openFromSearch);
+  }, [messages.length]);
+
   const addBotMessage = (content: string) => {
     setMessages(prev => [...prev, { role: "assistant", content }]);
   };
@@ -192,16 +203,16 @@ export function FloatingBot() {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             onClick={handleOpen}
-            className="fixed bottom-20 lg:bottom-6 right-3 md:right-6 z-50 flex items-center gap-1.5 rounded-full bg-white/95 px-1.5 py-1 shadow-lg ring-1 ring-slate-200 hover:scale-105 transition-transform active:scale-95 md:flex-col md:gap-0.5 md:rounded-2xl md:bg-transparent md:px-0 md:py-0 md:shadow-none md:ring-0"
+            className="fixed bottom-20 right-3 z-50 flex items-center gap-2 rounded-full bg-primary px-2 py-1.5 text-white shadow-[0_14px_36px_-12px_rgba(37,99,235,.65)] ring-1 ring-primary/20 transition-transform hover:scale-[1.03] active:scale-95 md:bottom-6 md:right-6"
             aria-label="Ask Diya - AI education counselor"
           >
-              <span className="relative h-9 w-9 md:h-14 md:w-14">
-                <span className="flex h-9 w-9 md:h-14 md:w-14 overflow-hidden rounded-full bg-white shadow-[0_12px_36px_-10px_rgba(37,99,235,.75)] ring-1 ring-primary/20">
-                <img src={diyaAiLogo} alt="" className="h-full w-full rounded-full object-contain p-0.5 md:p-1" />
+              <span className="relative h-9 w-9">
+                <span className="flex h-9 w-9 overflow-hidden rounded-full bg-white ring-1 ring-white/70">
+                <img src={diyaAiLogo} alt="" className="h-full w-full rounded-full object-contain p-0.5" />
                 </span>
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-accent text-[8px] md:text-[9px] font-black text-accent-foreground">AI</span>
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[8px] font-black text-primary ring-1 ring-primary/10">AI</span>
             </span>
-            <span className="pr-1 text-[10px] font-extrabold leading-none text-primary md:rounded-full md:bg-white/95 md:px-2.5 md:py-1 md:text-[11px] md:shadow-md md:ring-1 md:ring-slate-200">Ask Diya</span>
+            <span className="pr-2 text-xs font-bold leading-none text-white">Ask Diya</span>
           </motion.button>
         )}
       </AnimatePresence>

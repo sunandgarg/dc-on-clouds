@@ -42,6 +42,21 @@ interface HeroSectionProps {
   onOpenChat?: (initialMessage?: string) => void;
 }
 
+type FuzzyDirectoryRow = {
+  entity_type: SearchResult["type"];
+  name: string;
+  slug: string;
+  subtitle?: string;
+  image_url?: string;
+};
+
+type FuzzySearchRpc = {
+  rpc: (
+    fn: "search_directory_fuzzy",
+    args: { p_terms: string[]; p_limit: number },
+  ) => Promise<{ data: FuzzyDirectoryRow[] | null; error: { message?: string } | null }>;
+};
+
 export function HeroSection({ onOpenChat }: HeroSectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -113,6 +128,22 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
     const timeout = setTimeout(async () => {
       try {
+        const { data: fuzzyData, error: fuzzyError } = await (supabase as unknown as FuzzySearchRpc).rpc("search_directory_fuzzy", {
+          p_terms: variants.slice(0, 10),
+          p_limit: 10,
+        });
+        if (!fuzzyError && fuzzyData?.length) {
+          setDbResults(fuzzyData.map((item) => ({
+            type: item.entity_type,
+            name: item.name,
+            slug: item.slug,
+            location: item.subtitle || "",
+            image: item.image_url || "",
+            logo: item.image_url || "",
+          })));
+          return;
+        }
+
         const [colleges, courses, exams, careers, faculty] = await Promise.all([
           supabase
             .from("colleges")

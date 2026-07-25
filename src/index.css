@@ -114,6 +114,9 @@
 
   html {
     scroll-behavior: smooth;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     /* Universal sticky-header offset for in-page anchor scrolls so
        sticky navbar (h-14 mobile / h-16 tablet / h-18 desktop) never
        overlaps the targeted section. */
@@ -126,6 +129,26 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    overflow-x: clip;
+  }
+
+  /* iOS Safari zooms the viewport when a focused control is below 16px.
+     Keep mobile form controls at 16px so layout and side gutters stay fixed. */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {

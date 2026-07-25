@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown, User, Sparkles, Shield, LogOut, Home, Gift, FileText, Settings, BookOpen } from "lucide-react";
 import logo from "@/assets/dekhocampus-logo.png";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { MegaMenu } from "@/components/MegaMenu";
+import { GlobalSearchBar } from "@/components/GlobalSearchBar";
 
 const mobileNav = [
   { label: "Colleges", href: "/colleges" },
@@ -37,6 +38,7 @@ export function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, isAdmin, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   // Sticky on every page (homepage too) per latest UX requirement.
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -182,6 +184,12 @@ export function Navbar() {
             </Button>
           </div>
         </div>
+
+        {pathname !== "/" && !pathname.startsWith("/admin") && (
+          <div className="border-t border-border/70 bg-white/95 px-3 py-2 backdrop-blur-xl md:px-4">
+            <GlobalSearchBar variant="header" />
+          </div>
+        )}
 
         <AnimatePresence>
           {isMobileMenuOpen && (

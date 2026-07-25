@@ -37,6 +37,7 @@ const CLEANER_MODELS: Record<string, Array<{ value: string; label: string }>> = 
     { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
   ],
   gemini: [
+    { value: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite - lowest cost" },
     { value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
     { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
     { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
@@ -91,8 +92,8 @@ export default function AdminDataCleaner() {
         feature: "data-cleaner",
         display_name: "Clean Data",
         is_enabled: true,
-        provider: "anthropic",
-        model: "auto-haiku",
+        provider: "gemini",
+        model: "gemini-3.5-flash-lite",
       };
     },
   });
@@ -222,7 +223,7 @@ export default function AdminDataCleaner() {
   const remainingSeconds = Math.max(0, (activeJob?.total_items - activeJob?.processed_items) * rate);
   const currentBatch = activeJob ? Math.min(Math.ceil(Math.max(1, activeJob.processed_items + 1) / activeJob.batch_size), Math.max(1, Math.ceil(activeJob.total_items / activeJob.batch_size))) : 1;
   const totalBatches = activeJob ? Math.max(1, Math.ceil(activeJob.total_items / activeJob.batch_size)) : 1;
-  const cleanerProvider = cleanerRuntime.data?.provider || "anthropic";
+  const cleanerProvider = cleanerRuntime.data?.provider || "gemini";
   const cleanerModels = CLEANER_MODELS[cleanerProvider] || CLEANER_MODELS.anthropic;
   const cleanerModel = cleanerRuntime.data?.model || cleanerModels[0]?.value;
 

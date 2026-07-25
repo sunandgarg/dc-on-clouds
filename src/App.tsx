@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CompareProvider } from "@/contexts/CompareContext";
 import { CompareFloatingBar } from "@/components/CompareFloatingBar";
 import { LockTargetFloatingPromo } from "@/components/LockTargetFloatingPromo";
+import { FloatingBot } from "@/components/FloatingBot";
 
 import { UserTrackingProvider } from "@/hooks/useUserTracking";
 import { IntentTrackingProvider } from "@/components/IntentTrackingProvider";
@@ -38,6 +39,12 @@ function NewsOnlyCall() {
   const isNews = pathname === "/news" || pathname.startsWith("/news/") || pathname === "/articles" || pathname.startsWith("/articles/");
   if (!isNews) return null;
   return <NewsCallButton />;
+}
+
+function GlobalDiya() {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/admin") || pathname.startsWith("/auth")) return null;
+  return <FloatingBot />;
 }
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -422,6 +429,7 @@ const App = () => (
            </ChunkErrorBoundary>
            <GlobalWhatsApp />
            <NewsOnlyCall />
+           <GlobalDiya />
             </IntentTrackingProvider>
             </UserTrackingProvider>
          </BrowserRouter>
