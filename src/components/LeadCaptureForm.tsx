@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import dcLogo from "@/assets/dc-lead-logo.png";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { getPrefillCookie, savePrefillCookie } from "@/components/CookieConsent";
-import { UrgencyHooks, UrgencyInlineNote } from "@/components/UrgencyHooks";
 import { markLeadSubmitted } from "@/lib/leadCapture";
 import { useInlineOtp, isValidIndianMobile, PHONE_HINT, sanitizeIndianMobile } from "@/components/LeadInlineOtp";
 import { ProgramModeToggle, type ProgramMode } from "@/components/ProgramModeToggle";
@@ -258,7 +257,7 @@ export function LeadCaptureForm({
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="bg-card rounded-2xl border border-border p-5 shadow-soft"
+        className="bg-card rounded-2xl border border-border p-4 shadow-soft"
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -273,10 +272,6 @@ export function LeadCaptureForm({
             </div>
           </div>
         </div>
-        <UrgencyInlineNote className="mb-3" />
-
-        {!simple && <UrgencyHooks variant="full" className="mb-3" />}
-
         <form onSubmit={handleSubmit} className="space-y-2.5">
           <div className="space-y-1">
             <div className="relative">
@@ -369,7 +364,6 @@ export function LeadCaptureForm({
               <span className="inline-flex rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-extrabold text-emerald-200 ring-1 ring-emerald-300/20">Personalised guidance with a fast shortlist</span>
               <h3 className="mt-3 text-2xl font-extrabold leading-tight md:text-3xl">Let an expert simplify your decision</h3>
               <p className="mt-2 max-w-md text-sm leading-6 text-white/70">Share only the essentials. We will help you shortlist the right options and next steps.</p>
-              <UrgencyInlineNote className="mt-3 text-white/75" />
             </div>
             <form onSubmit={handleSubmit} className="grid gap-2.5 sm:grid-cols-2">
               <Input value={formData.name} onChange={e => update("name", e.target.value)} placeholder="Your name *" className="h-11 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-white/55" required />
@@ -399,7 +393,6 @@ export function LeadCaptureForm({
             <IITAlumniBadge />
             <p className="text-primary-foreground/90 text-sm md:text-base mt-2">{subtitle}</p>
           </div>
-          <UrgencyHooks variant="banner" className="!bg-none !bg-primary-foreground/20 !border-primary-foreground/40 !text-primary-foreground [&_*]:!text-primary-foreground" />
           <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {/* Row 1: Name + Email */}
             <div className="min-w-0">
@@ -478,8 +471,6 @@ export function LeadCaptureForm({
           <IITAlumniBadge className="mt-1.5" />
         </div>
 
-        <UrgencyHooks variant="compact" className="mb-2" />
-
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="space-y-1">
             <Input value={formData.name} onChange={e => update("name", e.target.value)} placeholder="Name *" aria-invalid={!!errors.name} className={`rounded-xl text-sm h-9 ${errors.name ? "border-destructive" : ""}`} required />
@@ -549,7 +540,6 @@ export function LeadCaptureForm({
         </div>
         <img src={dcLogo} alt="DekhoCampus" className="h-7 w-7 object-contain" />
       </div>
-      <UrgencyHooks variant="compact" className="mb-3" />
       <form onSubmit={handleSubmit} className="space-y-2">
         {/* Row 1: Name + Email - stacked on mobile, side-by-side on sm+ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

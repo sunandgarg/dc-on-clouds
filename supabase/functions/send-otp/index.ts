@@ -482,31 +482,54 @@ async function sendViaFast2SMS(provider: OtpProvider, phone: string, otp?: strin
   const mobile = normalizeIndianMobile(phone);
   if (!/^[0-9]{10}$/.test(mobile)) return { ok: false, detail: "Fast2SMS requires a valid 10-digit Indian mobile number." };
 
-  // Default to Fast2SMS OTP route — works 24×7, no DLT/template, no 6pm cutoff.
-  // Docs: https://docs.fast2sms.com/reference/send-otp
+  // Production default:
+  //  1. DLT-approved SMS (works for every valid Indian mobile number)
+  //  2. Fast2SMS' current /dev/otp/send template endpoint
+  //  3. Legacy generic OTP route only as a last compatibility fallback
+  //
+  // The legacy bulkV2 `route: otp` can appear successful while an account is
+  // still limited to its registered/test number. Prefer routes whose provider
+  // response represents a production DLT/template submission.
   const routeSetting = String(provider.config_json?.fast2sms_route || provider.config_json?.route || provider.config_json?.mode || "").toLowerCase();
-  const route = routeSetting || "otp";
+  const route = routeSetting || "auto";
+  const code = otp || MASTER_TEST_OTP;
+
+  if (route === "auto" || route === "production") {
+    if (provider.sender_id || provider.config_json?.sender_id) {
+      const dlt = await sendViaFast2SMSDLT(provider, mobile, code);
+      if (dlt.ok) return dlt;
+      console.warn("Fast2SMS production DLT attempt failed; trying template OTP", dlt.detail);
+    }
+    if (otpId) {
+      const templateOtp = await sendViaFast2SMSTemplateOtp(provider, mobile, code);
+      if (templateOtp.ok) return templateOtp;
+      console.warn("Fast2SMS template OTP attempt failed; trying compatibility route", templateOtp.detail);
+    }
+    return sendViaFast2SMSOtpRoute(provider, mobile, code);
+  }
 
   if (route === "otp" || route === "smart_otp" || route === "send_otp" || route === "default") {
-    const r = await sendViaFast2SMSOtpRoute(provider, mobile, otp || MASTER_TEST_OTP);
+    const r = otpId
+      ? await sendViaFast2SMSTemplateOtp(provider, mobile, code)
+      : await sendViaFast2SMSOtpRoute(provider, mobile, code);
     if (r.ok) return r;
     // Optional fallback to DLT only when admin enables it
     if (provider.config_json?.otp_fallback_to_dlt === true) {
-      return sendViaFast2SMSDLT(provider, mobile, otp || MASTER_TEST_OTP);
+      return sendViaFast2SMSDLT(provider, mobile, code);
     }
     return r;
   }
 
   if (route === "q" || route === "quick") {
     if (provider.config_json?.quick_enabled === true) {
-      const quick = await sendViaFast2SMSQuick(provider, mobile, otp || MASTER_TEST_OTP);
+      const quick = await sendViaFast2SMSQuick(provider, mobile, code);
       if (quick.ok || provider.config_json?.quick_fallback_to_dlt === false) return quick;
     }
-    return sendViaFast2SMSDLT(provider, mobile, otp || MASTER_TEST_OTP);
+    return sendViaFast2SMSDLT(provider, mobile, code);
   }
 
   if (!otpId || route === "dlt" || route === "dlt_manual") {
-    return sendViaFast2SMSDLT(provider, mobile, otp || MASTER_TEST_OTP);
+    return sendViaFast2SMSDLT(provider, mobile, code);
   }
 
   const otpExpiry = clampNumber(provider.config_json?.otp_expiry_minutes, 1, 10080, 15);
@@ -532,6 +555,33 @@ async function sendViaFast2SMS(provider: OtpProvider, phone: string, otp?: strin
   } catch (e: any) {
     console.error("Fast2SMS send error:", e);
     return { ok: false, detail: `Network error reaching Fast2SMS: ${e?.message || e}` };
+  }
+}
+
+// Current Fast2SMS OTP API. Unlike the legacy bulkV2 OTP route, this binds the
+// request to an approved OTP template and is suitable for production delivery.
+async function sendViaFast2SMSTemplateOtp(provider: OtpProvider, mobile: string, otp: string): Promise<SendResult> {
+  const { otpId } = fast2SmsConfig(provider);
+  if (!otpId) return { ok: false, detail: "Fast2SMS OTP Template ID is not configured." };
+  const otpExpiry = clampNumber(provider.config_json?.otp_expiry_minutes, 1, 10080, 10);
+  const otpLength = clampNumber(provider.config_json?.otp_length ?? otp.length, 4, 10, 6);
+  const variablesValues = String(provider.config_json?.otp_variables_values || provider.config_json?.variables_values || otpExpiry);
+  try {
+    const { res, text, parsed } = await callFast2SMS(provider, "/dev/otp/send", {
+      mobile,
+      otp_id: otpId,
+      otp,
+      otp_expiry: otpExpiry,
+      otp_length: otpLength,
+      ...(variablesValues ? { variables_values: variablesValues } : {}),
+    });
+    console.log("Fast2SMS template OTP response:", res.status, text.slice(0, 400));
+    if (res.ok && parsed?.return === true) {
+      return { ok: true, transactionId: parsed.request_id, detail: fast2SmsMessage(parsed, "OTP sent via approved Fast2SMS template"), raw: parsed };
+    }
+    return { ok: false, detail: fast2SmsMessage(parsed, `HTTP ${res.status}: ${text.slice(0, 200)}`), raw: parsed };
+  } catch (e: any) {
+    return { ok: false, detail: `Network error reaching Fast2SMS template OTP: ${e?.message || e}` };
   }
 }
 // Fast2SMS dedicated OTP route — works 24×7, no DLT, no time restrictions.
@@ -591,7 +641,8 @@ async function sendViaFast2SMSQuick(provider: OtpProvider, mobile: string, otp: 
 async function sendViaFast2SMSDLT(provider: OtpProvider, mobile: string, otp: string): Promise<SendResult> {
   const { apiKey, baseUrl } = fast2SmsConfig(provider);
   const hasManualDltIds = Boolean(provider.config_json?.dlt_content_id && provider.config_json?.dlt_entity_id);
-  const route = String(provider.config_json?.route || (hasManualDltIds ? "dlt_manual" : provider.config_json?.fast2sms_route) || "dlt");
+  const configuredRoute = String(provider.config_json?.route || (hasManualDltIds ? "dlt_manual" : provider.config_json?.fast2sms_route) || "dlt").toLowerCase();
+  const route = configuredRoute === "dlt_manual" ? "dlt_manual" : "dlt";
   const expiryMin = String(provider.config_json?.otp_expiry_minutes || OTP_EXPIRY_MIN);
   const textTemplate: string =
     provider.config_json?.text_template ||

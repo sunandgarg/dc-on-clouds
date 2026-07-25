@@ -18,7 +18,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useHeroSettings } from "@/hooks/useHeroSettings";
 import dcLogo from "@/assets/dc-logo-small.webp";
 import { HeroCounsellingCard } from "@/components/HeroCounsellingCard";
-import { useHeroCategories } from "@/hooks/useHeroCategories";
 
 const YEAR = new Date().getFullYear();
 const suggestedPrompts = [
@@ -62,9 +61,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   const [dbResults, setDbResults] = useState<SearchResult[]>([]);
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const navigate = useNavigate();
-
-  const { data: quickCategories } = useHeroCategories();
-
 
   const [bgIndex, setBgIndex] = useState(0);
   const { data: heroSettings } = useHeroSettings();
@@ -483,26 +479,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             </div>
 
             <HeroCounsellingCard onStart={(message) => handleSuggestionClick(message)} />
-          </div>
-
-          {/* Big stat tiles (dekhocampus-style) */}
-          <div className="mx-auto mt-8 max-w-7xl px-4 pt-3 -mx-4 md:mx-0 md:px-0 lg:mt-10">
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 md:grid md:grid-cols-6 md:gap-5 md:overflow-visible">
-              {quickCategories.map((cat, index) => (
-                <a
-                  key={cat.label}
-                  href={cat.href}
-                  className={`group flex min-h-[108px] min-w-[112px] basis-[30%] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg md:min-h-[160px] md:min-w-0 md:gap-3 md:rounded-3xl md:p-5 ${cat.tint}`}
-                >
-                  <div className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center transition-transform group-hover:scale-110">
-                    <img src={cat.img} alt="" className="w-full h-full object-contain" loading={index < 3 ? "eager" : "lazy"} decoding="async" />
-                  </div>
-                  <span className="text-[11px] md:text-[14px] font-semibold text-foreground leading-tight line-clamp-2 [overflow-wrap:normal] [word-break:keep-all]">
-                    {cat.label}
-                  </span>
-                </a>
-              ))}
-            </div>
           </div>
 
         </div>

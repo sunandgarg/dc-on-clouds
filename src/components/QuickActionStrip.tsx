@@ -64,7 +64,7 @@ export function QuickActionStrip() {
         open={active === "online" || active === "abroad"}
         onOpenChange={(v) => { if (!v) close(); }}
         title={active === "abroad" ? "🌍 Get Study Abroad Guidance - Free!" : "💻 Get Online Degree Guidance - Free!"}
-        subtitle="Fill the form & get ₹999 counselling session FREE!"
+        subtitle="Share a few details and our team will guide you."
         source={active === "abroad" ? "study_abroad_strip" : "online_degree_strip"}
         onSuccess={onSuccess}
         forceShow

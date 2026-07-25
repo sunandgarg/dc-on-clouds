@@ -203,18 +203,18 @@ export function FloatingBot() {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             onClick={handleOpen}
-            className="fixed bottom-20 right-3 z-50 flex flex-col items-center gap-1 text-primary transition-transform hover:scale-[1.04] active:scale-95 md:bottom-6 md:right-6"
+            className="fixed bottom-20 right-3 z-50 flex w-14 flex-col items-center gap-1 text-primary transition-transform hover:scale-[1.04] active:scale-95 md:bottom-6 md:right-6"
             aria-label="Ask Diya - AI education counselor"
           >
-              <span className="relative h-12 w-12">
-                <span className="flex h-12 w-12 overflow-hidden rounded-full bg-primary p-1 shadow-[0_8px_24px_-8px_rgba(37,99,235,.8)] ring-2 ring-white">
+              <span className="relative h-14 w-14">
+                <span className="flex h-14 w-14 overflow-hidden rounded-full bg-primary p-1 shadow-[0_8px_24px_-8px_rgba(37,99,235,.8)] ring-2 ring-white">
                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white">
                   <img src={diyaAiLogo} alt="" className="h-full w-full object-contain p-0.5" />
                 </span>
                 </span>
               <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[8px] font-black text-white ring-1 ring-white">AI</span>
             </span>
-            <span className="rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-extrabold leading-none text-primary shadow-sm ring-1 ring-slate-200/80">Ask Diya</span>
+            <span className="whitespace-nowrap text-center text-[10px] font-extrabold leading-none text-primary">Ask Diya</span>
           </motion.button>
         )}
       </AnimatePresence>

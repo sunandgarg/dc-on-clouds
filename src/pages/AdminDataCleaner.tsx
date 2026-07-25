@@ -173,22 +173,38 @@ export default function AdminDataCleaner() {
   const updateRuntime = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
       const payload = {
-        feature: "data-cleaner",
-        display_name: "Clean Data",
-        is_enabled: true,
         ...values,
         updated_at: new Date().toISOString(),
       };
-      const { error } = await (supabase as any)
+      // ai_runtime_controls grants authenticated admins SELECT + UPDATE.
+      // Using UPSERT also requires INSERT permission, so an existing row could
+      // be displayed correctly while every provider change was rejected.
+      const { data, error } = await (supabase as any)
         .from("ai_runtime_controls")
-        .upsert(payload, { onConflict: "feature" });
+        .update(payload)
+        .eq("feature", "data-cleaner")
+        .select("feature,provider,model")
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("Data cleaner runtime setting was not found");
+    },
+    onMutate: async (values) => {
+      await qc.cancelQueries({ queryKey: ["ai-runtime-control", "data-cleaner"] });
+      const previous = qc.getQueryData(["ai-runtime-control", "data-cleaner"]);
+      qc.setQueryData(["ai-runtime-control", "data-cleaner"], (current: any) => ({
+        ...(current || {}),
+        ...values,
+      }));
+      return { previous };
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["ai-runtime-control", "data-cleaner"] });
       toast.success("Clean Data AI model saved");
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error, _values, context) => {
+      if (context?.previous) qc.setQueryData(["ai-runtime-control", "data-cleaner"], context.previous);
+      toast.error(error.message);
+    },
   });
 
   const start = async () => {
@@ -263,6 +279,7 @@ export default function AdminDataCleaner() {
                     <Label>Provider</Label>
                     <Select
                       value={cleanerProvider}
+                      disabled={updateRuntime.isPending}
                       onValueChange={(provider) => updateRuntime.mutate({ provider, model: CLEANER_MODELS[provider]?.[0]?.value || null })}
                     >
                       <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
@@ -277,6 +294,7 @@ export default function AdminDataCleaner() {
                     <Label>Model</Label>
                     <Select
                       value={cleanerModel}
+                      disabled={updateRuntime.isPending}
                       onValueChange={(model) => updateRuntime.mutate({ model })}
                     >
                       <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>

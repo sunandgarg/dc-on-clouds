@@ -1,3 +1,5 @@
+import { QuickLinksBar } from "@/components/QuickLinksBar";
+
 /**
  * Google Ads / Meta Ads policy 2026-aligned footer for landing pages.
  * Provides:
@@ -27,36 +29,39 @@ export function LpComplianceFooter({
 }) {
   const advName = advertiserName || brand;
   return (
-    <footer className="border-t bg-white text-sm">
-      <div className="px-5 md:px-12 py-8 grid md:grid-cols-3 gap-6">
-        <div>
-          <div className="text-[10px] uppercase font-bold tracking-wider opacity-60 mb-1">Advertiser</div>
-          <div className="font-bold">{advName}</div>
-          {advertiserAddress && <div className="opacity-75 mt-1 leading-relaxed text-xs">{advertiserAddress}</div>}
-          {advertiserContact && <div className="opacity-75 mt-1 text-xs">Contact: {advertiserContact}</div>}
+    <>
+      <QuickLinksBar compact />
+      <footer className="border-t bg-white text-sm">
+        <div className="px-5 md:px-12 py-8 grid md:grid-cols-3 gap-6">
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider opacity-60 mb-1">Advertiser</div>
+            <div className="font-bold">{advName}</div>
+            {advertiserAddress && <div className="opacity-75 mt-1 leading-relaxed text-xs">{advertiserAddress}</div>}
+            {advertiserContact && <div className="opacity-75 mt-1 text-xs">Contact: {advertiserContact}</div>}
+          </div>
+          <div className="md:col-span-2">
+            <div className="text-[10px] uppercase font-bold tracking-wider opacity-60 mb-1">Disclosure</div>
+            <p className="opacity-80 text-xs leading-relaxed">
+              {disclosureText ||
+                "This page is an advertisement. Information shown is for educational lead-generation purposes only and is not an offer of admission, scholarship, employment, financial aid, or guaranteed outcome. Programs, fees, and eligibility are subject to change at the institution's discretion."}
+            </p>
+            <p className="opacity-70 text-[11px] leading-relaxed mt-2">
+              We collect the contact details you submit only to share program information with you. We do not sell your data.
+              You can opt out anytime by replying STOP to any SMS or emailing us at the contact above.
+            </p>
+          </div>
         </div>
-        <div className="md:col-span-2">
-          <div className="text-[10px] uppercase font-bold tracking-wider opacity-60 mb-1">Disclosure</div>
-          <p className="opacity-80 text-xs leading-relaxed">
-            {disclosureText ||
-              "This page is an advertisement. Information shown is for educational lead-generation purposes only and is not an offer of admission, scholarship, employment, financial aid, or guaranteed outcome. Programs, fees, and eligibility are subject to change at the institution's discretion."}
-          </p>
-          <p className="opacity-70 text-[11px] leading-relaxed mt-2">
-            We collect the contact details you submit only to share program information with you. We do not sell your data.
-            You can opt out anytime by replying STOP to any SMS or emailing us at the contact above.
-          </p>
+        <div className="border-t px-5 md:px-12 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between text-xs opacity-75">
+          <div>{footerText || `© ${new Date().getFullYear()} ${brand}. All rights reserved.`}</div>
+          <div className="flex gap-4">
+            <a href={privacyUrl || "/legal/privacy"} className="underline">Privacy Policy</a>
+            <a href={termsUrl || "/legal/terms"} className="underline">Terms</a>
+            <a href="/legal/disclaimer" className="underline">Ad Disclaimer</a>
+            <a href="/contact" className="underline">Contact</a>
+          </div>
         </div>
-      </div>
-      <div className="border-t px-5 md:px-12 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between text-xs opacity-75">
-        <div>{footerText || `© ${new Date().getFullYear()} ${brand}. All rights reserved.`}</div>
-        <div className="flex gap-4">
-          <a href={privacyUrl || "/legal/privacy"} className="underline">Privacy Policy</a>
-          <a href={termsUrl || "/legal/terms"} className="underline">Terms</a>
-          <a href="/legal/disclaimer" className="underline">Ad Disclaimer</a>
-          <a href="/contact" className="underline">Contact</a>
-        </div>
-      </div>
-    </footer>
+      </footer>
+    </>
   );
 }
 

@@ -133,7 +133,7 @@ export default function AdminOtpProviders() {
         template_id: "",
         icon_emoji: "⚡",
         is_active: false,
-        config_json: { fast2sms_route: "dlt", variables_order: ["otp", "expiry"], otp_length: 6, otp_expiry_minutes: 10, max_verify_attempts: 5, resend_cooldown_seconds: 30, whatsapp_api_version: "v24.0" },
+        config_json: { fast2sms_route: "auto", variables_order: ["otp", "expiry"], otp_length: 6, otp_expiry_minutes: 10, max_verify_attempts: 5, resend_cooldown_seconds: 45, whatsapp_api_version: "v24.0" },
       } as any);
       if (error) throw error;
     },
@@ -488,7 +488,7 @@ export default function AdminOtpProviders() {
             <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
               <li>Add ANY SMS or WhatsApp OTP provider - Twilio, MSG91, Gupshup, Fast2SMS, Aquarite, custom REST API, etc.</li>
               <li>Enter credentials, then toggle active - first active provider per channel is used</li>
-              <li><b>Fast2SMS</b>: <code>provider_name=fast2sms</code>, API key = authorization key. Preferred mode is Fast2SMS OTP route. Sender ID and template IDs are only needed if you intentionally switch to DLT or Quick route.</li>
+              <li><b>Fast2SMS</b>: <code>provider_name=fast2sms</code>, API key = authorization key. Automatic mode uses an approved DLT message first, then the current template-OTP endpoint when an OTP template ID is configured.</li>
               <li>For custom providers, set Base URL to your endpoint that accepts {`{phone, otp}`}</li>
             </ul>
           </div>
@@ -514,13 +514,13 @@ export default function AdminOtpProviders() {
                 )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Preferred path now uses Fast2SMS OTP delivery first. DLT and Quick SMS remain available only as explicit fallback modes if you intentionally enable them in provider config.
+                Automatic production delivery uses an approved DLT message first, then the current Fast2SMS template-OTP endpoint. The legacy OTP route is retained only as a last fallback.
               </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-4 text-xs">
                 <div className="rounded-xl border border-border bg-muted/30 p-3"><span className="text-muted-foreground">API Key</span><p className="font-medium text-foreground">Authorization header</p></div>
-                <div className="rounded-xl border border-border bg-muted/30 p-3"><span className="text-muted-foreground">Default Mode</span><p className="font-medium text-foreground">OTP route</p></div>
+                <div className="rounded-xl border border-border bg-muted/30 p-3"><span className="text-muted-foreground">Default Mode</span><p className="font-medium text-foreground">Automatic production</p></div>
                 <div className="rounded-xl border border-border bg-muted/30 p-3"><span className="text-muted-foreground">Default expiry</span><p className="font-medium text-foreground">10 minutes</p></div>
-                <div className="rounded-xl border border-border bg-muted/30 p-3"><span className="text-muted-foreground">Fallback</span><p className="font-medium text-foreground">Quick / DLT optional</p></div>
+                <div className="rounded-xl border border-border bg-muted/30 p-3"><span className="text-muted-foreground">Fallback</span><p className="font-medium text-foreground">Template OTP, then legacy OTP</p></div>
               </div>
             </div>
           </div>
