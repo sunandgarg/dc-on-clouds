@@ -239,6 +239,56 @@ async function sendViaGupshup(provider: OtpProvider, phone: string, otp: string,
 
 interface SendResult { ok: boolean; detail?: string; transactionId?: string | number; verified?: boolean; raw?: any }
 
+const OTP_SEND_COOLDOWN_SECONDS = 45;
+const OTP_SEND_WINDOW_MINUTES = 15;
+const OTP_SEND_WINDOW_LIMIT = 5;
+
+async function checkOtpSendRateLimit(supabase: any, phone: string) {
+  const mobile = normalizeIndianMobile(phone);
+  const now = Date.now();
+  const windowStart = new Date(now - OTP_SEND_WINDOW_MINUTES * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("otp_sessions")
+    .select("created_at")
+    .eq("phone", mobile)
+    .gte("created_at", windowStart)
+    .order("created_at", { ascending: false })
+    .limit(OTP_SEND_WINDOW_LIMIT);
+
+  if (error) {
+    // Do not make OTP unavailable because the audit/rate-limit lookup failed.
+    console.error("OTP rate-limit lookup failed:", error.message);
+    return { allowed: true, retryAfter: 0, reason: "" };
+  }
+
+  const latestCreatedAt = data?.[0]?.created_at ? new Date(data[0].created_at).getTime() : 0;
+  const retryAfter = latestCreatedAt
+    ? Math.max(0, Math.ceil((latestCreatedAt + OTP_SEND_COOLDOWN_SECONDS * 1000 - now) / 1000))
+    : 0;
+
+  if (retryAfter > 0) {
+    return {
+      allowed: false,
+      retryAfter,
+      reason: `Please wait ${retryAfter} seconds before requesting another OTP.`,
+    };
+  }
+  if ((data?.length || 0) >= OTP_SEND_WINDOW_LIMIT) {
+    const oldestCreatedAt = new Date(data[data.length - 1].created_at).getTime();
+    const windowRetryAfter = Math.max(
+      1,
+      Math.ceil((oldestCreatedAt + OTP_SEND_WINDOW_MINUTES * 60 * 1000 - now) / 1000),
+    );
+    return {
+      allowed: false,
+      retryAfter: windowRetryAfter,
+      reason: "Too many OTP requests. Please try again later.",
+    };
+  }
+
+  return { allowed: true, retryAfter: 0, reason: "" };
+}
+
 async function storeOtpSession(supabase: any, phone: string, otp: string, provider: OtpProvider, result: any) {
   const mobile = normalizeIndianMobile(phone);
   const expiry = otpExpiryMinutes(provider);
@@ -813,6 +863,27 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    if (action === "send" || action === "resend") {
+      const rateLimit = await checkOtpSendRateLimit(supabase, phone);
+      if (!rateLimit.allowed) {
+        await log.warn("send", "OTP request rate-limited", {
+          phone_masked: String(phone).slice(-4),
+          retry_after: rateLimit.retryAfter,
+        });
+        return new Response(JSON.stringify({
+          error: rateLimit.reason,
+          retry_after: rateLimit.retryAfter,
+        }), {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Retry-After": String(rateLimit.retryAfter),
+          },
+        });
+      }
+    }
 
     if (action === "verify") {
       const stored = await verifyStoredOtp(supabase, phone, otp);
