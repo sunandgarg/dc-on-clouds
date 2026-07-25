@@ -13,7 +13,6 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Bot, Check, CheckCheck, CirclePause, CirclePlay, Clock3, DatabaseZap, ExternalLink, Eye, Loader2, Search, ShieldCheck, Trash2, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const ENTITY_OPTIONS = [
   { id: "colleges", label: "Colleges", table: "colleges", name: "name" },
@@ -69,6 +68,18 @@ function formatDuration(seconds: number) {
   return `${(seconds / 3600).toFixed(1)} hr`;
 }
 
+function lifecycleLabel(item: any) {
+  if (item.status === "updated") return { label: "Cleaned and applied", className: "bg-emerald-100 text-emerald-800" };
+  if (item.status === "review") return { label: "Checked - awaiting review", className: "bg-blue-100 text-blue-800" };
+  if (item.status === "failed") return { label: "Pass failed", className: "bg-red-100 text-red-800" };
+  if (item.status === "skipped" && item.error_message === "Rejected by administrator") {
+    return { label: "Checked - change rejected", className: "bg-slate-100 text-slate-700" };
+  }
+  if (item.status === "skipped") return { label: "Checked - no safe change", className: "bg-amber-100 text-amber-800" };
+  if (item.status === "processing") return { label: "Researching", className: "bg-violet-100 text-violet-800" };
+  return { label: "Not checked yet", className: "bg-slate-100 text-slate-700" };
+}
+
 export default function AdminDataCleaner() {
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -80,7 +91,6 @@ export default function AdminDataCleaner() {
   const [selectedJob, setSelectedJob] = useState<string>("");
   const [excludeType, setExcludeType] = useState("colleges");
   const [excludeSearch, setExcludeSearch] = useState("");
-  const [previewItem, setPreviewItem] = useState<any | null>(null);
 
   const cleanerRuntime = useQuery({
     queryKey: ["ai-runtime-control", "data-cleaner"],
@@ -104,11 +114,17 @@ export default function AdminDataCleaner() {
   const counts = useQuery({
     queryKey: ["data-cleaner-counts"],
     queryFn: async () => {
-      const pairs = await Promise.all(ENTITY_OPTIONS.map(async (entity) => {
-        const { count } = await (supabase as any).from(entity.table).select("id", { count: "exact", head: true });
-        return [entity.id, count || 0] as const;
-      }));
-      return Object.fromEntries(pairs) as Record<string, number>;
+      const { data, error } = await (supabase as any).rpc("get_data_cleaning_coverage");
+      if (error) throw error;
+      return Object.fromEntries((data || []).map((row: any) => [row.entity_type, {
+        total: Number(row.total_records || 0),
+        never: Number(row.never_checked || 0),
+        checked: Number(row.checked_records || 0),
+        cleaned: Number(row.cleaned_records || 0),
+        pending: Number(row.pending_reviews || 0),
+        failed: Number(row.failed_checks || 0),
+        currentPass: Number(row.current_pass || 1),
+      }])) as Record<string, { total: number; never: number; checked: number; cleaned: number; pending: number; failed: number; currentPass: number }>;
     },
     staleTime: 5 * 60_000,
   });
@@ -165,6 +181,7 @@ export default function AdminDataCleaner() {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["data-cleaning-jobs"] }),
         qc.invalidateQueries({ queryKey: ["data-cleaning-items"] }),
+        qc.invalidateQueries({ queryKey: ["data-cleaner-counts"] }),
       ]);
     },
     onError: (error: Error) => toast.error(error.message),
@@ -308,11 +325,19 @@ export default function AdminDataCleaner() {
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 {ENTITY_OPTIONS.map((entity) => {
                   const checked = selectedTypes.includes(entity.id);
+                  const coverage = counts.data?.[entity.id];
                   return (
                     <button key={entity.id} type="button" onClick={() => setSelectedTypes((current) => checked ? current.filter((id) => id !== entity.id) : [...current, entity.id])}
                       className={`rounded-2xl border p-4 text-left transition ${checked ? "border-primary bg-primary/5 ring-2 ring-primary/10" : "border-border hover:border-primary/30"}`}>
                       <div className="flex items-center justify-between"><span className="font-bold">{entity.label}</span><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${checked ? "border-primary bg-primary text-white" : "border-border"}`}>{checked && <Check className="h-3 w-3" />}</span></div>
-                      <p className="mt-1 text-xs text-muted-foreground">{(counts.data?.[entity.id] || 0).toLocaleString("en-IN")} records</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{(coverage?.total || 0).toLocaleString("en-IN")} records</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">{(coverage?.never || 0).toLocaleString("en-IN")} never checked</span>
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">{(coverage?.cleaned || 0).toLocaleString("en-IN")} cleaned</span>
+                        {!!coverage?.pending && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">{coverage.pending.toLocaleString("en-IN")} awaiting review</span>}
+                        {!!coverage?.failed && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-800">{coverage.failed.toLocaleString("en-IN")} failed</span>}
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-800">{coverage?.pending ? "Pass blocked by review" : `Next: pass ${coverage?.currentPass || 1}`}</span>
+                      </div>
                     </button>
                   );
                 })}
@@ -323,6 +348,9 @@ export default function AdminDataCleaner() {
                 <div className="rounded-2xl border p-3"><div className="flex items-center justify-between gap-3"><div><Label>Auto-apply verified changes</Label><p className="text-[11px] text-muted-foreground">Off keeps changes for review</p></div><Switch checked={autoApply} onCheckedChange={setAutoApply} /></div></div>
               </div>
               {autoApply && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">Sensitive facts require an official/regulator citation or two independent sources. Descriptive fields require at least one cited source. Unsupported values stay unchanged; identity, slugs, ratings, reviews and commercial priority fields remain protected.</div>}
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-950">
+                <strong>Pass control:</strong> each run selects records with the fewest completed research passes. Pass 2 cannot begin for a content type until every eligible record has completed pass 1. “Checked” and “cleaned” are tracked separately.
+              </div>
               <p className="text-xs text-muted-foreground">The cleaner fills missing data and improves thin content using people-first SEO, answer extraction and generative-search clarity. Begin with 100 records in review mode before a large auto-apply run.</p>
             </CardContent>
           </Card>
@@ -348,11 +376,10 @@ export default function AdminDataCleaner() {
         {activeJob && <Card className="rounded-3xl overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div><div className="flex items-center gap-2"><CardTitle>Live cleaning progress</CardTitle><Badge variant={activeJob.status === "completed" ? "default" : "secondary"}>{activeJob.status}</Badge><Badge variant="outline">Batch {currentBatch} of {totalBatches}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{activeJob.message}{activeJob.current_name ? ` - ${activeJob.current_name}` : ""}</p></div>
+              <div><div className="flex flex-wrap items-center gap-2"><CardTitle>Live cleaning progress</CardTitle><Badge variant={activeJob.status === "completed" ? "default" : "secondary"}>{activeJob.status}</Badge><Badge variant="outline">Pass {activeJob.cleaning_pass || 1}</Badge><Badge variant="outline">Batch {currentBatch} of {totalBatches}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{activeJob.message}{activeJob.current_name ? ` - ${activeJob.current_name}` : ""}</p></div>
               <div className="flex flex-wrap gap-2">
                 {activeJob.status === "paused" ? <Button variant="outline" onClick={() => action.mutate({ action: "resume", job_id: activeJob.id })}><CirclePlay className="mr-2 h-4 w-4" />Resume</Button> : !terminalStatuses.has(activeJob.status) && <Button variant="outline" onClick={() => action.mutate({ action: "pause", job_id: activeJob.id })}><CirclePause className="mr-2 h-4 w-4" />Pause</Button>}
                 {!terminalStatuses.has(activeJob.status) && <Button variant="outline" className="text-destructive" onClick={() => action.mutate({ action: "cancel", job_id: activeJob.id })}><X className="mr-2 h-4 w-4" />Cancel</Button>}
-                {activeJob.skipped_items > 0 && <Button variant="outline" onClick={() => action.mutate({ action: "retry_skipped", job_id: activeJob.id })} disabled={action.isPending}><DatabaseZap className="mr-2 h-4 w-4" />Retry skipped ({activeJob.skipped_items})</Button>}
                 <select value={activeJob.id} onChange={(e) => setSelectedJob(e.target.value)} className="h-10 rounded-xl border bg-background px-3 text-sm">{(jobs.data || []).map((job: any) => <option key={job.id} value={job.id}>{new Date(job.created_at).toLocaleString()} - {job.status}</option>)}</select>
               </div>
             </div>
@@ -365,19 +392,35 @@ export default function AdminDataCleaner() {
 
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-bold">Latest record results</h3><span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3 w-3" />Updates every 3 seconds</span></div>{activeJob.review_items > 0 && <Button onClick={() => action.mutate({ action: "approve_all", job_id: activeJob.id })} disabled={action.isPending}><CheckCheck className="mr-2 h-4 w-4" />Approve all verified ({activeJob.review_items})</Button>}</div>
-              {(items.data || []).map((item: any) => <div key={item.id} className="rounded-2xl border p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-bold">{item.entity_name}</p><Badge variant="outline">{item.entity_type}</Badge><Badge variant={item.status === 'updated' ? 'default' : item.status === 'failed' || (item.status === 'skipped' && item.error_message) ? 'destructive' : 'secondary'}>{item.status}</Badge>{item.confidence != null && <span className={`text-xs font-semibold ${Number(item.confidence) < .6 ? 'text-red-600' : Number(item.confidence) < .8 ? 'text-amber-600' : 'text-emerald-600'}`}>{Math.round(Number(item.confidence)*100)}% evidence confidence</span>}</div><p className={`mt-1 text-xs ${item.error_message ? 'text-red-600' : 'text-muted-foreground'}`}>{item.changed_fields?.length ? `${item.changed_fields.length} fields: ${item.changed_fields.join(', ')}` : item.error_message || 'Researching cited sources...'}</p>{item.official_url && <a href={item.official_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Primary source <ExternalLink className="h-3 w-3" /></a>}</div>
-                  {item.status === "review" && <div className="flex shrink-0 flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setPreviewItem(item)}><Eye className="mr-1 h-3 w-3" />Page preview</Button><Button size="sm" onClick={() => action.mutate({ action: "approve", item_id: item.id })}><Check className="mr-1 h-3 w-3" />Approve</Button><Button size="sm" variant="outline" onClick={() => action.mutate({ action: "reject", item_id: item.id })}>Reject</Button></div>}
-                </div>
-                {item.status === "review" && item.proposed_data && <details className="mt-3 rounded-xl bg-muted/50 p-3"><summary className="cursor-pointer text-xs font-bold">Review proposed values</summary><pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap text-[11px]">{JSON.stringify(item.proposed_data, null, 2)}</pre></details>}
-              </div>)}
+              {(items.data || []).map((item: any) => {
+                const lifecycle = lifecycleLabel(item);
+                const hasComparison = !!item.before_data && !!item.proposed_data && (item.changed_fields || []).length > 0;
+                return <div key={item.id} className="rounded-2xl border p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-bold">{item.entity_name}</p>
+                        <Badge variant="outline">{item.entity_type}</Badge>
+                        <Badge variant="outline">Pass {item.cleaning_pass || 1}</Badge>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${lifecycle.className}`}>{lifecycle.label}</span>
+                        {item.confidence != null && item.source_urls?.length > 0 && item.changed_fields?.length > 0 && <span className={`text-xs font-semibold ${Number(item.confidence) < .6 ? 'text-red-600' : Number(item.confidence) < .8 ? 'text-amber-600' : 'text-emerald-600'}`}>{Math.round(Number(item.confidence)*100)}% evidence confidence</span>}
+                      </div>
+                      <p className={`mt-1 text-xs ${item.status === "failed" ? 'text-red-600' : 'text-muted-foreground'}`}>{item.changed_fields?.length ? `${item.changed_fields.length} proposed changes: ${item.changed_fields.join(', ')}` : item.error_message || 'Researching cited sources...'}</p>
+                      {item.official_url && <a href={item.official_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Primary source <ExternalLink className="h-3 w-3" /></a>}
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      {hasComparison && <Button size="sm" variant="outline" asChild><a href={`/admin/clean-data/preview/${item.id}`} target="_blank" rel="noopener noreferrer"><Eye className="mr-1 h-3 w-3" />Open full comparison</a></Button>}
+                      {item.status === "review" && <Button size="sm" onClick={() => action.mutate({ action: "approve", item_id: item.id })}><Check className="mr-1 h-3 w-3" />Approve</Button>}
+                      {item.status === "review" && <Button size="sm" variant="outline" onClick={() => action.mutate({ action: "reject", item_id: item.id })}>Reject</Button>}
+                    </div>
+                  </div>
+                </div>;
+              })}
               {!items.data?.length && <div className="rounded-2xl border border-dashed py-10 text-center text-sm text-muted-foreground">Waiting for the first record...</div>}
             </div>
           </CardContent>
         </Card>}
       </div>
-      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}><DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogHeader><DialogTitle>Cited page preview - {previewItem?.entity_name}</DialogTitle></DialogHeader>{previewItem && <div className="space-y-5"><div className="overflow-hidden rounded-3xl border bg-background"><div className="relative h-52 bg-gradient-to-br from-blue-950 to-primary">{(previewItem.proposed_data?.image || previewItem.before_data?.image) && <img src={previewItem.proposed_data?.image || previewItem.before_data?.image} alt="" className="h-full w-full object-cover opacity-55" />}<div className="absolute inset-0 flex items-end p-6"><div><Badge className="mb-2 bg-emerald-600">Cited research</Badge><h2 className="text-3xl font-black text-white">{previewItem.proposed_data?.name || previewItem.proposed_data?.title || previewItem.entity_name}</h2><p className="text-blue-100">{[previewItem.proposed_data?.city, previewItem.proposed_data?.state].filter(Boolean).join(', ')}</p></div></div></div><div className="grid gap-4 p-6 md:grid-cols-2">{Object.entries(previewItem.proposed_data || {}).filter(([key]) => !['image','logo','carousel_images','gallery_images'].includes(key)).map(([key, value]) => <div key={key} className="rounded-2xl border p-4"><p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{key.replace(/_/g, ' ')}</p><div className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-sm">{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}</div></div>)}</div></div><div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900"><strong>Evidence:</strong> {(previewItem.source_urls || []).map((url: string) => <a key={url} href={url} target="_blank" rel="noreferrer" className="ml-2 underline">{new URL(url).hostname}</a>)}</div></div>}</DialogContent></Dialog>
     </AdminLayout>
   );
 }

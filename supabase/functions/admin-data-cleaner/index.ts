@@ -219,7 +219,11 @@ async function requireTickAccess(req: Request, admin: any) {
 }
 
 function compactExisting(row: Record<string, unknown>, entityType: string) {
-  const allowed = new Set(["id", "slug", ...(ALLOWED_FIELDS[entityType] || [])]);
+  const allowed = new Set([
+    "id", "slug", "data_clean_attempts", "data_clean_successes", "data_last_checked_at",
+    "data_clean_state", "data_verified_at", "data_quality_score",
+    ...(ALLOWED_FIELDS[entityType] || []),
+  ]);
   return Object.fromEntries(Object.entries(row).filter(([key]) => allowed.has(key)));
 }
 
@@ -288,7 +292,15 @@ Find 3-6 directly relevant sources when available. Generic courses may use regul
     .filter((page) => page.url && page.text && pageMatchesEntity(page.text, aliases))
     .filter((page, index, all) => all.findIndex((candidate) => sameSourceDomain(candidate.url, page.url)) === index)
     .slice(0, 6);
-  const sourceUrls = pages.map((page) => page.url);
+  // Grounded research often finds the correct source even when that site blocks
+  // server-side HTML retrieval. Keep those cited URLs instead of turning a valid
+  // research result into a false "no source" outcome.
+  const sourceUrls = [...new Set([
+    ...pages.map((page) => page.url),
+    officialUrl,
+    ...declaredSources,
+    ...grounded.sourceUrls,
+  ].map(normalizeUrl).filter((url) => sourceTier(url) > 0))].slice(0, 10);
   const verifiedOfficialUrl = officialUrl && sourceUrls.some((url) => sameSourceDomain(url, officialUrl)) ? officialUrl : "";
   return { officialUrl: verifiedOfficialUrl, dossier: grounded.text, pages, sourceUrls };
 }
@@ -557,15 +569,64 @@ async function completeItem(admin: any, item: any, status: string, values: Recor
   await admin.rpc("refresh_data_cleaning_job", { _job_id: item.job_id });
 }
 
+function cleaningLifecycleUpdate(row: Record<string, unknown>, state: string, successful = false) {
+  return {
+    data_clean_attempts: Math.max(Number(row.data_clean_attempts || 0) + 1, 1),
+    data_clean_successes: Math.max(Number(row.data_clean_successes || 0) + (successful ? 1 : 0), 0),
+    data_last_checked_at: new Date().toISOString(),
+    data_clean_state: state,
+  };
+}
+
+async function markCleaningAttempt(admin: any, table: string, row: Record<string, unknown>, state: string) {
+  const { error } = await admin.from(table).update(cleaningLifecycleUpdate(row, state)).eq("id", row.id);
+  if (error) throw error;
+}
+
+async function markCleaningFailure(admin: any, table: string, row: Record<string, unknown>) {
+  const { error } = await admin.from(table).update({
+    data_clean_state: "failed",
+    data_last_checked_at: new Date().toISOString(),
+  }).eq("id", row.id);
+  if (error) throw error;
+}
+
+async function applyApprovedItem(admin: any, item: any) {
+  const table = TABLES[item.entity_type];
+  if (!table) throw new Error("Unsupported content type");
+  const { data: current, error: readError } = await admin
+    .from(table)
+    .select("data_clean_attempts,data_clean_successes")
+    .eq("id", item.entity_id)
+    .single();
+  if (readError) throw readError;
+  const now = new Date().toISOString();
+  const update = {
+    ...(item.proposed_data || {}),
+    data_verified_at: now,
+    data_source_urls: item.source_urls,
+    data_quality_score: Math.round(Number(item.confidence || 0) * 100),
+    data_clean_attempts: Math.max(Number(current?.data_clean_attempts || 0), Number(item.cleaning_pass || 1)),
+    data_clean_successes: Number(current?.data_clean_successes || 0) + 1,
+    data_last_checked_at: now,
+    data_clean_state: "cleaned",
+    updated_at: now,
+  };
+  const { error: applyError } = await admin.from(table).update(update).eq("id", item.entity_id);
+  if (applyError) throw applyError;
+}
+
 async function processItem(admin: any, config: BlogAiConfig, item: any) {
   await getAiRuntimeControl(admin, "data-cleaner");
   const table = TABLES[item.entity_type];
   if (!table) return completeItem(admin, item, "failed", { error_message: "Unsupported content type" });
   await admin.from("data_cleaning_jobs").update({ current_entity: item.entity_type, current_name: item.entity_name, message: `Verifying ${item.entity_name}`, updated_at: new Date().toISOString() }).eq("id", item.job_id);
+  let currentRow: Record<string, unknown> | null = null;
   try {
     const { data: row, error } = await admin.from(table).select("*").eq("id", item.entity_id).maybeSingle();
     if (error) throw error;
     if (!row) return completeItem(admin, item, "skipped", { error_message: "Record no longer exists" });
+    currentRow = row;
     const result = await researchWithAi(admin, config, item.entity_type, row);
     await logAiUsage(admin, {
       provider: result.provider || (String(result.model || "").startsWith("gemini") ? "gemini" : "anthropic"), model: result.model, feature: "data-cleaner", operation: item.entity_type,
@@ -577,13 +638,16 @@ async function processItem(admin: any, config: BlogAiConfig, item: any) {
     const verified = buildVerifiedUpdate(item.entity_type, row, result.parsed, result.citationUrls);
     const changedFields = Object.keys(verified.update).filter((field) => JSON.stringify(row[field]) !== JSON.stringify(verified.update[field]));
     if (!verified.sources.length || !changedFields.length) {
+      await markCleaningAttempt(admin, table, row, "checked_no_change");
       return completeItem(admin, item, "skipped", {
-        official_url: normalizeUrl(result.parsed.official_url) || verified.sources[0] || "", source_urls: verified.sources, confidence,
+        official_url: normalizeUrl(result.parsed.official_url) || verified.sources[0] || "",
+        source_urls: verified.sources,
+        confidence: verified.sources.length ? confidence : null,
         before_data: compactExisting(row, item.entity_type), proposed_data: verified.update, changed_fields: changedFields,
         warnings: verified.warnings,
         error_message: !verified.sources.length
-          ? "No usable cited source found - existing values preserved"
-          : "Sources were found, but no supported field produced a verified improvement",
+          ? "Research pass completed - no safe cited improvement was available"
+          : "Research pass completed - current values already match the supported evidence",
       });
     }
 
@@ -594,18 +658,30 @@ async function processItem(admin: any, config: BlogAiConfig, item: any) {
       before_data: compactExisting(row, item.entity_type), proposed_data: verified.update,
       changed_fields: changedFields, warnings: verified.warnings,
     };
-    if (job?.apply_mode !== "auto_apply") return completeItem(admin, item, "review", audit);
+    if (job?.apply_mode !== "auto_apply") {
+      await markCleaningAttempt(admin, table, row, "awaiting_review");
+      return completeItem(admin, item, "review", audit);
+    }
 
+    const now = new Date().toISOString();
     const update = {
       ...verified.update,
-      data_verified_at: new Date().toISOString(), data_source_urls: verified.sources,
-      data_quality_score: Math.round(confidence * 100), updated_at: new Date().toISOString(),
+      ...cleaningLifecycleUpdate(row, "cleaned", true),
+      data_verified_at: now,
+      data_source_urls: verified.sources,
+      data_quality_score: Math.round(confidence * 100),
+      updated_at: now,
     };
     const { error: updateError } = await admin.from(table).update(update).eq("id", item.entity_id);
     if (updateError) throw updateError;
     return completeItem(admin, item, "updated", audit);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    if (currentRow) {
+      await markCleaningFailure(admin, table, currentRow).catch((trackingError) =>
+        console.warn("[data-cleaner] failed to mark lifecycle state", trackingError)
+      );
+    }
     return completeItem(admin, item, item.attempt >= 3 ? "failed" : "failed", { error_message: message.slice(0, 1200) });
   }
 }
@@ -699,39 +775,39 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
     if (action === "retry_skipped") {
-      const { error: retryError } = await admin.from("data_cleaning_items").update({
-        status: "queued",
-        error_message: null,
-        completed_at: null,
-        started_at: null,
-        updated_at: new Date().toISOString(),
-      }).eq("job_id", body.job_id).eq("status", "skipped");
-      if (retryError) throw retryError;
-      const { error: jobError } = await admin.from("data_cleaning_jobs").update({
-        status: "running",
-        completed_at: null,
-        message: "Retrying previously skipped records with cited multi-source research",
-        updated_at: new Date().toISOString(),
-      }).eq("id", body.job_id);
-      if (jobError) throw jobError;
-      await admin.rpc("refresh_data_cleaning_job", { _job_id: body.job_id });
-      EdgeRuntime.waitUntil(processTick(admin, serviceRole, `${supabaseUrl}/functions/v1/admin-data-cleaner`).catch((error) => console.error("[data-cleaner] retry tick failed", error)));
-      return json({ success: true });
+      const { data: priorJob, error: priorError } = await admin
+        .from("data_cleaning_jobs")
+        .select("entity_types,batch_size,max_records,apply_mode")
+        .eq("id", body.job_id)
+        .single();
+      if (priorError) throw priorError;
+      const { data: nextJobId, error: nextJobError } = await admin.rpc("create_data_cleaning_job", {
+        _entity_types: priorJob.entity_types,
+        _batch_size: priorJob.batch_size,
+        _max_records: priorJob.max_records,
+        _apply_mode: priorJob.apply_mode,
+        _created_by: user.id,
+      });
+      if (nextJobError) throw nextJobError;
+      EdgeRuntime.waitUntil(processTick(admin, serviceRole, `${supabaseUrl}/functions/v1/admin-data-cleaner`).catch((error) => console.error("[data-cleaner] next pass tick failed", error)));
+      return json({ success: true, job_id: nextJobId, message: "Created the next incomplete cleaning pass" });
     }
     if (["approve", "reject"].includes(action)) {
       const { data: item, error } = await admin.from("data_cleaning_items").select("*").eq("id", body.item_id).single();
       if (error) throw error;
+      if (item.status !== "review") return json({ error: "This item is no longer awaiting review" }, 409);
       if (action === "reject") {
+        const table = TABLES[item.entity_type];
+        if (table) {
+          await admin.from(table).update({
+            data_clean_state: "review_rejected",
+            data_last_checked_at: new Date().toISOString(),
+          }).eq("id", item.entity_id);
+        }
         await completeItem(admin, item, "skipped", { error_message: "Rejected by administrator" });
         return json({ success: true });
       }
-      const table = TABLES[item.entity_type];
-      const update = {
-        ...(item.proposed_data || {}), data_verified_at: new Date().toISOString(), data_source_urls: item.source_urls,
-        data_quality_score: Math.round(Number(item.confidence || 0) * 100), updated_at: new Date().toISOString(),
-      };
-      const { error: applyError } = await admin.from(table).update(update).eq("id", item.entity_id);
-      if (applyError) throw applyError;
+      await applyApprovedItem(admin, item);
       await completeItem(admin, item, "updated", { error_message: null });
       return json({ success: true });
     }
@@ -742,11 +818,8 @@ Deno.serve(async (req) => {
       const failures: string[] = [];
       for (const item of reviewItems || []) {
         try {
-          const table = TABLES[item.entity_type];
-          if (!table || !item.source_urls?.length) continue;
-          const update = { ...(item.proposed_data || {}), data_verified_at: new Date().toISOString(), data_source_urls: item.source_urls, data_quality_score: Math.round(Number(item.confidence || 0) * 100), updated_at: new Date().toISOString() };
-          const { error: applyError } = await admin.from(table).update(update).eq("id", item.entity_id);
-          if (applyError) throw applyError;
+          if (!TABLES[item.entity_type] || !item.source_urls?.length) continue;
+          await applyApprovedItem(admin, item);
           await completeItem(admin, item, "updated", { error_message: null }); approved += 1;
         } catch (applyError) { failures.push(`${item.entity_name}: ${applyError instanceof Error ? applyError.message : String(applyError)}`); }
       }
