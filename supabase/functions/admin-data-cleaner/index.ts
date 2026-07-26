@@ -115,6 +115,12 @@ const RICH_TEXT_FIELDS = new Set([
   "center_content", "preparation_tips", "facilities_content", "rankings_content", "placement_content",
   "course_fee_content", "hostel_life", "scholarship_details", "application_process", "exam_pattern",
 ]);
+const GENERIC_COURSE_SOURCE_URLS = [
+  "https://www.ugc.gov.in/",
+  "https://www.aicte-india.org/",
+  "https://swayam.gov.in/",
+  "https://nptel.ac.in/",
+];
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -172,6 +178,17 @@ function collectCitationUrls(value: unknown, output = new Set<string>()): Set<st
     Object.entries(object).forEach(([key, item]) => { if (key !== "text") collectCitationUrls(item, output); });
   }
   return output;
+}
+
+function fallbackCourseSources(row: Record<string, unknown>) {
+  const name = cleanString(row.name || row.full_name || row.title || row.slug, 300).toLowerCase();
+  if (!name) return [] as string[];
+  const urls = new Set<string>(["https://www.ugc.gov.in/", "https://swayam.gov.in/"]);
+  if (/(engineering|technology|b\.?tech|m\.?tech|polytechnic|diploma|aerospace|computer|mechanical|civil|electrical|electronics|textile|petroleum|biomedical)/i.test(name)) {
+    urls.add("https://www.aicte-india.org/");
+    urls.add("https://nptel.ac.in/");
+  }
+  return [...urls];
 }
 
 function pageMatchesEntity(text: string, aliases: string[]) {
@@ -404,6 +421,10 @@ Every updated field must have field_evidence except SEO fields derived directly 
 
   if (provider === "gemini") {
     const model = runtime.model || "gemini-3.5-flash-lite";
+    if (!discoverySources.length && entityType === "courses") {
+      discoverySources = fallbackCourseSources(row);
+      researchDossier = `No course-specific URL was retrievable. Use only stable, non-sensitive course taxonomy and curriculum framing supported by Indian higher-education/regulator/open-learning sources: ${discoverySources.join(", ")}.`;
+    }
     if (!discoverySources.length) {
       return {
         parsed: {
@@ -425,13 +446,17 @@ Every updated field must have field_evidence except SEO fields derived directly 
       model,
       json: true,
       system: "You are a cited education data editor. Follow the evidence hierarchy, write original people-first content and return valid JSON only.",
-      prompt: `${prompt}\nGemini mode rule: use only the supplied grounded dossier and retrieved source material.`,
+      prompt: `${prompt}\nGemini mode rule: use only the supplied grounded dossier and retrieved source material. If the dossier says no course-specific URL was retrievable, update only non-sensitive generic course fields such as description, short_description, page_summary, about_content, scope_content, subjects_content, syllabus_content, meta_title, meta_description, meta_keywords, category, level, mode, study_type, subjects, careers and specializations. Do not update fees, salaries, growth, cutoffs, admission dates, media or official URLs from generic fallback sources.`,
     });
     return { parsed: await parseOrRepair({ ...config, textModel: model }, raw), citationUrls: [...new Set([seedUrl, ...discoverySources])], model, usage: {}, provider };
   }
 
   if (provider === "openai") {
     const model = runtime.model || "gpt-4o-mini";
+    if (!discoverySources.length && entityType === "courses") {
+      discoverySources = fallbackCourseSources(row);
+      researchDossier = `No course-specific URL was retrievable. Use only stable, non-sensitive course taxonomy and curriculum framing supported by Indian higher-education/regulator/open-learning sources: ${discoverySources.join(", ")}.`;
+    }
     if (!discoverySources.length) {
       return {
         parsed: {
@@ -459,7 +484,7 @@ Every updated field must have field_evidence except SEO fields derived directly 
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: "You are a cited education data editor. Follow the evidence hierarchy, write original people-first content and return valid JSON only." },
-          { role: "user", content: `${prompt}\nOpenAI mode rule: use only the supplied grounded dossier and retrieved source material.` },
+          { role: "user", content: `${prompt}\nOpenAI mode rule: use only the supplied grounded dossier and retrieved source material. If the dossier says no course-specific URL was retrievable, update only non-sensitive generic course fields such as description, short_description, page_summary, about_content, scope_content, subjects_content, syllabus_content, meta_title, meta_description, meta_keywords, category, level, mode, study_type, subjects, careers and specializations. Do not update fees, salaries, growth, cutoffs, admission dates, media or official URLs from generic fallback sources.` },
         ],
       }),
     });

@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from "fs";
 
 type ArticleRow = { id: string; slug: string; title: string; featured_image: string };
-type LegacyImage = { slug: string; url: string; image: string; title: string };
+type LegacyImage = { slug: string; legacy_url: string; live_url: string; image: string; title: string };
 
 const legacyOrigin = process.env.LEGACY_NEWS_ORIGIN || "https://dekhocampus.com";
+const liveOrigin = process.env.LIVE_NEWS_ORIGIN || "https://dekhocampus.in";
 const sitemapUrls = [
   `${legacyOrigin}/sitemap.xml`,
   `${legacyOrigin}/news-sitemap.xml`,
@@ -41,6 +42,15 @@ function articleSlugFromUrl(url: string) {
     const parsed = new URL(url);
     const parts = parsed.pathname.split("/").filter(Boolean);
     return slugify(parts[parts.length - 1] || "");
+  } catch {
+    return "";
+  }
+}
+
+function liveUrlForLegacyUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return new URL(parsed.pathname.replace(/\/+$/, "/"), liveOrigin).toString();
   } catch {
     return "";
   }
@@ -135,14 +145,14 @@ async function discoverLegacyArticleUrls() {
       // Some WordPress/Next exports do not expose every sitemap. The listing fallback below covers that.
     }
   }
-  if (discovered.size) return [...discovered];
 
-  for (let page = 1; page <= 120; page += 1) {
+  for (let page = 1; page <= 220; page += 1) {
     const url = page === 1 ? `${legacyOrigin}/news` : `${legacyOrigin}/news/page/${page}`;
     try {
       const html = await fetchText(url);
+      const before = discovered.size;
       urlsFromHtml(html, url).forEach((item) => discovered.add(item));
-      if (!/next|page\/\d+|pagination/i.test(html) && page > 1) break;
+      if (page > 1 && discovered.size === before && !/next|page\/\d+|pagination/i.test(html)) break;
     } catch {
       if (page > 1) break;
     }
@@ -188,6 +198,15 @@ async function loadArticles(baseUrl: string, key: string) {
   }
 }
 
+async function findArticleBySlug(baseUrl: string, key: string, slug: string) {
+  const data = await supabaseRequest<ArticleRow[]>(
+    baseUrl,
+    key,
+    `articles?select=id,slug,title,featured_image&slug=eq.${encodeURIComponent(slug)}&limit=1`,
+  );
+  return data?.[0] || null;
+}
+
 async function updateArticleImage(baseUrl: string, key: string, id: string, image: string) {
   const encodedId = encodeURIComponent(id);
   await supabaseRequest<null>(baseUrl, key, `articles?id=eq.${encodedId}`, {
@@ -200,8 +219,17 @@ async function updateArticleImage(baseUrl: string, key: string, id: string, imag
 async function main() {
   loadDotEnv();
   const supabaseUrl = env("SUPABASE_URL") || env("VITE_SUPABASE_URL");
-  const supabaseKey = env("SUPABASE_SERVICE_ROLE_KEY") || env("VITE_SUPABASE_PUBLISHABLE_KEY");
-  if (!supabaseUrl || !supabaseKey) throw new Error("Set SUPABASE_URL/VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_PUBLISHABLE_KEY");
+  const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY");
+  const publishableKey = env("SUPABASE_PUBLISHABLE_KEY") || env("SUPABASE_ANON_KEY") || env("VITE_SUPABASE_PUBLISHABLE_KEY");
+  const supabaseKey = dryRun ? (serviceKey || publishableKey) : serviceKey;
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(dryRun
+      ? "Set SUPABASE_URL/VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or a publishable key for dry-run."
+      : "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for write mode. Publishable keys are intentionally blocked for DB updates.");
+  }
+  if (!dryRun && /^sb_publishable_|^eyJ/i.test(supabaseKey)) {
+    throw new Error("Write mode requires SUPABASE_SERVICE_ROLE_KEY, not a publishable/anon key.");
+  }
 
   const rows = await loadArticles(supabaseUrl, supabaseKey);
   const bySlug = new Map(rows.map((row) => [row.slug, row]));
@@ -228,13 +256,13 @@ async function main() {
       const image = extractArticleImage(html, url);
       if (!image) { report.no_image += 1; continue; }
       const title = extractTitle(html);
-      const row = bySlug.get(slug) || byTitleSlug.get(slugify(title));
+      const row = bySlug.get(slug) || byTitleSlug.get(slugify(title)) || await findArticleBySlug(supabaseUrl, supabaseKey, slug);
       if (!row) {
         report.no_target += 1;
         report.debug?.no_target.push({ slug, title, url });
         continue;
       }
-      found.push({ slug: row.slug, url, image, title });
+      found.push({ slug: row.slug, legacy_url: url, live_url: liveUrlForLegacyUrl(url), image, title });
       report.matched += 1;
       if (!shouldUpdate(row)) { report.skipped_existing += 1; continue; }
       if (!dryRun) {

@@ -347,12 +347,12 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
           {/* Primary promise */}
           <div>
-            <h1 className="max-w-5xl text-[42px] font-black leading-[0.98] tracking-[-0.045em] text-foreground sm:text-[56px] md:text-[68px] lg:text-[86px]">
-              <span className="inline box-decoration-clone bg-[#d9edcd] px-1.5 text-[#111827]">
+            <h1 className="max-w-5xl text-[38px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[41px] sm:text-[56px] md:text-[68px] lg:text-[86px]">
+              <span className="inline whitespace-nowrap text-[#111827]">
                 Discover Your Ideal
               </span>
-              <span className="relative mt-2 block min-h-[1.05em] text-[#78aeca]">
-                  <span key={rotatingWords[headlineIndex]} className="absolute left-0 top-0 inline-block bg-[#d9edcd] px-1.5 text-[#78aeca]">
+              <span className="relative mt-1 block min-h-[1.05em] text-[#78aeca] sm:mt-2">
+                  <span key={rotatingWords[headlineIndex]} className="absolute left-0 top-0 inline-block text-[#78aeca]">
                     {rotatingWords[headlineIndex]}
                   </span>
                 <span className="invisible">{rotatingWords[0]}</span>

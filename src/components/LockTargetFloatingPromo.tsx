@@ -41,7 +41,7 @@ export function LockTargetFloatingPromo() {
 
   return (
     <div
-      className="fixed z-[49] left-3 md:left-5 bottom-20 md:bottom-24 w-[min(238px,calc(100vw-7.5rem))] animate-in slide-in-from-bottom-2 fade-in"
+      className="fixed z-[70] left-3 md:left-5 bottom-36 md:bottom-40 w-[min(238px,calc(100vw-7.5rem))] animate-in slide-in-from-bottom-2 fade-in"
       role="dialog"
       aria-label="Lock your dream college"
     >
