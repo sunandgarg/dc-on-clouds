@@ -79,7 +79,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const id = setInterval(() => setHeadlineIndex((i) => (i + 1) % 4), 2200);
+    const id = setInterval(() => setHeadlineIndex((i) => (i + 1) % 5), 2200);
     return () => clearInterval(id);
   }, []);
 
@@ -180,15 +180,14 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   };
 
   const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
-  const rotatingWords = ["Path", "College", "Course", "Career", "Exam"] as const;
-  const rotatingWordGradients = [
-    "from-sky-400 via-blue-600 to-orange-300",
-    "from-blue-500 via-sky-400 to-orange-400",
-    "from-orange-400 via-sky-400 to-blue-600",
-    "from-blue-500 via-orange-300 to-sky-500",
-    "from-orange-400 via-blue-500 to-sky-400",
+  const rotatingWords = [
+    { label: "Path", gradient: "from-primary via-blue-500 to-sky-300" },
+    { label: "College", gradient: "from-accent via-orange-400 to-amber-300" },
+    { label: "Course", gradient: "from-accent via-orange-400 to-amber-300" },
+    { label: "Career", gradient: "from-primary via-blue-500 to-sky-300" },
+    { label: "Exam", gradient: "from-primary via-blue-500 to-sky-300" },
   ] as const;
-  const rotatingWordGradient = rotatingWordGradients[headlineIndex % rotatingWordGradients.length];
+  const rotatingWord = rotatingWords[headlineIndex % rotatingWords.length];
 
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
@@ -309,11 +308,11 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                 style={{ overflowWrap: "normal", wordBreak: "normal" }}
               >
                 <span
-                  key={rotatingWords[headlineIndex]}
-                  className={`absolute left-0 top-0 inline-block animate-dc-word-land whitespace-nowrap bg-gradient-to-r ${rotatingWordGradient} bg-clip-text text-transparent`}
+                  key={rotatingWord.label}
+                  className={`absolute left-0 top-0 inline-block animate-dc-word-land whitespace-nowrap bg-gradient-to-r ${rotatingWord.gradient} bg-clip-text text-transparent drop-shadow-[0_12px_28px_rgba(37,99,235,0.08)]`}
                   style={{ overflowWrap: "normal", wordBreak: "normal" }}
                 >
-                  {rotatingWords[headlineIndex]}
+                  {rotatingWord.label}
                 </span>
                 <span className="invisible whitespace-nowrap">College</span>
               </span>
