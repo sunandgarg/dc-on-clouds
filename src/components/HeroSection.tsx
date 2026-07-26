@@ -15,12 +15,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useHeroSettings } from "@/hooks/useHeroSettings";
 import dcLogo from "@/assets/dc-logo-small.webp";
-import catCollege from "@/assets/cat-college-small.webp";
-import catCourse from "@/assets/cat-course-small.webp";
-import catExam from "@/assets/cat-exam-small.webp";
-import catApplication from "@/assets/cat-application-small.webp";
-import catReviews from "@/assets/cat-reviews-small.webp";
-import catNews from "@/assets/cat-news-small.webp";
+import catCollege from "@/assets/hero-colleges-attached.png";
+import catCourse from "@/assets/hero-courses-attached.png";
+import catExam from "@/assets/hero-exams-attached.png";
+import catApplication from "@/assets/hero-application-attached.png";
+import catReviews from "@/assets/hero-reviews-attached.png";
+import catNews from "@/assets/hero-news-attached.png";
 import { HeroCounsellingCard } from "@/components/HeroCounsellingCard";
 import { compactDisplayText, displayText } from "@/lib/displayText";
 
