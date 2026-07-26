@@ -47,6 +47,7 @@ type FuzzyDirectoryRow = {
   slug: string;
   subtitle?: string;
   image_url?: string;
+  logo_url?: string;
 };
 
 type FuzzySearchRpc = {
@@ -129,13 +130,29 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           p_limit: 10,
         });
         if (!fuzzyError && fuzzyData?.length) {
-          setDbResults(fuzzyData.map((item) => ({
+          let hydratedRows = fuzzyData;
+          const missingExamMedia = hydratedRows
+            .filter((item) => item.entity_type === "Exam" && !(item.logo_url || item.image_url))
+            .map((item) => item.slug);
+          if (missingExamMedia.length) {
+            const { data: examMedia } = await supabase
+              .from("exams")
+              .select("slug, logo, image")
+              .in("slug", missingExamMedia);
+            const mediaBySlug = new Map((examMedia || []).map((row) => [row.slug, row.logo || row.image || ""]));
+            hydratedRows = hydratedRows.map((item) =>
+              item.entity_type === "Exam" && !(item.logo_url || item.image_url)
+                ? { ...item, logo_url: mediaBySlug.get(item.slug) || "" }
+                : item
+            );
+          }
+          setDbResults(hydratedRows.map((item) => ({
             type: item.entity_type,
             name: compactDisplayText(item.name, "Untitled", 90),
             slug: item.slug,
             location: compactDisplayText(item.subtitle, "", 90),
             image: item.image_url || "",
-            logo: item.image_url || "",
+            logo: item.logo_url || item.image_url || "",
           })));
           return;
         }

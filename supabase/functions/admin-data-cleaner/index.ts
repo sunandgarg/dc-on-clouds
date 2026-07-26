@@ -417,6 +417,9 @@ Apply people-first AIO, AEO, SEO, GEO and LLMO optimization to every proposed te
 - Cover likely student questions naturally: what it is, who it is for, eligibility, admission/application, fees, syllabus, outcomes, dates and next steps when supported.
 - Write an accurate meta title (maximum 65 characters), meta description (maximum 170 characters) and useful semantic keywords without stuffing.
 - Avoid filler, promotional superlatives, repeated boilerplate, unsupported comparisons and awkward keyword repetition.
+- Make the descriptive copy feel at least 80% human-written: use natural sentence rhythm, varied openings, plain Indian-English phrasing and concrete wording.
+- Do not write robotic filler such as "typically includes the following", "offers various opportunities", "caters to", "covers the basics", "is designed for individuals seeking" or repetitive template transitions.
+- When existing content is thin, generic or duplicated, rewrite it into cleaner original prose instead of lightly paraphrasing the same structure.
 
 For media fields, remain official-only: return direct HTTPS links from the verified first-party website for logos, campus/content images, galleries and brochures/PDFs. Never use secondary-site images, Google Images, social media, stock photos, screenshots or generated images. Leave media unchanged when the official source does not expose a suitable asset.
 

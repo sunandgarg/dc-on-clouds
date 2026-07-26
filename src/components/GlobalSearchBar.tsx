@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BookOpen, BriefcaseBusiness, FileText, GraduationCap, Search, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { buildIlikeOr, buildSearchVariants } from "@/lib/fuzzySearch";
+import { compactDisplayText, displayText } from "@/lib/displayText";
 
 type DirectoryResult = {
   entity_type: "College" | "Course" | "Exam" | "Career";
@@ -10,6 +11,7 @@ type DirectoryResult = {
   slug: string;
   subtitle: string;
   image_url: string;
+  logo_url?: string;
   score?: number;
 };
 
@@ -65,19 +67,35 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
           p_limit: 10,
         });
         if (error) throw error;
-        if (requestId.current === currentRequest) setResults((data || []) as DirectoryResult[]);
+        let hydrated = (data || []) as DirectoryResult[];
+        const missingExamMedia = hydrated
+          .filter((item) => item.entity_type === "Exam" && !item.image_url)
+          .map((item) => item.slug);
+        if (missingExamMedia.length) {
+          const { data: examMedia } = await supabase
+            .from("exams")
+            .select("slug, logo, image")
+            .in("slug", missingExamMedia);
+          const mediaBySlug = new Map((examMedia || []).map((row) => [row.slug, row.logo || row.image || ""]));
+          hydrated = hydrated.map((item) =>
+            item.entity_type === "Exam" && !item.image_url
+              ? { ...item, image_url: mediaBySlug.get(item.slug) || "" }
+              : item
+          );
+        }
+        if (requestId.current === currentRequest) setResults(hydrated);
       } catch {
         // Safe fallback while the fuzzy-search migration is rolling out.
         const orFor = (column: string) => buildIlikeOr(column, variants);
         const [colleges, courses, exams] = await Promise.all([
           supabase.from("colleges").select("name,slug,city,logo").eq("is_active", true).or(orFor("name")).limit(3),
           supabase.from("courses").select("name,slug").eq("is_active", true).or(orFor("name")).limit(3),
-          supabase.from("exams").select("name,slug,logo").eq("is_active", true).or(orFor("name")).limit(2),
+          supabase.from("exams").select("name,slug,logo,image").eq("is_active", true).or(orFor("name")).limit(2),
         ]);
         const fallback: DirectoryResult[] = [
-          ...(colleges.data || []).map((row) => ({ entity_type: "College" as const, name: row.name, slug: row.slug, subtitle: row.city || "", image_url: row.logo || "" })),
-          ...(courses.data || []).map((row) => ({ entity_type: "Course" as const, name: row.name, slug: row.slug, subtitle: "", image_url: "" })),
-          ...(exams.data || []).map((row) => ({ entity_type: "Exam" as const, name: row.name, slug: row.slug, subtitle: "", image_url: row.logo || "" })),
+          ...(colleges.data || []).map((row) => ({ entity_type: "College" as const, name: compactDisplayText(row.name, "Untitled college", 90), slug: row.slug, subtitle: compactDisplayText(row.city || "", "", 60), image_url: row.logo || "" })),
+          ...(courses.data || []).map((row) => ({ entity_type: "Course" as const, name: compactDisplayText(row.name, "Untitled course", 90), slug: row.slug, subtitle: "", image_url: "" })),
+          ...(exams.data || []).map((row) => ({ entity_type: "Exam" as const, name: compactDisplayText(row.name, "Untitled exam", 90), slug: row.slug, subtitle: "", image_url: row.logo || row.image || "" })),
         ];
         if (requestId.current === currentRequest) setResults(fallback);
       } finally {
@@ -164,8 +182,8 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
                     {result.image_url ? <img src={result.image_url} alt="" className="h-full w-full object-cover" /> : <Icon className="h-4 w-4" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <strong className="block truncate text-sm text-foreground">{result.name}</strong>
-                    <span className="block truncate text-xs text-muted-foreground">{result.entity_type}{result.subtitle ? ` · ${result.subtitle}` : ""}</span>
+                    <strong className="block truncate text-sm text-foreground">{displayText(result.name, "Untitled")}</strong>
+                    <span className="block truncate text-xs text-muted-foreground">{result.entity_type}{result.subtitle ? ` · ${displayText(result.subtitle)}` : ""}</span>
                   </span>
                 </button>
               );

@@ -101,8 +101,8 @@ export default function AdminDataCleaner() {
   const [searchParams] = useSearchParams();
   const requestedTypes = (searchParams.get("types") || "").split(",").filter((id) => ENTITY_OPTIONS.some((option) => option.id === id));
   const [selectedTypes, setSelectedTypes] = useState<string[]>(requestedTypes.length ? requestedTypes : ["colleges"]);
-  const [batchSize, setBatchSize] = useState(5);
-  const [maxRecords, setMaxRecords] = useState(5);
+  const [batchSize, setBatchSize] = useState(50);
+  const [maxRecords, setMaxRecords] = useState(50);
   const [autoApply, setAutoApply] = useState(false);
   const [selectedJob, setSelectedJob] = useState<string>("");
   const [excludeType, setExcludeType] = useState("colleges");
@@ -359,7 +359,7 @@ export default function AdminDataCleaner() {
                 })}
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <div><Label>Queue batch size</Label><Input type="number" min={1} max={500} value={batchSize} onChange={(e) => setBatchSize(Math.max(1, Math.min(500, Number(e.target.value) || 1)))} /><p className="mt-1 text-[11px] text-muted-foreground">Recommended: 100</p></div>
+                <div><Label>Queue batch size</Label><Input type="number" min={1} max={500} value={batchSize} onChange={(e) => setBatchSize(Math.max(1, Math.min(500, Number(e.target.value) || 1)))} /><p className="mt-1 text-[11px] text-muted-foreground">Recommended: 50 for exams/courses, smaller for manual review-heavy runs</p></div>
                 <div><Label>Maximum records this run</Label><Input type="number" min={0} value={maxRecords} onChange={(e) => setMaxRecords(Math.max(0, Number(e.target.value) || 0))} /><p className="mt-1 text-[11px] text-muted-foreground">0 means all selected records</p></div>
                 <div className="rounded-2xl border p-3"><div className="flex items-center justify-between gap-3"><div><Label>Auto-apply verified changes</Label><p className="text-[11px] text-muted-foreground">Off keeps changes for review</p></div><Switch checked={autoApply} onCheckedChange={setAutoApply} /></div></div>
               </div>
@@ -367,7 +367,7 @@ export default function AdminDataCleaner() {
               <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-950">
                 <strong>Pass control:</strong> each run selects records with the fewest completed research passes. Pass 2 cannot begin for a content type until every eligible record has completed pass 1. “Checked” and “cleaned” are tracked separately.
               </div>
-              <p className="text-xs text-muted-foreground">The cleaner fills missing data and improves thin content using people-first SEO, answer extraction and generative-search clarity. Begin with 100 records in review mode before a large auto-apply run.</p>
+              <p className="text-xs text-muted-foreground">The cleaner fills missing data and improves thin content using people-first SEO, answer extraction, generative-search clarity and more natural humanized copy. Begin with 50 records in review mode before a large auto-apply run.</p>
             </CardContent>
           </Card>
 
