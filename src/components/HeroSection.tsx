@@ -6,21 +6,25 @@ import {
   GraduationCap,
   BookOpen,
   FileText,
-  ClipboardList,
-  Star,
   MapPin,
   ArrowRight,
   Search,
+  Laptop,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useHeroSettings } from "@/hooks/useHeroSettings";
 import dcLogo from "@/assets/dc-logo-small.webp";
-import studentGroup from "@/assets/north-indian-students-group.jpg";
+import catCollege from "@/assets/cat-college-small.webp";
+import catCourse from "@/assets/cat-course-small.webp";
+import catExam from "@/assets/cat-exam-small.webp";
+import catApplication from "@/assets/cat-application-small.webp";
+import catReviews from "@/assets/cat-reviews-small.webp";
+import catNews from "@/assets/cat-news-small.webp";
 import { HeroCounsellingCard } from "@/components/HeroCounsellingCard";
 import { compactDisplayText, displayText } from "@/lib/displayText";
-import { buildIlikeOr, buildSearchVariants } from "@/lib/fuzzySearch";
 
 const YEAR = new Date().getFullYear();
 const suggestedPrompts = [
@@ -30,8 +34,26 @@ const suggestedPrompts = [
   "Top MBA colleges after graduation?",
 ];
 
+const heroQuickLinks = [
+  { label: "Online Degrees", icon: Laptop, href: "#online-education-heading" },
+  { label: "Earn IIT/IIM/Dr. Tag", icon: Sparkles, href: "#trending-programs-heading" },
+  { label: "Study Abroad", icon: Globe, href: "#online-education-heading" },
+  { label: "Top Colleges", icon: GraduationCap, href: "/colleges" },
+  { label: "Courses", icon: BookOpen, href: "/courses" },
+  { label: "Exams", icon: FileText, href: "/exams" },
+] as const;
+
+const heroTiles = [
+  { label: "13,004+ Colleges", icon: catCollege, href: "/colleges", tone: "bg-rose-50 border-rose-100" },
+  { label: "840+ Courses", icon: catCourse, href: "/courses", tone: "bg-sky-50 border-sky-100" },
+  { label: "219+ Exams", icon: catExam, href: "/exams", tone: "bg-violet-50 border-violet-100" },
+  { label: "Application Form", icon: catApplication, href: "/colleges", tone: "bg-emerald-50 border-emerald-100" },
+  { label: "Review", icon: catReviews, href: "/articles", tone: "bg-amber-50 border-amber-100" },
+  { label: "News", icon: catNews, href: "/news", tone: "bg-cyan-50 border-cyan-100" },
+] as const;
+
 interface SearchResult {
-  type: "College" | "Course" | "Exam" | "Career" | "Faculty";
+  type: "College" | "Course" | "Exam";
   name: string;
   location: string;
   slug: string;
@@ -73,46 +95,45 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   }, []);
 
   useEffect(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = searchQuery.trim();
     const currentRequest = ++requestId.current;
     if (!q || q.length < 2) {
       setDbResults([]);
       return;
     }
 
-    const variants = buildSearchVariants(q).slice(0, q.length <= 2 ? 5 : 8);
-    const orFor = (col: string) => buildIlikeOr(col, variants);
-
     const timeout = setTimeout(async () => {
       try {
-        const [colleges, courses, exams, careers, faculty] = await Promise.all([
+        const searchPattern = `%${q.replace(/[%_]/g, "")}%`;
+        const [colleges, courses, exams] = await Promise.all([
           supabase
             .from("colleges")
             .select("name, slug, city, logo")
             .eq("is_active", true)
-            .or(orFor("name"))
-            .limit(4),
-          supabase.from("courses").select("name, slug, level, category, image").eq("is_active", true).or(orFor("name")).limit(4),
+            .ilike("name", searchPattern)
+            .limit(5),
+          supabase
+            .from("courses")
+            .select("name, slug, level, category, image")
+            .eq("is_active", true)
+            .ilike("name", searchPattern)
+            .limit(5),
           supabase
             .from("exams")
             .select("name, slug, image, logo, exam_type, category")
             .eq("is_active", true)
-            .or(orFor("name"))
-            .limit(3),
-          (supabase as any)
-            .from("career_profiles")
-            .select("name, slug, image, domain")
-            .eq("is_active", true)
-            .or(`${orFor("name")},${orFor("domain")}`)
-            .limit(3),
-          (supabase as any)
-            .from("faculty")
-            .select("name, photo, designation, college_slug")
-            .eq("is_active", true)
-            .or(`${orFor("name")},${orFor("designation")}`)
-            .limit(3),
+            .ilike("name", searchPattern)
+            .limit(5),
         ]);
         if (requestId.current !== currentRequest) return;
+
+        const rank = (name: string) => {
+          const value = name.toLowerCase();
+          const needle = q.toLowerCase();
+          if (value === needle) return 0;
+          if (value.startsWith(needle)) return 1;
+          return 2;
+        };
 
         const results: SearchResult[] = [
           ...(colleges.data || []).map((c) => ({
@@ -137,26 +158,12 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             image: e.image || "",
             logo: e.logo || "",
           })),
-          ...((careers.data as any[]) || []).map((c: any) => ({
-            type: "Career" as const,
-            name: compactDisplayText(c.name, "Untitled career", 90),
-            slug: c.slug,
-            location: compactDisplayText(c.domain, "", 60),
-            image: c.image || "",
-          })),
-          ...((faculty.data as any[]) || []).map((f: any) => ({
-            type: "Faculty" as const,
-            name: compactDisplayText(f.name, "Faculty", 90),
-            slug: f.college_slug,
-            location: compactDisplayText(f.designation, "", 60),
-            image: f.photo || "",
-          })),
-        ];
+        ].sort((a, b) => rank(a.name) - rank(b.name));
         setDbResults(results);
       } catch {
         /* skip */
       }
-    }, q.length <= 2 ? 360 : 260);
+    }, q.length <= 2 ? 220 : 160);
 
     return () => clearTimeout(timeout);
   }, [searchQuery]);
@@ -175,14 +182,17 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     const route =
       item.type === "College" ? `/colleges/${item.slug}` :
       item.type === "Course"  ? `/courses/${item.slug}`  :
-      item.type === "Exam"    ? `/exams/${item.slug}`    :
-      item.type === "Career"  ? `/careers/${item.slug}`  :
-      `/colleges/${item.slug}#faculty`;
+      `/exams/${item.slug}`;
     navigate(route);
   };
 
   const handleSuggestionClick = (prompt: string) => {
     if (onOpenChat) onOpenChat(prompt);
+  };
+
+  const handleHashLink = (href: string) => {
+    const element = document.getElementById(href.slice(1));
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
@@ -191,8 +201,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
     if (item.type === "Course") return BookOpen;
-    if (item.type === "Career") return Sparkles;
-    if (item.type === "Faculty") return Star;
     return FileText;
   };
 
@@ -202,9 +210,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     }
     if (item.type === "Exam" && (item.image || item.logo)) {
       return <img src={item.logo || item.image!} alt="" className="w-10 h-10 rounded-xl object-cover" />;
-    }
-    if ((item.type === "Career" || item.type === "Faculty") && item.image) {
-      return <img src={item.image} alt="" className="w-10 h-10 rounded-xl object-cover" />;
     }
     const Icon = getIcon(item);
     return (
@@ -430,35 +435,45 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
               ))}
               </div>
 
-          <div className="mt-5 hidden max-w-xl grid-cols-3 divide-x divide-border/70 rounded-2xl border border-white/80 bg-white/55 px-2 py-3 shadow-sm backdrop-blur-md md:grid">
-              {[
-                ["13K+", "Colleges"],
-                ["840+", "Courses"],
-                ["350+", "Exams"],
-              ].map(([value, label]) => (
-                <div key={label} className="px-2 text-center sm:px-4 sm:text-left">
-                  <strong className="block text-base font-black text-foreground sm:text-xl">{value}</strong>
-                  <span className="text-[10px] font-semibold text-muted-foreground sm:text-xs">{label}</span>
-                </div>
-              ))}
-          </div>
+          <nav className="mt-5 -mx-1 flex max-w-4xl gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide" aria-label="Hero quick links">
+            {heroQuickLinks.map(({ label, icon: Icon, href }) => {
+              const className = "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-[11px] font-bold text-slate-700 shadow-sm backdrop-blur-md transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary md:px-3.5 md:text-xs";
+              const content = (
+                <>
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </>
+              );
 
-          <div className="mt-4 flex items-center gap-3 text-xs font-semibold text-slate-600 sm:text-sm">
-            <div className="flex -space-x-2" aria-hidden="true">
-              {[12, 38, 62, 86].map((position, index) => (
-                <span
-                  key={position}
-                  className="h-8 w-8 rounded-full border-2 border-white bg-cover bg-center shadow-sm"
-                  style={{
-                    backgroundImage: `url(${studentGroup})`,
-                    backgroundPosition: `${position}% center`,
-                  }}
-                >
-                  <span className="sr-only">Student {index + 1}</span>
+              if (href.startsWith("#")) {
+                return (
+                  <button key={label} type="button" onClick={() => handleHashLink(href)} className={className}>
+                    {content}
+                  </button>
+                );
+              }
+
+              return (
+                <Link key={label} to={href} className={className}>
+                  {content}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-4 grid max-w-4xl grid-cols-3 gap-2 sm:grid-cols-6 md:gap-3">
+            {heroTiles.map((item) => (
+              <Link
+                key={item.label}
+                to={item.href}
+                className={`group flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-2xl border ${item.tone} px-2 py-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[112px] md:gap-2.5`}
+              >
+                <img src={item.icon} alt="" loading="eager" className="h-8 w-8 object-contain transition-transform group-hover:scale-105 md:h-11 md:w-11" />
+                <span className="max-w-[86px] text-[11px] font-extrabold leading-tight text-foreground md:text-xs">
+                  {item.label}
                 </span>
-              ))}
-            </div>
-            <span>Guided by real counsellors and alumni-backed insights</span>
+              </Link>
+            ))}
           </div>
         </div>
 
