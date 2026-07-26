@@ -179,15 +179,19 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     if (onOpenChat) onOpenChat(prompt);
   };
 
-  const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
-  const rotatingWords = [
-    { label: "Path", gradient: "from-primary via-blue-500 to-sky-300" },
-    { label: "College", gradient: "from-accent via-orange-400 to-amber-300" },
-    { label: "Course", gradient: "from-accent via-orange-400 to-amber-300" },
-    { label: "Career", gradient: "from-primary via-blue-500 to-sky-300" },
-    { label: "Exam", gradient: "from-primary via-blue-500 to-sky-300" },
-  ] as const;
-  const rotatingWord = rotatingWords[headlineIndex % rotatingWords.length];
+  const showDropdown =
+  isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
+
+const rotatingWords = [
+  { label: "Path", color: "text-primary" },      // Blue
+  { label: "College", color: "text-accent" },   // Orange
+  { label: "Course", color: "text-accent" },    // Orange
+  { label: "Career", color: "text-primary" },   // Blue
+  { label: "Exam", color: "text-primary" },     // Blue
+] as const;
+
+const rotatingWord =
+  rotatingWords[headlineIndex % rotatingWords.length];
 
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
