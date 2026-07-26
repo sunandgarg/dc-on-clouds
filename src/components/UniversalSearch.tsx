@@ -4,6 +4,7 @@ import { Search, GraduationCap, BookOpen, FileText, ClipboardList, Star, Newspap
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { buildSearchVariants, buildIlikeOr } from "@/lib/fuzzySearch";
+import { compactDisplayText, displayText } from "@/lib/displayText";
 
 const rotatingWords = ["College", "Course", "Exam"];
 
@@ -58,9 +59,9 @@ export function UniversalSearch({ onOpenChat }: UniversalSearchProps) {
         ]);
 
         const results: SearchResult[] = [
-          ...(colleges.data || []).map(c => ({ type: "College" as const, name: c.name, slug: c.slug, location: c.city || "", logo: c.logo || "" })),
-          ...(courses.data || []).map(c => ({ type: "Course" as const, name: c.name, slug: c.slug, location: "" })),
-          ...(exams.data || []).map(e => ({ type: "Exam" as const, name: e.name, slug: e.slug, location: "", logo: e.logo || "" })),
+          ...(colleges.data || []).map(c => ({ type: "College" as const, name: compactDisplayText(c.name, "Untitled college", 90), slug: c.slug, location: compactDisplayText(c.city, "", 60), logo: c.logo || "" })),
+          ...(courses.data || []).map(c => ({ type: "Course" as const, name: compactDisplayText(c.name, "Untitled course", 90), slug: c.slug, location: "" })),
+          ...(exams.data || []).map(e => ({ type: "Exam" as const, name: compactDisplayText(e.name, "Untitled exam", 90), slug: e.slug, location: "", logo: e.logo || "" })),
         ];
         setDbResults(results);
       } catch { /* skip */ }
@@ -169,14 +170,14 @@ export function UniversalSearch({ onOpenChat }: UniversalSearchProps) {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">{item.name}</p>
+                            <p className="font-medium text-foreground truncate">{displayText(item.name, "Untitled")}</p>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <span>{item.type}</span>
                               {item.location && (
                                 <>
                                   <span>•</span>
                                   <MapPin className="w-3 h-3" />
-                                  <span>{item.location}</span>
+                                  <span className="truncate">{displayText(item.location)}</span>
                                 </>
                               )}
                             </div>

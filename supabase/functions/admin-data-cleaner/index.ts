@@ -372,7 +372,12 @@ async function researchWithAi(admin: any, config: BlogAiConfig, entityType: stri
       discoverySources = [seedPage.url];
     }
   }
-  const allowedFields = ALLOWED_FIELDS[entityType] || [];
+  // Never ask the model for a field that does not exist in the current table.
+  // Several legacy entity schemas intentionally have no `official_website`
+  // column; proposing it caused the entire otherwise-valid update to fail.
+  const allowedFields = (ALLOWED_FIELDS[entityType] || []).filter((field) =>
+    Object.prototype.hasOwnProperty.call(row, field)
+  );
   const fieldTypeHints = Object.fromEntries(allowedFields.map((field) => {
     const current = row[field];
     const type = ARRAY_FIELDS.has(field)
@@ -617,10 +622,13 @@ function buildVerifiedUpdate(entityType: string, row: Record<string, unknown>, r
     : "";
   const officialHost = hostOf(officialUrl);
 
-  const allowed = new Set(ALLOWED_FIELDS[entityType] || []);
+  const allowed = new Set((ALLOWED_FIELDS[entityType] || []).filter((field) =>
+    Object.prototype.hasOwnProperty.call(row, field)
+  ));
   const evidence = research.field_evidence && typeof research.field_evidence === "object" ? research.field_evidence : {};
   const update: Record<string, unknown> = {};
   if (officialUrl && allowed.has("official_website")) update.official_website = officialUrl;
+  else if (officialUrl && allowed.has("website")) update.website = officialUrl;
   for (const [field, value] of Object.entries(research.updates || {})) {
     if (!allowed.has(field) || field === "official_website") continue;
     const fieldSources = Array.isArray(evidence[field])

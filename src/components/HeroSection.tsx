@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useHeroSettings } from "@/hooks/useHeroSettings";
 import dcLogo from "@/assets/dc-logo-small.webp";
 import { HeroCounsellingCard } from "@/components/HeroCounsellingCard";
+import { compactDisplayText, displayText } from "@/lib/displayText";
 
 const YEAR = new Date().getFullYear();
 const suggestedPrompts = [
@@ -130,9 +131,9 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
         if (!fuzzyError && fuzzyData?.length) {
           setDbResults(fuzzyData.map((item) => ({
             type: item.entity_type,
-            name: item.name,
+            name: compactDisplayText(item.name, "Untitled", 90),
             slug: item.slug,
-            location: item.subtitle || "",
+            location: compactDisplayText(item.subtitle, "", 90),
             image: item.image_url || "",
             logo: item.image_url || "",
           })));
@@ -170,15 +171,20 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
         const results: SearchResult[] = [
           ...(colleges.data || []).map((c) => ({
             type: "College" as const,
-            name: c.name,
+            name: compactDisplayText(c.name, "Untitled college", 90),
             slug: c.slug,
-            location: c.city || "",
+            location: compactDisplayText(c.city, "", 60),
             logo: c.logo || "",
           })),
-          ...(courses.data || []).map((c) => ({ type: "Course" as const, name: c.name, slug: c.slug, location: "" })),
+          ...(courses.data || []).map((c) => ({
+            type: "Course" as const,
+            name: compactDisplayText(c.name, "Untitled course", 90),
+            slug: c.slug,
+            location: "",
+          })),
           ...(exams.data || []).map((e) => ({
             type: "Exam" as const,
-            name: e.name,
+            name: compactDisplayText(e.name, "Untitled exam", 90),
             slug: e.slug,
             location: "",
             image: e.image || "",
@@ -186,16 +192,16 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           })),
           ...((careers.data as any[]) || []).map((c: any) => ({
             type: "Career" as const,
-            name: c.name,
+            name: compactDisplayText(c.name, "Untitled career", 90),
             slug: c.slug,
-            location: c.domain || "",
+            location: compactDisplayText(c.domain, "", 60),
             image: c.image || "",
           })),
           ...((faculty.data as any[]) || []).map((f: any) => ({
             type: "Faculty" as const,
-            name: f.name,
+            name: compactDisplayText(f.name, "Faculty", 90),
             slug: f.college_slug,
-            location: f.designation || "",
+            location: compactDisplayText(f.designation, "", 60),
             image: f.photo || "",
           })),
         ];
@@ -263,7 +269,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   return (
     <section
-      className="relative isolate overflow-visible bg-[linear-gradient(118deg,#fff7f1_0%,#f8fbff_48%,#eef5ff_100%)]"
+      className={`relative isolate overflow-visible bg-[linear-gradient(118deg,#fff7f1_0%,#f8fbff_48%,#eef5ff_100%)] ${showDropdown ? "z-[200]" : "z-0"}`}
       aria-label="Hero"
     >
       {/* Background - bold campus image at top, smoothly fading to background where search bar sits */}
@@ -413,7 +419,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
                 {/* Search Results Dropdown */}
                 {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-[160]">
+                  <div className="absolute top-full left-0 right-0 mt-2 max-h-[min(68vh,720px)] overflow-y-auto overscroll-contain bg-card border border-border rounded-2xl shadow-2xl z-[220]">
                     <div className="py-2">
                       {dbResults.map((item) => (
                         <button
@@ -423,14 +429,14 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                         >
                           {getThumb(item)}
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate text-sm">{item.name}</p>
+                            <p className="font-medium text-foreground truncate text-sm">{displayText(item.name, "Untitled")}</p>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <span>{item.type}</span>
                               {item.location && (
                                 <>
                                   <span>•</span>
                                   <MapPin className="w-3 h-3" />
-                                  <span>{item.location}</span>
+                                  <span className="truncate">{displayText(item.location)}</span>
                                 </>
                               )}
                             </div>

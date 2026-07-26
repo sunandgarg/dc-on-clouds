@@ -101,8 +101,8 @@ export default function AdminDataCleaner() {
   const [searchParams] = useSearchParams();
   const requestedTypes = (searchParams.get("types") || "").split(",").filter((id) => ENTITY_OPTIONS.some((option) => option.id === id));
   const [selectedTypes, setSelectedTypes] = useState<string[]>(requestedTypes.length ? requestedTypes : ["colleges"]);
-  const [batchSize, setBatchSize] = useState(100);
-  const [maxRecords, setMaxRecords] = useState(100);
+  const [batchSize, setBatchSize] = useState(5);
+  const [maxRecords, setMaxRecords] = useState(5);
   const [autoApply, setAutoApply] = useState(false);
   const [selectedJob, setSelectedJob] = useState<string>("");
   const [excludeType, setExcludeType] = useState("colleges");
@@ -121,8 +121,8 @@ export default function AdminDataCleaner() {
         feature: "data-cleaner",
         display_name: "Clean Data",
         is_enabled: true,
-        provider: "openai",
-        model: "gpt-4o-mini",
+        provider: "gemini",
+        model: "gemini-3.5-flash-lite",
       };
     },
   });
