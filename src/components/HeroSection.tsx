@@ -179,20 +179,19 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     if (onOpenChat) onOpenChat(prompt);
   };
 
-  const showDropdown =
+ const showDropdown =
   isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
 
 const rotatingWords = [
-  { label: "Path", color: "text-primary" },      // Blue
-  { label: "College", color: "text-accent" },   // Orange
-  { label: "Course", color: "text-accent" },    // Orange
-  { label: "Career", color: "text-primary" },   // Blue
-  { label: "Exam", color: "text-primary" },     // Blue
+  { label: "Path", gradient: "from-[#2563EB] to-[#2563EB]" },
+  { label: "College", gradient: "from-[#FF6C32] to-[#FF6C32]" },
+  { label: "Course", gradient: "from-[#FF6C32] to-[#FF6C32]" },
+  { label: "Career", gradient: "from-[#2563EB] to-[#2563EB]" },
+  { label: "Exam", gradient: "from-[#2563EB] to-[#2563EB]" },
 ] as const;
 
 const rotatingWord =
   rotatingWords[headlineIndex % rotatingWords.length];
-
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
     if (item.type === "Course") return BookOpen;
