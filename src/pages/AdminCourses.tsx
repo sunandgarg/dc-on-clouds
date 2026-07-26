@@ -7,6 +7,7 @@ import { RowDataIO } from "@/components/admin/RowDataIO";
 import { useAllDbCourses, useSaveCourse, useDeleteCourse, type DbCourse } from "@/hooks/useCoursesData";
 import { AdminFormSection } from "@/components/AdminFormSection";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { compactDisplayText } from "@/lib/displayText";
 import { PageSummaryField } from "@/components/admin/PageSummaryField";
 import { ArrayFieldEditor } from "@/components/ArrayFieldEditor";
 import { EntitySlugMultiSearch } from "@/components/admin/EntitySlugMultiSearch";
@@ -177,8 +178,8 @@ export default function AdminCourses() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-foreground text-sm">{c.name}</span>
-                  <Badge variant="outline" className="text-[10px]">{c.category}</Badge>
-                  <Badge variant="outline" className="text-[10px]">{c.level}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{compactDisplayText(c.category, "General", 28)}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{compactDisplayText(c.level, "Course", 28)}</Badge>
                   <Badge variant={c.status === "Published" ? "default" : "secondary"} className="text-[10px]">{c.status}</Badge>
                   <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">⭐ P {(c as any).priority ?? 50}</Badge>
                 </div>

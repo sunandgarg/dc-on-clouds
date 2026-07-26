@@ -10,4 +10,4 @@ export const normalizeIndianMobileForSave = (raw: string): string => normalizeIn
 
 export const isValidIndianMobile = (raw: string): boolean => /^\d{10}$/.test(normalizeIndianMobile(raw));
 
-export const isStrictIndianMobile = (raw: string): boolean => isValidIndianMobile(raw);
+export const isStrictIndianMobile = (raw: string): boolean => /^[6-9]\d{9}$/.test(normalizeIndianMobile(raw));

@@ -7,6 +7,7 @@ import { RowDataIO } from "@/components/admin/RowDataIO";
 import { useAllDbExams, useSaveExam, useDeleteExam, type DbExam, type ExamImportantDate } from "@/hooks/useExamsData";
 import { AdminFormSection } from "@/components/AdminFormSection";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { compactDisplayText } from "@/lib/displayText";
 import { PageSummaryField } from "@/components/admin/PageSummaryField";
 import { ArrayFieldEditor } from "@/components/ArrayFieldEditor";
 import { EntitySlugMultiSearch } from "@/components/admin/EntitySlugMultiSearch";
@@ -209,8 +210,8 @@ export default function AdminExams() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-foreground text-sm">{e.name}</span>
-                  <Badge variant="outline" className="text-[10px]">{e.category}</Badge>
-                  <Badge variant="outline" className="text-[10px]">{e.level}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{compactDisplayText(e.category, "General", 28)}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{compactDisplayText(e.level, "Exam", 28)}</Badge>
                   <Badge variant={e.status === "Applications Open" ? "default" : "secondary"} className="text-[10px]">{e.status}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{e.full_name} • {e.exam_date}</p>

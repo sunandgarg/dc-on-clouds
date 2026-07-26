@@ -79,7 +79,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const id = setInterval(() => setHeadlineIndex((i) => (i + 1) % 4), 2300);
+    const id = setInterval(() => setHeadlineIndex((i) => (i + 1) % 4), 2200);
     return () => clearInterval(id);
   }, []);
 
@@ -233,7 +233,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   };
 
   const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
-  const rotatingWords = ["Future", "Career", "College", "Path"] as const;
+  const rotatingWords = ["Path", "College", "Course", "Career"] as const;
 
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
@@ -347,15 +347,25 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
           {/* Primary promise */}
           <div>
-            <h1 className="max-w-5xl text-[38px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[41px] sm:text-[56px] md:text-[68px] lg:text-[86px]">
-              <span className="inline whitespace-nowrap text-[#111827]">
-                Discover Your Ideal
+            <h1
+              className="max-w-5xl select-none text-[36px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[39px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
+              style={{ overflowWrap: "normal", wordBreak: "normal" }}
+            >
+              <span className="inline text-[#111827]" style={{ overflowWrap: "normal", wordBreak: "normal" }}>
+                Discover Your Ideal{" "}
               </span>
-              <span className="relative mt-1 block min-h-[1.05em] text-[#78aeca] sm:mt-2">
-                  <span key={rotatingWords[headlineIndex]} className="absolute left-0 top-0 inline-block text-[#78aeca]">
-                    {rotatingWords[headlineIndex]}
-                  </span>
-                <span className="invisible">{rotatingWords[0]}</span>
+              <span
+                className="relative inline-flex min-w-[3.5em] overflow-visible align-baseline text-[#78aeca]"
+                style={{ overflowWrap: "normal", wordBreak: "normal" }}
+              >
+                <span
+                  key={rotatingWords[headlineIndex]}
+                  className="absolute left-0 top-0 inline-block animate-dc-word-land whitespace-nowrap text-[#78aeca]"
+                  style={{ overflowWrap: "normal", wordBreak: "normal" }}
+                >
+                  {rotatingWords[headlineIndex]}
+                </span>
+                <span className="invisible whitespace-nowrap">College</span>
               </span>
             </h1>
             <p className="mt-5 max-w-2xl text-sm font-medium leading-6 text-slate-600 sm:text-base md:text-lg md:leading-8">

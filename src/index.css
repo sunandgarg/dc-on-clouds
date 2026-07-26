@@ -536,6 +536,28 @@
   .text-title {
     @apply text-xl sm:text-2xl;
   }
+
+  .animate-dc-word-land {
+    animation: dc-word-land 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes dc-word-land {
+  0% {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.96);
+    filter: blur(7px);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-0.03em) scale(1.01);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 /* Global mobile overflow guard - prevents stray wide elements from breaking layout */

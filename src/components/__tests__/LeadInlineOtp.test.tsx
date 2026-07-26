@@ -46,7 +46,7 @@ describe("useInlineOtp phone corrections", () => {
     const { rerender } = render(<OtpHarness phone="9876543210" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "OTP sent" })).toBeDisabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "45s" })).toBeDisabled());
     expect(screen.getByPlaceholderText("Enter 6-digit OTP sent via SMS")).toBeInTheDocument();
 
     rerender(<OtpHarness phone="9876543211" />);

@@ -135,6 +135,7 @@ export function MegaMenu() {
   const sections: Section[] = [
     {
       label: "Colleges",
+      href: "/colleges",
       columns: [
         { title: "By Stream", items: (STREAM_CATEGORIES as readonly any[]).slice(0, 8).map((s: any) => ({ label: s.label, href: `/colleges?stream=${encodeURIComponent(s.id)}` })).concat([{ label: "All colleges →", href: "/colleges" }]) },
         { title: "By Type", items: [
@@ -149,6 +150,7 @@ export function MegaMenu() {
     },
     {
       label: "Courses",
+      href: "/courses",
       columns: [
         { title: "By Level", items: [
           { label: "Undergraduate (UG)", href: "/courses?level=Undergraduate" },
@@ -167,6 +169,7 @@ export function MegaMenu() {
     },
     {
       label: "Exams",
+      href: "/exams",
       columns: [
         { title: "Top Exams", items: (data?.exams || []).filter((e: any) => e.is_top_exam).slice(0, 7).map((e: any) => ({ label: e.name, href: `/exams/${e.slug}` })).concat([{ label: "All exams →", href: "/exams" }]) },
         { title: "By Stream", items: STREAMS.filter((s) => s.exam).map((s) => ({ label: `${s.exam} (${s.key})`, href: `/exams?category=${encodeURIComponent(s.key)}` })) },

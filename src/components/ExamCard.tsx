@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { DbExam } from "@/hooks/useExamsData";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { buildExamHref } from "@/lib/entityUrls";
+import { compactDisplayText, displayText } from "@/lib/displayText";
 
 interface ExamCardProps {
   exam: DbExam;
@@ -23,6 +24,14 @@ export function ExamCard({ exam, index }: ExamCardProps) {
   const importantDates = Array.isArray(exam.important_dates)
     ? (exam.important_dates as { event: string; date: string }[])
     : [];
+  const examName = displayText(exam.name, "Exam");
+  const fullName = displayText(exam.full_name);
+  const category = compactDisplayText(exam.category, "General", 28);
+  const level = compactDisplayText(exam.level, "Exam", 22);
+  const duration = compactDisplayText(exam.duration, "-", 18);
+  const mode = compactDisplayText(exam.mode, "-", 24);
+  const examType = compactDisplayText(exam.exam_type, "-", 22);
+  const language = compactDisplayText(exam.language, "-", 22);
 
   return (
     <motion.div
@@ -41,7 +50,7 @@ export function ExamCard({ exam, index }: ExamCardProps) {
             {exam.image || exam.logo ? (
               <img
                 src={exam.image || exam.logo}
-                alt={exam.name}
+                alt={examName}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 loading="lazy"
               />
@@ -54,8 +63,8 @@ export function ExamCard({ exam, index }: ExamCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <Link to={buildExamHref(exam)} className="block group min-w-0">
-                <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">{exam.name}</h2>
-                <p className="text-sm text-muted-foreground line-clamp-1">{exam.full_name}</p>
+                <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">{examName}</h2>
+                {fullName && fullName !== examName && <p className="text-sm text-muted-foreground line-clamp-1">{fullName}</p>}
               </Link>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 <Badge className={`text-xs border ${statusColors[exam.status] || ""}`}>
@@ -70,9 +79,9 @@ export function ExamCard({ exam, index }: ExamCardProps) {
         {/* Category & Level */}
         <div className="flex items-center justify-between mb-4">
           <Badge variant="outline" className="text-xs text-success border-success/30 bg-success/5 font-semibold">
-            {exam.category}
+            {category}
           </Badge>
-          <span className="text-xs font-medium text-muted-foreground">{exam.level} Level</span>
+          <span className="text-xs font-medium text-muted-foreground">{level} Level</span>
         </div>
 
         {/* Details Grid */}
@@ -81,28 +90,28 @@ export function ExamCard({ exam, index }: ExamCardProps) {
             <Clock className="w-4 h-4 text-muted-foreground" />
             <div>
               <span className="text-xs text-muted-foreground">Duration: </span>
-              <span className="text-xs font-medium text-foreground">{exam.duration}</span>
+              <span className="text-xs font-medium text-foreground">{duration}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-muted-foreground" />
             <div>
               <span className="text-xs text-muted-foreground">Mode: </span>
-              <span className="text-xs font-medium text-foreground">{exam.mode.split(" ")[0]}</span>
+              <span className="text-xs font-medium text-foreground">{mode.split(" ")[0]}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-muted-foreground" />
             <div>
               <span className="text-xs text-muted-foreground">Type: </span>
-              <span className="text-xs font-medium text-foreground">{exam.exam_type}</span>
+              <span className="text-xs font-medium text-foreground">{examType}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Languages className="w-4 h-4 text-muted-foreground" />
             <div>
               <span className="text-xs text-muted-foreground">Language: </span>
-              <span className="text-xs font-medium text-foreground">{exam.language}</span>
+              <span className="text-xs font-medium text-foreground">{language}</span>
             </div>
           </div>
         </div>

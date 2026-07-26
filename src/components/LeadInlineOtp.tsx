@@ -215,7 +215,7 @@ export function useInlineOtp(phone: string, formKey: string) {
     <Button
       type="button"
       onClick={() => sendOtp()}
-      disabled={sending || !phoneOk || verified || requested}
+      disabled={sending || !phoneOk || verified || cooldown > 0}
       className="flex-shrink-0 h-10 rounded-xl px-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
     >
       {sending ? (
@@ -226,7 +226,7 @@ export function useInlineOtp(phone: string, formKey: string) {
         <Send className="w-4 h-4" />
       )}
       <span className="text-sm font-medium">
-        {verified ? "Verified" : sending ? "Sending" : requested ? "OTP sent" : "Get OTP"}
+        {verified ? "Verified" : sending ? "Sending" : cooldown > 0 ? `${cooldown}s` : requested ? "Resend OTP" : "Get OTP"}
       </span>
     </Button>
   );
@@ -264,7 +264,7 @@ export function useInlineOtp(phone: string, formKey: string) {
         <p className={`text-[11px] leading-tight ${missing ? "text-destructive font-medium" : "text-muted-foreground"}`}>
           {missing
             ? "Please verify your OTP before submitting"
-            : `Sent to +91 ${requestedPhone.slice(0, 5)}*****. Wrong number? Edit it above.`}
+            : `Sent to +91 ${requestedPhone.slice(0, 5)}*****. Wrong number? Edit the mobile number above, then tap Get OTP again.`}
         </p>
         {cooldown > 0 ? (
           <span className="text-[11px] text-muted-foreground">Resend options in {cooldown}s</span>
