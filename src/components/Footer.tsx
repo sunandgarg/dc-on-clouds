@@ -30,9 +30,11 @@ const footerLinks = {
     { label: "Contact", href: "#" },
   ],
   legal: [
+    { label: "Disclaimer", href: "/legal/disclaimer" },
     { label: "Privacy Policy", href: "/legal/privacy-policy" },
-    { label: "Terms of Service", href: "/legal/terms-of-service" },
-    { label: "Refund & Payment", href: "/legal/refund-policy" },
+    { label: "Terms & Conditions", href: "/legal/terms-of-service" },
+    { label: "Data Protection", href: "/legal/data-protection-policy" },
+    { label: "Editorial Policy", href: "/legal/editorial-policy" },
     { label: "Cookie Policy", href: "/legal/cookie-policy" },
     { label: "Accessibility", href: "/legal/accessibility" },
   ],
@@ -96,15 +98,15 @@ export function Footer() {
             </p>
             <div className="space-y-3 text-sm text-background/70">
               <a
-                href="mailto:hello@dekhocampus.com"
+                href="mailto:outreach@dekhocampus.com"
                 className="flex items-center gap-2 hover:text-accent transition-colors"
               >
                 <Mail className="w-4 h-4" />
-                <span>hello@dekhocampus.com</span>
+                <span>outreach@dekhocampus.com</span>
               </a>
-              <a href="tel:+919876543210" className="flex items-center gap-2 hover:text-accent transition-colors">
+              <a href="tel:+919990109797" className="flex items-center gap-2 hover:text-accent transition-colors">
                 <Phone className="w-4 h-4" />
-                <span>+91 98765 43210</span>
+                <span>+91-9990109797</span>
               </a>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />

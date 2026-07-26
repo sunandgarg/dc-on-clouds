@@ -180,7 +180,15 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   };
 
   const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
-  const rotatingWords = ["Path", "College", "Course", "Career"] as const;
+  const rotatingWords = ["Path", "College", "Course", "Career", "Exam"] as const;
+  const rotatingWordGradients = [
+    "from-sky-400 via-blue-600 to-orange-300",
+    "from-blue-500 via-sky-400 to-orange-400",
+    "from-orange-400 via-sky-400 to-blue-600",
+    "from-blue-500 via-orange-300 to-sky-500",
+    "from-orange-400 via-blue-500 to-sky-400",
+  ] as const;
+  const rotatingWordGradient = rotatingWordGradients[headlineIndex % rotatingWordGradients.length];
 
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
@@ -297,12 +305,12 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                 Discover Your Ideal{" "}
               </span>
               <span
-                className="relative inline-flex min-w-[3.5em] overflow-visible align-baseline text-[#78aeca]"
+                className="relative inline-flex min-w-[3.5em] overflow-visible align-baseline"
                 style={{ overflowWrap: "normal", wordBreak: "normal" }}
               >
                 <span
                   key={rotatingWords[headlineIndex]}
-                  className="absolute left-0 top-0 inline-block animate-dc-word-land whitespace-nowrap text-[#78aeca]"
+                  className={`absolute left-0 top-0 inline-block animate-dc-word-land whitespace-nowrap bg-gradient-to-r ${rotatingWordGradient} bg-clip-text text-transparent`}
                   style={{ overflowWrap: "normal", wordBreak: "normal" }}
                 >
                   {rotatingWords[headlineIndex]}
@@ -419,14 +427,14 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
               ))}
               </div>
 
-          <div className="mt-5 grid max-w-4xl grid-cols-3 gap-2 sm:grid-cols-6 md:gap-3">
+          <div className="-mx-4 mt-5 flex max-w-[calc(100vw-2rem)] snap-x gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:mx-0 sm:grid sm:max-w-4xl sm:grid-cols-6 sm:gap-2 sm:overflow-visible sm:px-0 sm:pb-0 sm:[scrollbar-width:auto] md:gap-3">
             {heroTiles.map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
-                className={`group flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-2xl border ${item.tone} px-2 py-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[112px] md:gap-2.5`}
+                className={`group flex min-h-[92px] w-[132px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl border ${item.tone} px-2 py-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:w-auto sm:shrink md:min-h-[112px] md:gap-2.5`}
               >
-                <img src={item.icon} alt="" loading="eager" className="h-8 w-8 object-contain transition-transform group-hover:scale-105 md:h-11 md:w-11" />
+                <img src={item.icon} alt="" loading="eager" decoding="async" width={44} height={44} className="h-8 w-8 object-contain transition-transform group-hover:scale-105 md:h-11 md:w-11" />
                 <span className="max-w-[86px] text-[11px] font-extrabold leading-tight text-foreground md:text-xs">
                   {item.label}
                 </span>

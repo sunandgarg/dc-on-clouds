@@ -9,7 +9,7 @@ import { useSiteIntegration } from "@/hooks/useSiteIntegration";
  */
 export function NewsCallButton() {
   const { data: phone } = useSiteIntegration("news_call_phone");
-  const number = (phone || "919990109393").replace(/\D/g, "");
+  const number = (phone || "919990109797").replace(/\D/g, "");
   if (!number) return null;
   return (
     <a

@@ -177,7 +177,7 @@ export function Navbar() {
           </div>
         </div>
 
-        {!pathname.startsWith("/admin") && !pathname.startsWith("/auth") && (
+        {pathname !== "/" && !pathname.startsWith("/admin") && !pathname.startsWith("/auth") && (
           <div className="border-t border-border/70 bg-white/95 px-3 py-2 backdrop-blur-xl">
             <div className="container px-0">
               <GlobalSearchBar variant="header" />

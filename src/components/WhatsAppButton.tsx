@@ -3,7 +3,7 @@ import { useSiteIntegration } from "@/hooks/useSiteIntegration";
 export function WhatsAppButton() {
   const { data: phone } = useSiteIntegration("whatsapp_phone");
   const { data: message } = useSiteIntegration("whatsapp_message");
-  const number = (phone || "919990109393").replace(/\D/g, "");
+  const number = (phone || "919990109797").replace(/\D/g, "");
   const text = encodeURIComponent(message || "Hi DekhoCampus, I need help with college admissions");
   const href = `https://api.whatsapp.com/send/?phone=${number}&text=${text}&type=phone_number&app_absent=0`;
   return (

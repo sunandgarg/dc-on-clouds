@@ -2,7 +2,7 @@ export const SITE_CONFIG = {
   name: "DekhoCampus",
   domain: "www.dekhocampus.in",
   scheme: "https",
-  supportEmail: "hello@dekhocampus.com",
+  supportEmail: "outreach@dekhocampus.com",
   searchPath: "/search",
   ogImagePath: "/og-image.jpg",
   logoPath: "/logo.png",
