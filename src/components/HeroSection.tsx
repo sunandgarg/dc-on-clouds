@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Send,
   Sparkles,
@@ -17,8 +17,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useHeroSettings } from "@/hooks/useHeroSettings";
 import dcLogo from "@/assets/dc-logo-small.webp";
+import studentGroup from "@/assets/north-indian-students-group.jpg";
 import { HeroCounsellingCard } from "@/components/HeroCounsellingCard";
 import { compactDisplayText, displayText } from "@/lib/displayText";
+import { buildIlikeOr, buildSearchVariants } from "@/lib/fuzzySearch";
 
 const YEAR = new Date().getFullYear();
 const suggestedPrompts = [
@@ -62,6 +64,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [dbResults, setDbResults] = useState<SearchResult[]>([]);
   const [headlineIndex, setHeadlineIndex] = useState(0);
+  const requestId = useRef(0);
   const navigate = useNavigate();
 
   const [bgIndex, setBgIndex] = useState(0);
@@ -87,48 +90,22 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   useEffect(() => {
     const q = searchQuery.trim().toLowerCase();
+    const currentRequest = ++requestId.current;
     if (!q || q.length < 2) {
       setDbResults([]);
       return;
     }
 
-    // Fuzzy variants: handle dots/spaces (b.tech ↔ btech ↔ b tech),
-    // common abbreviations and PG/UG prefixes.
-    const buildVariants = (s: string) => {
-      const norm = s.replace(/\s+/g, " ").trim();
-      const noDot = norm.replace(/\./g, "");
-      const noPunct = noDot.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-      const compact = noPunct.replace(/\s+/g, "");
-      const spaced = noDot.replace(/([a-z])\.?(tech|com|sc|ed|ca|pharm|arch|des|ba|ma|phil|phd)\b/gi, "$1 $2");
-      const dotted = compact.replace(/^(b|m)(tech|com|sc|ed|ca|pharm|arch|des|ba|ma|phil|phd)/i, "$1.$2");
-      const synonyms: Record<string, string[]> = {
-        btech: ["b.tech", "bachelor of technology", "be"],
-        mtech: ["m.tech", "master of technology"],
-        bsc: ["b.sc", "bachelor of science"],
-        msc: ["m.sc", "master of science"],
-        ba: ["b.a", "bachelor of arts"],
-        ma: ["m.a", "master of arts"],
-        mba: ["master of business"],
-        bba: ["bachelor of business"],
-        bcom: ["b.com", "bachelor of commerce"],
-        mcom: ["m.com", "master of commerce"],
-        bca: ["b.c.a", "bachelor of computer"],
-        mca: ["m.c.a", "master of computer"],
-      };
-      const extras = synonyms[compact.toLowerCase()] || [];
-      return Array.from(new Set([norm, noDot, noPunct, compact, spaced, dotted, ...extras].filter(v => v && v.length >= 2)));
-    };
-
-    const variants = buildVariants(q);
-    const orFor = (col: string) =>
-      variants.map(v => `${col}.ilike.%${v.replace(/[%,()]/g, "")}%`).join(",");
+    const variants = buildSearchVariants(q).slice(0, q.length <= 2 ? 5 : 8);
+    const orFor = (col: string) => buildIlikeOr(col, variants);
 
     const timeout = setTimeout(async () => {
       try {
         const { data: fuzzyData, error: fuzzyError } = await (supabase as unknown as FuzzySearchRpc).rpc("search_directory_fuzzy", {
-          p_terms: variants.slice(0, 10),
-          p_limit: 10,
+          p_terms: variants,
+          p_limit: q.length <= 2 ? 6 : 8,
         });
+        if (requestId.current !== currentRequest) return;
         if (!fuzzyError && fuzzyData?.length) {
           let hydratedRows = fuzzyData;
           const missingExamMedia = hydratedRows
@@ -143,9 +120,10 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             hydratedRows = hydratedRows.map((item) =>
               item.entity_type === "Exam" && !(item.logo_url || item.image_url)
                 ? { ...item, logo_url: mediaBySlug.get(item.slug) || "" }
-                : item
+              : item
             );
           }
+          if (requestId.current !== currentRequest) return;
           setDbResults(hydratedRows.map((item) => ({
             type: item.entity_type,
             name: compactDisplayText(item.name, "Untitled", 90),
@@ -184,6 +162,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             .or(`${orFor("name")},${orFor("designation")}`)
             .limit(3),
         ]);
+        if (requestId.current !== currentRequest) return;
 
         const results: SearchResult[] = [
           ...(colleges.data || []).map((c) => ({
@@ -226,7 +205,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
       } catch {
         /* skip */
       }
-    }, 200);
+    }, q.length <= 2 ? 360 : 260);
 
     return () => clearTimeout(timeout);
   }, [searchQuery]);
@@ -500,7 +479,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
               ))}
               </div>
 
-            <div className="mt-5 hidden max-w-xl grid-cols-3 divide-x divide-border/70 rounded-2xl border border-white/80 bg-white/55 px-2 py-3 shadow-sm backdrop-blur-md md:grid">
+          <div className="mt-5 hidden max-w-xl grid-cols-3 divide-x divide-border/70 rounded-2xl border border-white/80 bg-white/55 px-2 py-3 shadow-sm backdrop-blur-md md:grid">
               {[
                 ["13K+", "Colleges"],
                 ["840+", "Courses"],
@@ -511,8 +490,26 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                   <span className="text-[10px] font-semibold text-muted-foreground sm:text-xs">{label}</span>
                 </div>
               ))}
-            </div>
           </div>
+
+          <div className="mt-4 flex items-center gap-3 text-xs font-semibold text-slate-600 sm:text-sm">
+            <div className="flex -space-x-2" aria-hidden="true">
+              {[12, 38, 62, 86].map((position, index) => (
+                <span
+                  key={position}
+                  className="h-8 w-8 rounded-full border-2 border-white bg-cover bg-center shadow-sm"
+                  style={{
+                    backgroundImage: `url(${studentGroup})`,
+                    backgroundPosition: `${position}% center`,
+                  }}
+                >
+                  <span className="sr-only">Student {index + 1}</span>
+                </span>
+              ))}
+            </div>
+            <span>Guided by real counsellors and alumni-backed insights</span>
+          </div>
+        </div>
 
             </div>
 

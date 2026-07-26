@@ -48,12 +48,16 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const requestId = useRef(0);
-  const variants = useMemo(() => buildSearchVariants(query.trim().toLowerCase()).slice(0, 10), [query]);
+  const normalizedQuery = query.trim().toLowerCase();
+  const variants = useMemo(
+    () => buildSearchVariants(normalizedQuery).slice(0, normalizedQuery.length <= 2 ? 5 : 8),
+    [normalizedQuery],
+  );
   const isHero = variant === "hero";
 
   useEffect(() => {
     const currentRequest = ++requestId.current;
-    if (query.trim().length < 2) {
+    if (normalizedQuery.length < 2) {
       setResults([]);
       setLoading(false);
       return;
@@ -64,8 +68,9 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
       try {
         const { data, error } = await (supabase as unknown as FuzzySearchRpc).rpc("search_directory_fuzzy", {
           p_terms: variants,
-          p_limit: 10,
+          p_limit: normalizedQuery.length <= 2 ? 6 : 8,
         });
+        if (requestId.current !== currentRequest) return;
         if (error) throw error;
         let hydrated = (data || []) as DirectoryResult[];
         const missingExamMedia = hydrated
@@ -83,8 +88,15 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
               : item
           );
         }
-        if (requestId.current === currentRequest) setResults(hydrated);
+        if (requestId.current === currentRequest) {
+          setResults(hydrated.map((item) => ({
+            ...item,
+            name: compactDisplayText(item.name, "Untitled", 90),
+            subtitle: compactDisplayText(item.subtitle, "", 72),
+          })));
+        }
       } catch {
+        if (requestId.current !== currentRequest) return;
         // Safe fallback while the fuzzy-search migration is rolling out.
         const orFor = (column: string) => buildIlikeOr(column, variants);
         const [colleges, courses, exams] = await Promise.all([
@@ -101,10 +113,10 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
       } finally {
         if (requestId.current === currentRequest) setLoading(false);
       }
-    }, 220);
+    }, normalizedQuery.length <= 2 ? 360 : 240);
 
     return () => window.clearTimeout(timer);
-  }, [query, variants]);
+  }, [normalizedQuery, variants]);
 
   const askDiya = () => {
     const message = query.trim() || undefined;

@@ -10,6 +10,7 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import studentGroup from "@/assets/north-indian-students-group.jpg";
 
 const goals = [
   { label: "College admission", icon: GraduationCap },
@@ -116,8 +117,15 @@ export function HeroCounsellingCard({ onStart }: HeroCounsellingCardProps) {
 
           <div className="mt-3 flex items-center justify-center gap-2 text-[10px] font-medium text-muted-foreground sm:text-[11px]">
             <span className="flex -space-x-1.5" aria-hidden="true">
-              {["S", "A", "R"].map((letter, index) => (
-                <span key={letter} className={`flex h-5 w-5 items-center justify-center rounded-full border-2 border-white text-[8px] font-bold text-white ${index === 0 ? "bg-primary" : index === 1 ? "bg-accent" : "bg-emerald-500"}`}>{letter}</span>
+              {[12, 38, 64].map((position) => (
+                <span
+                  key={position}
+                  className="h-5 w-5 rounded-full border-2 border-white bg-cover bg-center shadow-sm"
+                  style={{
+                    backgroundImage: `url(${studentGroup})`,
+                    backgroundPosition: `${position}% center`,
+                  }}
+                />
               ))}
             </span>
             Trained system with IIT Delhi alumni guidance
