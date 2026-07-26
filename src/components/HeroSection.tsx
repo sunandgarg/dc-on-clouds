@@ -286,7 +286,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   return (
     <section
-      className={`relative isolate overflow-visible bg-[linear-gradient(118deg,#fff7f1_0%,#f8fbff_48%,#eef5ff_100%)] ${showDropdown ? "z-[200]" : "z-0"}`}
+      className={`relative isolate overflow-visible bg-[linear-gradient(118deg,#fff7f1_0%,#f8fbff_48%,#eef5ff_100%)] ${showDropdown ? "z-[500]" : "z-0"}`}
       aria-label="Hero"
     >
       {/* Background - bold campus image at top, smoothly fading to background where search bar sits */}
@@ -359,7 +359,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
               </span>
             </span>
 
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground" aria-label="Trusted by more than one lakh students">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground select-none" aria-label="Trusted by more than one lakh students">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
@@ -371,7 +371,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           {/* Primary promise */}
           <div>
             <h1
-              className="max-w-5xl select-none text-[36px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[39px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
+              className="max-w-5xl select-none text-[32px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[35px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
               style={{ overflowWrap: "normal", wordBreak: "normal" }}
             >
               <span className="inline text-[#111827]" style={{ overflowWrap: "normal", wordBreak: "normal" }}>
@@ -416,6 +416,9 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     placeholder="Search Colleges, Courses, Exams or Ask AI..."
                     className="flex-1 bg-transparent border-0 text-sm md:text-base placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 py-2.5 md:py-3 px-1 text-foreground min-w-0"
                     aria-label="Search or ask AI"
@@ -436,7 +439,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
                 {/* Search Results Dropdown */}
                 {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 max-h-[min(68vh,720px)] overflow-y-auto overscroll-contain bg-card border border-border rounded-2xl shadow-2xl z-[220]">
+                  <div className="absolute top-full left-0 right-0 mt-2 max-h-[min(68vh,720px)] overflow-y-auto overscroll-contain bg-card border border-border rounded-2xl shadow-2xl z-[620]">
                     <div className="py-2">
                       {dbResults.map((item) => (
                         <button

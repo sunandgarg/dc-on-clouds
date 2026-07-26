@@ -84,7 +84,7 @@ function resultNote(item: any) {
   if (item.changed_fields?.length) return `${item.changed_fields.length} proposed changes: ${item.changed_fields.join(", ")}`;
   const raw = String(item.error_message || "");
   if (/No usable cited source|No verified official source|existing values preserved|left unchanged|Not enough official evidence/i.test(raw)) {
-    return "Research pass completed - current values were preserved until better cited updates are available.";
+    return "Research pass completed. No safe field-level update was applied yet, so the current values were preserved for the next stronger source pass.";
   }
   return raw || "Researching cited sources...";
 }
