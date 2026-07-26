@@ -43,8 +43,10 @@ function postProcess(html: string): string {
     if (tbl.parentElement?.classList.contains("rt-table-wrap")) return;
     const wrap = document.createElement("div");
     wrap.className = "rt-table-wrap";
+    wrap.setAttribute("role", "region");
     wrap.tabIndex = 0;
     wrap.setAttribute("aria-label", "Scrollable table");
+    wrap.setAttribute("data-scrollable-table", "true");
     tbl.parentNode?.insertBefore(wrap, tbl);
     wrap.appendChild(tbl);
   });
@@ -117,7 +119,7 @@ export function RichText({ html, className }: RichTextProps) {
   if (!trimmed) return null;
 
   const proseClasses = cn(
-    "prose prose-neutral w-full min-w-0 max-w-full overflow-hidden",
+    "prose prose-neutral w-full min-w-0 max-w-full overflow-visible",
     "text-[15px] leading-[1.75]",
     "prose-p:text-[15px] prose-p:leading-[1.75] prose-p:text-foreground/90 prose-p:my-3",
     "prose-headings:text-foreground prose-headings:font-extrabold prose-headings:tracking-tight",
@@ -140,8 +142,8 @@ export function RichText({ html, className }: RichTextProps) {
     "[&_figure]:my-5 [&_figure]:text-center",
     "[&_figcaption]:mt-2 [&_figcaption]:text-xs [&_figcaption]:text-muted-foreground [&_figcaption]:italic",
     // Tables - modern, appealing styling
-    "[&_.rt-table-wrap]:block [&_.rt-table-wrap]:w-full [&_.rt-table-wrap]:min-w-0 [&_.rt-table-wrap]:max-w-full [&_.rt-table-wrap]:overflow-x-auto [&_.rt-table-wrap]:overflow-y-visible [&_.rt-table-wrap]:overscroll-x-contain [&_.rt-table-wrap]:touch-auto [&_.rt-table-wrap]:[-webkit-overflow-scrolling:touch] [&_.rt-table-wrap]:my-5 [&_.rt-table-wrap]:rounded-xl [&_.rt-table-wrap]:border [&_.rt-table-wrap]:border-border [&_.rt-table-wrap]:shadow-sm [&_.rt-table-wrap]:bg-card [&_.rt-table-wrap]:focus-visible:outline-none [&_.rt-table-wrap]:focus-visible:ring-2 [&_.rt-table-wrap]:focus-visible:ring-primary/30",
-    "[&_table]:w-max [&_table]:min-w-full [&_table]:max-w-none [&_table]:text-sm [&_table]:border-collapse [&_table]:m-0",
+    "[&_.rt-table-wrap]:block [&_.rt-table-wrap]:w-full [&_.rt-table-wrap]:min-w-0 [&_.rt-table-wrap]:max-w-full [&_.rt-table-wrap]:overflow-x-auto [&_.rt-table-wrap]:overflow-y-hidden [&_.rt-table-wrap]:overscroll-x-contain [&_.rt-table-wrap]:touch-pan-x [&_.rt-table-wrap]:my-5 [&_.rt-table-wrap]:rounded-xl [&_.rt-table-wrap]:border [&_.rt-table-wrap]:border-border [&_.rt-table-wrap]:shadow-sm [&_.rt-table-wrap]:bg-card [&_.rt-table-wrap]:focus-visible:outline-none [&_.rt-table-wrap]:focus-visible:ring-2 [&_.rt-table-wrap]:focus-visible:ring-primary/30",
+    "[&_table]:w-max [&_table]:min-w-[640px] [&_table]:max-w-none [&_table]:text-sm [&_table]:border-collapse [&_table]:m-0",
     "[&_thead]:bg-gradient-to-r [&_thead]:from-primary/10 [&_thead]:to-primary/[0.04]",
     "[&_th]:text-left [&_th]:font-bold [&_th]:text-foreground [&_th]:px-3 [&_th]:py-2.5 md:[&_th]:px-4 md:[&_th]:py-3 [&_th]:border-b [&_th]:border-primary/20 [&_th]:whitespace-nowrap [&_th]:tracking-tight",
     "[&_td]:px-3 [&_td]:py-2.5 md:[&_td]:px-4 md:[&_td]:py-3 [&_td]:border-b [&_td]:border-border/70 [&_td]:text-foreground/90 [&_td]:align-top",

@@ -455,6 +455,30 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  .rt-table-wrap {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rt-table-wrap table {
+    width: max-content;
+    min-width: 640px;
+    max-width: none;
+  }
+
+  @media (max-width: 640px) {
+    .rt-table-wrap {
+      margin-left: -0.25rem;
+      margin-right: -0.25rem;
+      padding-bottom: 0.35rem;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.001ms !important;

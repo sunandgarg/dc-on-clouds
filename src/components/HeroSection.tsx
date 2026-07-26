@@ -9,8 +9,6 @@ import {
   MapPin,
   ArrowRight,
   Search,
-  Laptop,
-  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -33,15 +31,6 @@ const suggestedPrompts = [
   "IIT vs NIT - what's right for me?",
   "Top MBA colleges after graduation?",
 ];
-
-const heroQuickLinks = [
-  { label: "Online Degrees", icon: Laptop, href: "#online-education-heading" },
-  { label: "Earn IIT/IIM/Dr. Tag", icon: Sparkles, href: "#trending-programs-heading" },
-  { label: "Study Abroad", icon: Globe, href: "#online-education-heading" },
-  { label: "Top Colleges", icon: GraduationCap, href: "/colleges" },
-  { label: "Courses", icon: BookOpen, href: "/courses" },
-  { label: "Exams", icon: FileText, href: "/exams" },
-] as const;
 
 const heroTiles = [
   { label: "13,004+ Colleges", icon: catCollege, href: "/colleges", tone: "bg-rose-50 border-rose-100" },
@@ -188,11 +177,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   const handleSuggestionClick = (prompt: string) => {
     if (onOpenChat) onOpenChat(prompt);
-  };
-
-  const handleHashLink = (href: string) => {
-    const element = document.getElementById(href.slice(1));
-    element?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
@@ -435,33 +419,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
               ))}
               </div>
 
-          <nav className="mt-5 -mx-1 flex max-w-4xl gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide" aria-label="Hero quick links">
-            {heroQuickLinks.map(({ label, icon: Icon, href }) => {
-              const className = "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-[11px] font-bold text-slate-700 shadow-sm backdrop-blur-md transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary md:px-3.5 md:text-xs";
-              const content = (
-                <>
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </>
-              );
-
-              if (href.startsWith("#")) {
-                return (
-                  <button key={label} type="button" onClick={() => handleHashLink(href)} className={className}>
-                    {content}
-                  </button>
-                );
-              }
-
-              return (
-                <Link key={label} to={href} className={className}>
-                  {content}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-4 grid max-w-4xl grid-cols-3 gap-2 sm:grid-cols-6 md:gap-3">
+          <div className="mt-5 grid max-w-4xl grid-cols-3 gap-2 sm:grid-cols-6 md:gap-3">
             {heroTiles.map((item) => (
               <Link
                 key={item.label}
