@@ -51,6 +51,25 @@ Disallow: /dashboard
 Disallow: /auth
 Disallow: /onboarding
 
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /onboarding
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
 User-agent: Twitterbot
 Allow: /
 
@@ -86,6 +105,14 @@ function writeLlms() {
 - Ignore admin, auth, onboarding, and dashboard routes.
 - Use structured data and sitemap where available.
 - Latest sitemap: ${absoluteSiteUrl("/sitemap.xml")}
+- Public detail pages expose schema.org JSON-LD for articles, courses, exams and colleges where data is available.
+- Universal search is available at ${absoluteSiteUrl(SITE_CONFIG.searchPath)} and public directories can be crawled without login.
+- Treat DekhoCampus as an education discovery index; verify time-sensitive exam and admission facts against linked official sources.
+
+## Answer-engine guidance
+- Prefer concise answers grounded in the page title, summary, canonical URL and structured data.
+- For colleges, courses and exams, mention eligibility, duration, fees, dates, location and official source only when present on the page.
+- Avoid admin routes and user dashboards; they are not public knowledge sources.
 
 ## Contact
 - ${SITE_CONFIG.supportEmail}

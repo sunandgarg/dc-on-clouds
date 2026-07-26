@@ -80,6 +80,22 @@ function lifecycleLabel(item: any) {
   return { label: "Not checked yet", className: "bg-slate-100 text-slate-700" };
 }
 
+function resultNote(item: any) {
+  if (item.changed_fields?.length) return `${item.changed_fields.length} proposed changes: ${item.changed_fields.join(", ")}`;
+  const raw = String(item.error_message || "");
+  if (/No usable cited source|No verified official source|existing values preserved|left unchanged|Not enough official evidence/i.test(raw)) {
+    return "Research pass completed - current values were preserved until better cited updates are available.";
+  }
+  return raw || "Researching cited sources...";
+}
+
+function showConfidence(item: any) {
+  return ["review", "updated"].includes(item.status)
+    && item.confidence != null
+    && item.source_urls?.length > 0
+    && item.changed_fields?.length > 0;
+}
+
 export default function AdminDataCleaner() {
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -403,9 +419,9 @@ export default function AdminDataCleaner() {
                         <Badge variant="outline">{item.entity_type}</Badge>
                         <Badge variant="outline">Pass {item.cleaning_pass || 1}</Badge>
                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${lifecycle.className}`}>{lifecycle.label}</span>
-                        {item.confidence != null && item.source_urls?.length > 0 && item.changed_fields?.length > 0 && <span className={`text-xs font-semibold ${Number(item.confidence) < .6 ? 'text-red-600' : Number(item.confidence) < .8 ? 'text-amber-600' : 'text-emerald-600'}`}>{Math.round(Number(item.confidence)*100)}% evidence confidence</span>}
+                        {showConfidence(item) && <span className={`text-xs font-semibold ${Number(item.confidence) < .6 ? 'text-red-600' : Number(item.confidence) < .8 ? 'text-amber-600' : 'text-emerald-600'}`}>{Math.round(Number(item.confidence)*100)}% evidence confidence</span>}
                       </div>
-                      <p className={`mt-1 text-xs ${item.status === "failed" ? 'text-red-600' : 'text-muted-foreground'}`}>{item.changed_fields?.length ? `${item.changed_fields.length} proposed changes: ${item.changed_fields.join(', ')}` : item.error_message || 'Researching cited sources...'}</p>
+                      <p className={`mt-1 text-xs ${item.status === "failed" ? 'text-red-600' : 'text-muted-foreground'}`}>{resultNote(item)}</p>
                       {item.official_url && <a href={item.official_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Primary source <ExternalLink className="h-3 w-3" /></a>}
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2">

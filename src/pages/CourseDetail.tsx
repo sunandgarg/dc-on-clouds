@@ -53,6 +53,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ArrowRight } from "lucide-react";
 import { compactEntityLabel } from "@/lib/compactEntityLabel";
 import { absoluteSiteUrl } from "@/lib/constant";
+import { compactDisplayText, displayText, stripMarkup } from "@/lib/displayText";
 
 type ScrollSection = { id: string; label: string };
 
@@ -132,6 +133,10 @@ export default function CourseDetail() {
   const location = useLocation();
   const { data: course, isLoading } = useDbCourse(slug);
   const [leadOpen, setLeadOpen] = useState<null | "apply" | "talk" | "syllabus">(null);
+  const seoCourseName = course ? displayText(course.name, "Course") : "";
+  const seoFullName = course ? displayText(course.full_name || course.name, seoCourseName) : "";
+  const seoDescription = course ? stripMarkup(course.page_summary || course.short_description || course.description || "") : "";
+  const seoSubjects = course?.subjects?.map((subject) => displayText(subject)).filter(Boolean) || [];
 
   // Canonicalize to slug-with-id URL once course resolves
   useEffect(() => {
@@ -179,9 +184,9 @@ export default function CourseDetail() {
   }, []);
 
   useSEO({
-    title: course ? course.meta_title || `${course.name} Course - Fees, Colleges, Career ${new Date().getFullYear()}` : undefined,
+    title: course ? course.meta_title || `${seoCourseName} Course - Fees, Colleges, Career ${new Date().getFullYear()}` : undefined,
     description: course
-      ? course.meta_description || `${course.name} course details - fees, top colleges, career scope for ${new Date().getFullYear()}`
+      ? course.meta_description || `${seoCourseName} course details - fees, top colleges, career scope for ${new Date().getFullYear()}`
       : undefined,
     keywords: course?.meta_keywords || undefined,
     canonical: course ? buildCourseHref(course as any) : undefined,
@@ -189,14 +194,14 @@ export default function CourseDetail() {
     jsonLd: course ? {
       "@context": "https://schema.org",
       "@type": "Course",
-      name: course.full_name || course.name,
-      alternateName: course.name,
-      description: course.page_summary || course.short_description || course.description || undefined,
+      name: seoFullName || seoCourseName,
+      alternateName: seoCourseName,
+      description: seoDescription || undefined,
       url: absoluteSiteUrl(buildCourseHref(course as any)),
       image: course.image || undefined,
-      timeRequired: course.duration || undefined,
-      educationalLevel: course.level || undefined,
-      teaches: course.subjects?.length ? course.subjects.join(", ") : undefined,
+      timeRequired: displayText(course.duration) || undefined,
+      educationalLevel: displayText(course.level) || undefined,
+      teaches: seoSubjects.length ? seoSubjects.join(", ") : undefined,
     } : undefined,
   });
 
@@ -229,6 +234,21 @@ export default function CourseDetail() {
     );
   }
 
+  const courseName = displayText(course.name, "Course");
+  const fullName = displayText(course.full_name);
+  const category = compactDisplayText(course.category, "General", 36);
+  const level = compactDisplayText(course.level, "Course", 32);
+  const duration = compactDisplayText(course.duration, "-", 24);
+  const mode = compactDisplayText(course.mode, "-", 28);
+  const domain = compactDisplayText(course.domain || course.category, category, 36);
+  const avgFees = compactDisplayText(course.avg_fees, "-", 36);
+  const avgSalary = compactDisplayText(course.avg_salary, "-", 36);
+  const growth = compactDisplayText(course.growth, "-", 36);
+  const collegesCount = Number(course.colleges_count || 0);
+  const shortDescription = stripMarkup(course.short_description || course.description || "").slice(0, 220);
+  const subjects = (course.subjects || []).map((item) => compactDisplayText(item, "", 46)).filter(Boolean);
+  const specializations = (course.specializations || []).map((item) => compactDisplayText(item, "", 46)).filter(Boolean);
+
   return (
     <div className="min-h-screen bg-background overflow-x-clip">
       <Navbar />
@@ -238,7 +258,7 @@ export default function CourseDetail() {
           it creates an implicit scroll container in Webkit/Blink, intercepting touch scroll.
           Removed - the root div handles horizontal overflow containment instead. */}
       <main className="container px-3 md:px-6 py-4 md:py-6 pb-24 md:pb-6 w-full">
-        <PageBreadcrumb items={[{ label: "Courses", href: "/courses" }, { label: course.name }]} />
+        <PageBreadcrumb items={[{ label: "Courses", href: "/courses" }, { label: courseName }]} />
 
         {/* Hero Card */}
         <motion.div
@@ -249,35 +269,35 @@ export default function CourseDetail() {
           <div className="relative">
             <img
               src={course.image}
-              alt={course.name}
+              alt={courseName}
               className="w-full h-40 sm:h-48 md:h-56 object-cover object-center"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
           </div>
           <div className="p-4 md:p-6">
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <Badge className="bg-primary/90 text-primary-foreground text-[10px] md:text-xs">{course.category}</Badge>
-              <Badge className="bg-accent/90 text-accent-foreground text-[10px] md:text-xs">{course.level}</Badge>
+              <Badge className="max-w-full truncate bg-primary/90 text-primary-foreground text-[10px] md:text-xs">{category}</Badge>
+              <Badge className="max-w-full truncate bg-accent/90 text-accent-foreground text-[10px] md:text-xs">{level}</Badge>
               <Badge variant="secondary" className="text-[10px] md:text-xs">
-                {course.duration}
+                {duration}
               </Badge>
             </div>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-1 break-words leading-snug">
-              {course.name}{" "}
-              {course.full_name && <span className="text-muted-foreground font-medium">({course.full_name})</span>}
+              {courseName}{" "}
+              {fullName && fullName !== courseName && <span className="text-muted-foreground font-medium">({fullName})</span>}
             </h1>
             {/* GenZ 2026: video CTA right under the title */}
             <div className="mt-2 mb-2">
               <YouTubeVideoButton
                 url={(course as any).youtube_video_url}
                 category="course"
-                title={`${course.name} Overview`}
-                label={`Watch ${compactEntityLabel(course.name)}`}
+                title={`${courseName} Overview`}
+                label={`Watch ${compactEntityLabel(courseName)}`}
                 className="h-9 rounded-full px-4 text-xs"
               />
             </div>
             <p className="text-sm text-muted-foreground line-clamp-3">
-              {course.short_description || course.description?.slice(0, 120)}
+              {shortDescription}
             </p>
             {/* Hero action row - 2026 highlighted CTAs */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -322,9 +342,9 @@ export default function CourseDetail() {
           <DialogContent className="max-w-md p-0 overflow-hidden">
             <DialogHeader className="px-5 pt-5">
               <DialogTitle>
-                {leadOpen === "talk" ? `Talk to a counselor about ${course.name}` :
-                 leadOpen === "syllabus" ? `Get the ${course.name} syllabus` :
-                 `Find best colleges for ${course.name}`}
+                {leadOpen === "talk" ? `Talk to a counselor about ${courseName}` :
+                 leadOpen === "syllabus" ? `Get the ${courseName} syllabus` :
+                 `Find best colleges for ${courseName}`}
               </DialogTitle>
             </DialogHeader>
             <div className="p-5 pt-3">
@@ -350,10 +370,10 @@ export default function CourseDetail() {
 
         <div className="mb-6">
           <WhatsNewSection
-            entityName={course.name}
+            entityName={courseName}
             entityType="course"
             entitySlug={course.slug}
-            category={course.category}
+            category={category}
           />
         </div>
 
@@ -364,14 +384,14 @@ export default function CourseDetail() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6 min-w-0">
-            <PageSummary html={(course as any).page_summary} entityName={course.name} kind="course" />
+            <PageSummary html={(course as any).page_summary} entityName={courseName} kind="course" />
             {/* Quick Stats - FIX: changed sm:grid-cols-4 to grid-cols-2 sm:grid-cols-4 so mobile shows 2 columns */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 md:gap-3">
               {[
-                { icon: Clock, label: "Duration", value: course.duration, color: "text-primary" },
-                { icon: Building, label: "Colleges", value: `${course.colleges_count}+`, color: "text-accent" },
-                { icon: TrendingUp, label: "Growth", value: course.growth, color: "text-success" },
-                { icon: Briefcase, label: "Avg Salary", value: course.avg_salary, color: "text-golden" },
+                { icon: Clock, label: "Duration", value: duration, color: "text-primary" },
+                { icon: Building, label: "Colleges", value: `${collegesCount}+`, color: "text-accent" },
+                { icon: TrendingUp, label: "Growth", value: growth, color: "text-success" },
+                { icon: Briefcase, label: "Avg Salary", value: avgSalary, color: "text-golden" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-card rounded-xl border border-border p-3 text-center min-w-0">
                   <stat.icon className={`w-5 h-5 mx-auto mb-1 ${stat.color}`} />
@@ -390,16 +410,16 @@ export default function CourseDetail() {
               )}
               <div className="mt-4 grid sm:grid-cols-2 gap-3">
                 {[
-                  { label: "Full Name", value: course.full_name },
-                  { label: "Duration", value: course.duration },
-                  { label: "Level", value: course.level },
-                  { label: "Mode", value: course.mode },
-                  { label: "Category", value: course.category },
-                  { label: "Domain", value: course.domain || course.category },
-                  { label: "Avg Fees", value: course.avg_fees },
-                  { label: "Avg Salary", value: course.avg_salary },
-                  { label: "Total Colleges", value: `${course.colleges_count}+` },
-                  { label: "Industry Growth", value: course.growth },
+                  { label: "Full Name", value: fullName || courseName },
+                  { label: "Duration", value: duration },
+                  { label: "Level", value: level },
+                  { label: "Mode", value: mode },
+                  { label: "Category", value: category },
+                  { label: "Domain", value: domain },
+                  { label: "Avg Fees", value: avgFees },
+                  { label: "Avg Salary", value: avgSalary },
+                  { label: "Total Colleges", value: `${collegesCount}+` },
+                  { label: "Industry Growth", value: growth },
                 ].map((info) => (
                   <div
                     key={info.label}
@@ -417,13 +437,13 @@ export default function CourseDetail() {
             <RichSection id="highlights" title={<>Key Highlights</>}>
               <div className="space-y-2">
                 {[
-                  `${course.full_name} is a ${course.duration} ${course.level} program`,
-                  `Offered at ${course.colleges_count}+ colleges across India`,
-                  `Average fees: ${course.avg_fees}`,
-                  `Average salary after ${course.name}: ${course.avg_salary}`,
-                  `Industry growth rate: ${course.growth}`,
-                  `Mode of study: ${course.mode}`,
-                  `${course.specializations.length}+ specializations available`,
+                  `${fullName || courseName} is a ${duration} ${level} program`,
+                  `Offered at ${collegesCount}+ colleges across India`,
+                  `Average fees: ${avgFees}`,
+                  `Average salary after ${courseName}: ${avgSalary}`,
+                  `Industry growth rate: ${growth}`,
+                  `Mode of study: ${mode}`,
+                  `${specializations.length}+ specializations available`,
                 ].map((h, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
@@ -447,10 +467,10 @@ export default function CourseDetail() {
                 <RichText html={(course as any).subjects_content} />
               )}
               <p className="text-sm text-muted-foreground mb-3">
-                The {course.duration} program covers these core subjects:
+                The {duration} program covers these core subjects:
               </p>
               <div className="flex flex-wrap gap-2">
-                {course.subjects.map((s) => (
+                {subjects.map((s) => (
                   <Badge key={s} variant="secondary" className="text-sm py-1.5 px-3">
                     {s}
                   </Badge>
@@ -483,7 +503,7 @@ export default function CourseDetail() {
               <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                 <div className="bg-muted rounded-xl p-2 sm:p-3 text-center min-w-0">
                   <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-1 text-golden" />
-                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{course.avg_fees}</p>
+                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{avgFees}</p>
                   <p className="text-xs text-muted-foreground">Avg Fees</p>
                 </div>
                 {course.low_fee > 0 && (
@@ -513,8 +533,8 @@ export default function CourseDetail() {
               )}
               <div className="space-y-3">
                 {[
-                  { step: "1", title: "Eligibility Check", text: course.eligibility },
-                  { step: "2", title: "Entrance Exam", text: `Clear entrance exam: ${course.top_exams.join(", ")}` },
+                  { step: "1", title: "Eligibility Check", text: stripMarkup(course.eligibility) },
+                  { step: "2", title: "Entrance Exam", text: `Clear entrance exam: ${(course.top_exams || []).map((exam) => displayText(exam)).filter(Boolean).join(", ") || "as required by the college"}` },
                   { step: "3", title: "Counselling", text: "Participate in counseling/admission rounds" },
                   { step: "4", title: "Admission", text: "Complete document verification and fee payment" },
                 ].map((s) => (
@@ -533,7 +553,7 @@ export default function CourseDetail() {
 
             <LeadCaptureForm
               variant="inline"
-              title={`📞 Get guidance for ${course.name}`}
+              title={`Get guidance for ${courseName}`}
               source={`course_inline_${course.slug}`}
               interestedCourseSlug={course.slug}
             />
@@ -562,15 +582,15 @@ export default function CourseDetail() {
             <RichSection id="placements" title={<>Placements</>}>
               <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                 <div className="bg-muted rounded-xl p-2 sm:p-3 text-center min-w-0">
-                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{course.avg_salary}</p>
+                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{avgSalary}</p>
                   <p className="text-xs text-muted-foreground">Avg Package</p>
                 </div>
                 <div className="bg-muted rounded-xl p-2 sm:p-3 text-center min-w-0">
-                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{course.growth}</p>
+                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{growth}</p>
                   <p className="text-xs text-muted-foreground">Growth</p>
                 </div>
                 <div className="bg-muted rounded-xl p-2 sm:p-3 text-center min-w-0">
-                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{course.colleges_count}+</p>
+                  <p className="text-xs sm:text-lg font-bold text-foreground truncate">{collegesCount}+</p>
                   <p className="text-xs text-muted-foreground">Colleges</p>
                 </div>
               </div>
@@ -596,7 +616,7 @@ export default function CourseDetail() {
                 <RichText html={course.specialization_content} />
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {course.specializations.map((s) => (
+                {specializations.map((s) => (
                   <div key={s} className="flex items-center gap-2 p-3 bg-muted rounded-xl min-w-0">
                     <GraduationCap className="w-4 h-4 text-primary flex-shrink-0" />
                     <span className="text-sm font-medium text-foreground truncate">{s}</span>
@@ -613,8 +633,8 @@ export default function CourseDetail() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {course.top_exams.map((exam) => {
-                    const slug = exam.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-                    const display = exam.includes("-") ? exam.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : exam;
+                    const display = displayText(exam, "Exam");
+                    const slug = display.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
                     return (
                       <Link
                         key={exam}
@@ -634,9 +654,9 @@ export default function CourseDetail() {
             <section id="top-colleges" className="bg-card rounded-2xl border border-border p-4 md:p-5 scroll-mt-20">
               <h2 data-h className="text-xl font-extrabold text-foreground mb-3 tracking-tight">Top Colleges</h2>
               <p className="text-sm text-muted-foreground mb-3">
-                {course.colleges_count}+ colleges across India offer {course.name}. Tap any college to see fees, cut-offs and admissions.
+                {collegesCount}+ colleges across India offer {courseName}. Tap any college to see fees, cut-offs and admissions.
               </p>
-              <LinkedColleges by="course" slug={course.slug} emptyText={`No colleges linked to ${course.name} yet.`} />
+              <LinkedColleges by="course" slug={course.slug} emptyText={`No colleges linked to ${courseName} yet.`} />
             </section>
 
             {/* Cut Off - FIX: added w-full overflow-x-auto wrapper to prevent table blowout */}
@@ -675,26 +695,26 @@ export default function CourseDetail() {
                 itemSlug={slug}
                 title={`FAQs`}
                 fallback={buildDefaultFaqs("course", {
-                  name: course.name,
-                  duration: (course as any).duration,
-                  fees: (course as any).fees,
-                  eligibility: (course as any).eligibility,
+                  name: courseName,
+                  duration,
+                  fees: avgFees,
+                  eligibility: stripMarkup((course as any).eligibility),
                 })}
               />
             </section>
 
 
 
-            <LatestNewsSection entityType="course" entitySlug={course.slug} entityName={course.name} />
+            <LatestNewsSection entityType="course" entitySlug={course.slug} entityName={courseName} />
 
             {/* Carousel: overflow-hidden contains bleed, touch-pan-y lets vertical scroll pass through */}
             <div className="w-full overflow-hidden touch-pan-y">
-              <CareerScopeCarousel courseSlug={course.slug} careers={course.careers} courseName={course.name} />
+              <CareerScopeCarousel courseSlug={course.slug} careers={course.careers} courseName={courseName} />
             </div>
 
             <LeadCaptureForm
               variant="inline"
-              title={`Get admission details for ${course.name}`}
+              title={`Get admission details for ${courseName}`}
               source={`course_detail_${course.slug}`}
               interestedCourseSlug={course.slug}
             />
@@ -702,10 +722,10 @@ export default function CourseDetail() {
             {/* Useful Links */}
             <UsefulLinks
               type="course"
-              name={course.name}
-              shortName={course.name}
+              name={courseName}
+              shortName={courseName}
               slug={course.slug}
-              category={course.category}
+              category={category}
               sections={COURSE_SECTIONS}
             />
           </div>
@@ -719,7 +739,7 @@ export default function CourseDetail() {
                 <h3 data-h className="text-sm font-bold text-foreground mb-3">📚 Other Courses</h3>
                 <div className="space-y-2">
                   {["B.Tech", "MBA", "MBBS", "B.Sc", "B.Com", "LLB", "BBA", "MCA"]
-                    .filter((c) => c !== course.name)
+                    .filter((c) => c !== courseName)
                     .slice(0, 6)
                     .map((c) => (
                       <Link
@@ -741,7 +761,7 @@ export default function CourseDetail() {
         <div className="mt-10">
           <LeadCaptureForm
             variant="banner"
-            title={`🎯 Want to study ${course.name}? Get free expert guidance!`}
+            title={`Want to study ${courseName}? Get free expert guidance!`}
             subtitle="Our counselors help you pick the best college for this course"
             source={`course_detail_bottom_${course.slug}`}
             interestedCourseSlug={course.slug}

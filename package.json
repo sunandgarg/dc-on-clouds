@@ -18,7 +18,8 @@
     "import:legacy-csv": "tsx scripts/import-legacy-csv.ts",
     "migrate:legacy-assets": "tsx scripts/migrate-legacy-assets.ts",
     "backup:legacy-assets": "tsx scripts/backfill-legacy-asset-local-backups.ts",
-    "sanitize:collegedunia": "tsx scripts/sanitize-collegedunia-watermarks.ts"
+    "sanitize:collegedunia": "tsx scripts/sanitize-collegedunia-watermarks.ts",
+    "backfill:news-images": "tsx scripts/backfill-news-images-from-legacy.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

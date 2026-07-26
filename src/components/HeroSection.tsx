@@ -263,7 +263,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   return (
     <section
-      className="relative overflow-hidden bg-[linear-gradient(118deg,#fff7f1_0%,#f8fbff_48%,#eef5ff_100%)]"
+      className="relative isolate overflow-visible bg-[linear-gradient(118deg,#fff7f1_0%,#f8fbff_48%,#eef5ff_100%)]"
       aria-label="Hero"
     >
       {/* Background - bold campus image at top, smoothly fading to background where search bar sits */}
@@ -347,10 +347,12 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
           {/* Primary promise */}
           <div>
-            <h1 className="max-w-4xl text-[42px] font-black leading-[0.98] tracking-[-0.055em] text-foreground sm:text-[56px] md:text-[68px] lg:text-[84px]">
-              <span className="block">Discover Your Ideal</span>
-              <span className="relative mt-1 block min-h-[1.05em] text-primary">
-                  <span key={rotatingWords[headlineIndex]} className="absolute left-0 top-0 bg-gradient-to-r from-primary via-blue-600 to-primary bg-clip-text text-transparent">
+            <h1 className="max-w-5xl text-[42px] font-black leading-[0.98] tracking-[-0.045em] text-foreground sm:text-[56px] md:text-[68px] lg:text-[86px]">
+              <span className="inline box-decoration-clone bg-[#d9edcd] px-1.5 text-[#111827]">
+                Discover Your Ideal
+              </span>
+              <span className="relative mt-2 block min-h-[1.05em] text-[#78aeca]">
+                  <span key={rotatingWords[headlineIndex]} className="absolute left-0 top-0 inline-block bg-[#d9edcd] px-1.5 text-[#78aeca]">
                     {rotatingWords[headlineIndex]}
                   </span>
                 <span className="invisible">{rotatingWords[0]}</span>
@@ -362,7 +364,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           </div>
 
           {/* Unified Search Bar with AI icon */}
-          <div className="max-w-2xl">
+          <div className="relative z-[120] max-w-2xl">
             <form onSubmit={handleAskAI}>
               <div className="relative">
                 <div
@@ -401,7 +403,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
                 {/* Search Results Dropdown */}
                 {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-[160]">
                     <div className="py-2">
                       {dbResults.map((item) => (
                         <button

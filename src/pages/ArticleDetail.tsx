@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useSEO } from "@/hooks/useSEO";
 import { DocumentViewer } from "@/components/detail/DocumentViewer";
 import { RichText } from "@/components/detail/RichText";
+import { absoluteCanonical, absoluteSiteUrl } from "@/lib/constant";
 
 // Heavy below-the-fold components - lazy loaded for faster initial paint
 const AlsoCheckSection = lazy(() => import("@/components/AlsoCheckSection").then(m => ({ default: m.AlsoCheckSection })));
@@ -89,7 +90,31 @@ export default function ArticleDetail() {
   const [tocSheetOpen, setTocSheetOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [saved, setSaved] = useState(false);
-  useSEO({ title: article ? article.title : "Article", description: article?.excerpt || "Read the latest education and career articles." });
+  useSEO({
+    title: article ? article.title : "Article",
+    description: article?.excerpt || "Read the latest education and career articles.",
+    canonical: article ? `/news/${article.slug}` : undefined,
+    ogImage: article?.image,
+    ogType: "article",
+    jsonLd: article ? {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      headline: article.title,
+      description: article.excerpt || undefined,
+      image: article.image ? [absoluteCanonical(article.image)] : undefined,
+      datePublished: dbArticle?.created_at || undefined,
+      dateModified: dbArticle?.updated_at || dbArticle?.created_at || undefined,
+      author: { "@type": "Person", name: article.author || "DekhoCampus" },
+      publisher: {
+        "@type": "Organization",
+        name: "DekhoCampus",
+        logo: { "@type": "ImageObject", url: absoluteSiteUrl("/logo.png") },
+      },
+      mainEntityOfPage: absoluteSiteUrl(`/news/${article.slug}`),
+      articleSection: article.category || undefined,
+      keywords: article.tags?.length ? article.tags.join(", ") : undefined,
+    } : undefined,
+  });
 
   useEffect(() => {
     const onScroll = () => {

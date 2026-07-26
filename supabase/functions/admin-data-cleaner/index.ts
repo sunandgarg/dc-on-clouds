@@ -98,6 +98,8 @@ const REPUTABLE_SECONDARY_HOST_PARTS = [
   "thehindu.com", "indianexpress.com", "hindustantimes.com", "timesofindia.indiatimes.com",
   "economictimes.indiatimes.com", "business-standard.com", "ndtv.com", "news18.com",
   "shiksha.com", "careers360.com", "collegedekho.com", "collegepravesh.com",
+  "getmyuni.com", "education.indianexpress.com", "topuniversities.com", "timeshighereducation.com",
+  "coursera.org", "edx.org", "swayam.gov.in", "nptel.ac.in",
 ];
 const HIGH_RISK_FIELDS = new Set([
   "fees", "fee", "low_fee", "high_fee", "avg_fees", "avg_salary", "growth", "cutoff", "cutoff_content",
@@ -106,6 +108,13 @@ const HIGH_RISK_FIELDS = new Set([
   "applicants", "eligibility", "eligibility_criteria", "age_limit", "negative_marking", "cast_wise_fee", "gender_wise",
 ]);
 const SEO_FIELDS = new Set(["meta_title", "meta_description", "meta_keywords", "page_summary"]);
+const RICH_TEXT_FIELDS = new Set([
+  "description", "content", "about_content", "scope_content", "subjects_content", "placements_content",
+  "admission_process", "fees_content", "cutoff_content", "specialization_content", "recruiters_content",
+  "syllabus_content", "summary_content", "dates_content", "result_content", "counselling_content",
+  "center_content", "preparation_tips", "facilities_content", "rankings_content", "placement_content",
+  "course_fee_content", "hostel_life", "scholarship_details", "application_process", "exam_pattern",
+]);
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -272,7 +281,7 @@ Existing category or description: ${cleanString(row.category || row.description,
 Return JSON only:
 {"official_url":"https://... or empty","sources":[{"url":"https://...","type":"official|government|regulator|reputable_secondary","title":"..."}],"source_notes":["short verified fact with source URL"]}
 
-Find 3-6 directly relevant sources when available. Generic courses may use regulator pages, professional bodies, government curriculum/career pages, university course pages and reputable education publications. Exams and colleges should prioritize their own site, the responsible authority, government/regulator records, ranking/accreditation sources and reputable reporting. Do not copy source wording; only identify facts and URLs.`,
+Find 3-6 directly relevant sources when available. Generic courses may use regulator pages, professional bodies, government curriculum/career pages, university course pages and reputable education publications. Exams and colleges should prioritize their own site, the responsible authority, government/regulator records, ranking/accreditation sources and reputable reporting. Do not copy source wording; only identify facts and URLs. Prefer sources whose facts support AIO, AEO, SEO, GEO and LLMO answer extraction.`,
   };
   let grounded;
   try {
@@ -377,9 +386,9 @@ Retrieved cited source material: ${directText || "not available"}
 Fields you may propose: ${allowedFields.join(", ")}
 Database field type hints: ${JSON.stringify(fieldTypeHints)}
 
-Audit every allowed field. Fill missing fields and improve thin, duplicated, outdated or unclear descriptive fields; preserve accurate existing facts that do not need changes. Map every value to the exact database field name and type above. Never invent fees, dates, rankings, placements, salary, cutoffs, approvals, URLs or statistics. High-risk facts must use an official/regulator source or at least two independent sources. For fee ranges, store plain numeric values only in numeric fields and concise human-readable values in text fields. Established must be a four-digit integer. Dates must be unambiguous.
+Audit every allowed field. Fill missing fields and improve thin, duplicated, outdated or unclear descriptive fields; preserve accurate existing facts that do not need changes. Map every value to the exact database field name and type above. Never invent fees, dates, rankings, placements, salary, cutoffs, approvals, URLs or statistics. High-risk facts must use an official/regulator source or at least two independent reputable sources. Generic course records may update stable descriptive fields from reputable secondary, government, regulator, university, professional-body and curriculum sources even when there is no single official course authority. For fee ranges, store plain numeric values only in numeric fields and concise human-readable values in text fields. Established must be a four-digit integer. Dates must be unambiguous.
 
-Apply people-first SEO plus answer/generative-engine optimization to every proposed text field:
+Apply people-first AIO, AEO, SEO, GEO and LLMO optimization to every proposed text field:
 - Begin descriptions and summaries with a direct, self-contained answer that names the entity and its purpose.
 - Use clear entity names, location, level, duration, eligibility and current year only when verified.
 - Make each section distinct, concise, fact-dense and easy to quote; use descriptive headings, short paragraphs, lists or tables where HTML is appropriate.
@@ -495,6 +504,55 @@ function cleanString(value: unknown, max = 100_000) {
   return String(value ?? "").replace(/[\u2013\u2014]/g, "-").replace(/\0/g, "").trim().slice(0, max);
 }
 
+function stripHtml(value: unknown, max = 100_000) {
+  return cleanString(value, max)
+    .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+function parseJsonish(value: unknown): unknown {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!/^[\[{]/.test(trimmed)) return undefined;
+  try { return JSON.parse(trimmed); } catch {
+    try { return JSON.parse(trimmed.replace(/'/g, '"')); } catch { return undefined; }
+  }
+}
+
+function bestScalarText(value: unknown, max = 100_000): string {
+  const parsed = parseJsonish(value);
+  if (parsed !== undefined) return bestScalarText(parsed, max);
+  if (Array.isArray(value)) return value.map((item) => bestScalarText(item, max)).filter(Boolean).join(", ").slice(0, max);
+  if (value && typeof value === "object") {
+    const object = value as Record<string, unknown>;
+    for (const key of ["Cat_name", "cat_name", "category_name", "name", "title", "label", "value", "full_name", "short_name"]) {
+      const text = bestScalarText(object[key], max);
+      if (text) return text;
+    }
+    const first = Object.entries(object).find(([key, item]) => !/^(cat_)?(id|slug|uuid)$/i.test(key) && (typeof item === "string" || typeof item === "number"));
+    return first ? bestScalarText(first[1], max) : "";
+  }
+  return stripHtml(value, max);
+}
+
+function listFromValue(value: unknown) {
+  const parsed = parseJsonish(value);
+  const source = parsed !== undefined ? parsed : value;
+  if (Array.isArray(source)) return source.map((item) => bestScalarText(item, 500)).filter(Boolean);
+  if (typeof source === "string") return source.split(/[,\n;|]+/).map((item) => bestScalarText(item, 500)).filter(Boolean);
+  const text = bestScalarText(source, 500);
+  return text ? [text] : [];
+}
+
 function normalizeValue(field: string, value: unknown, current: unknown) {
   if (value === null || value === undefined) return undefined;
   if (field === "established") {
@@ -507,24 +565,26 @@ function normalizeValue(field: string, value: unknown, current: unknown) {
   }
   if (typeof current === "boolean" || BOOLEAN_FIELDS.has(field)) return typeof value === "boolean" ? value : undefined;
   if (Array.isArray(current) || ARRAY_FIELDS.has(field)) {
-    if (!Array.isArray(value)) return undefined;
-    if (MEDIA_ARRAY_FIELDS.has(field)) return [...new Set(value.map((item) => normalizeUrl(item)).filter(Boolean))].slice(0, 100);
-    return [...new Set(value.map((item) => cleanString(item, 500)).filter(Boolean))].slice(0, 100);
+    const items = Array.isArray(value) ? value : listFromValue(value);
+    if (MEDIA_ARRAY_FIELDS.has(field)) return [...new Set(items.map((item) => normalizeUrl(item)).filter(Boolean))].slice(0, 100);
+    return [...new Set(items.map((item) => bestScalarText(item, 500)).filter(Boolean))].slice(0, 100);
   }
   if ((typeof current === "object" && current !== null) || JSON_FIELDS.has(field)) {
     return typeof value === "object" ? value : undefined;
   }
   if (field === "meta_title") return cleanString(value, 65);
-  if (field === "meta_description") return cleanString(value, 170);
-  if (field === "page_summary") return cleanString(value, 600);
+  if (field === "meta_description") return stripHtml(value, 170);
+  if (field === "page_summary") return stripHtml(value, 600);
   if (field.includes("url") || field === "website" || field === "official_website" || MEDIA_URL_FIELDS.has(field)) return normalizeUrl(value) || undefined;
+  if (!RICH_TEXT_FIELDS.has(field)) return bestScalarText(value);
   return cleanString(value);
 }
 
 function buildVerifiedUpdate(entityType: string, row: Record<string, unknown>, research: any, citationUrls: string[]) {
   const proposedOfficialUrl = normalizeUrl(research.official_url || seedOfficialUrl(row));
   const proposedOfficialHost = hostOf(proposedOfficialUrl);
-  const sources = [...new Set(citationUrls.map(normalizeUrl).filter((url) => sourceTier(url) > 0))].slice(0, 30);
+  const returnedSources = Array.isArray(research.source_urls) ? research.source_urls.map(normalizeUrl) : [];
+  const sources = [...new Set([...citationUrls, ...returnedSources].map(normalizeUrl).filter((url) => sourceTier(url) > 0))].slice(0, 30);
   if (!sources.length) return { update: {}, sources: [], warnings: ["No acceptable cited source was verified"] };
   const officialUrl = proposedOfficialUrl && !isBlockedHost(proposedOfficialHost) &&
     sources.some((url) => sameOfficialDomain(url, proposedOfficialHost))

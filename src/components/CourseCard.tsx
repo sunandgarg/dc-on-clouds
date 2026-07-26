@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import type { DbCourse } from "@/hooks/useCoursesData";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { buildCourseHref } from "@/lib/entityUrls";
+import { compactDisplayText, displayText } from "@/lib/displayText";
 
 interface CourseCardProps {
   course: DbCourse;
@@ -12,6 +13,16 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, index }: CourseCardProps) {
+  const category = compactDisplayText(course.category, "General", 34);
+  const level = compactDisplayText(course.level, "Course", 28);
+  const mode = compactDisplayText(course.mode, "Full-Time", 24);
+  const fullName = displayText(course.full_name);
+  const specializations = (course.specializations || []).map((item) => compactDisplayText(item, "", 28)).filter(Boolean);
+  const duration = compactDisplayText(course.duration, "-", 18);
+  const collegesCount = Number(course.colleges_count || 0);
+  const growth = compactDisplayText(course.growth, "-", 24);
+  const avgSalary = compactDisplayText(course.avg_salary, "-", 24);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -27,25 +38,25 @@ export function CourseCard({ course, index }: CourseCardProps) {
           <div className="p-4 flex-1 flex flex-col">
             {/* Tags */}
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge variant="secondary" className="text-xs">{course.category}</Badge>
-              <Badge variant="outline" className="text-xs">{course.level}</Badge>
-              <Badge variant="outline" className="text-xs border-primary/30 text-primary">{course.mode}</Badge>
+              <Badge variant="secondary" className="max-w-full truncate text-xs">{category}</Badge>
+              <Badge variant="outline" className="max-w-full truncate text-xs">{level}</Badge>
+              <Badge variant="outline" className="max-w-full truncate border-primary/30 text-xs text-primary">{mode}</Badge>
             </div>
 
-            <h2 className="text-base font-bold text-foreground mb-1">{course.name}</h2>
-            <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{course.full_name}</p>
+            <h2 className="text-base font-bold text-foreground mb-1 line-clamp-2">{displayText(course.name, "Course")}</h2>
+            {fullName && fullName !== displayText(course.name) && <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{fullName}</p>}
 
             {/* Specializations */}
-            {course.specializations.length > 0 && (
+            {specializations.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
-                {course.specializations.slice(0, 3).map((s) => (
+                {specializations.slice(0, 3).map((s) => (
                   <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/5 text-primary font-medium">
                     {s}
                   </span>
                 ))}
-                {course.specializations.length > 3 && (
+                {specializations.length > 3 && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
-                    +{course.specializations.length - 3}
+                    +{specializations.length - 3}
                   </span>
                 )}
               </div>
@@ -55,19 +66,19 @@ export function CourseCard({ course, index }: CourseCardProps) {
             <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-border">
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-foreground">{course.duration}</span>
+                <span className="text-xs text-foreground">{duration}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Building className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-foreground">{course.colleges_count} colleges</span>
+                <span className="text-xs text-foreground">{collegesCount} colleges</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-success" />
-                <span className="text-xs font-semibold text-success">{course.growth}</span>
+                <span className="text-xs font-semibold text-success">{growth}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Briefcase className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-foreground">{course.avg_salary}</span>
+                <span className="text-xs text-foreground">{avgSalary}</span>
               </div>
             </div>
           </div>
