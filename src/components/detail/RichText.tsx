@@ -75,10 +75,29 @@ function postProcess(html: string): string {
   return tpl.innerHTML;
 }
 
+/**
+ * Some legacy imports contain HTML entities around an entire HTML fragment
+ * (and a small number were encoded twice). Decode only when an encoded tag is
+ * present, then let DOMPurify apply the allowlist below.
+ */
+function decodeLegacyHtml(value: string): string {
+  if (typeof document === "undefined") return value;
+
+  let decoded = value;
+  for (let pass = 0; pass < 3 && /&(?:amp;)?(?:lt|#0*60|#x0*3c);/i.test(decoded); pass += 1) {
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = decoded;
+    const next = textarea.value;
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded;
+}
+
 export function RichText({ html, className }: RichTextProps) {
   const safe = useMemo(() => {
     if (!html) return "";
-    const trimmed = html.trim();
+    const trimmed = decodeLegacyHtml(html.trim());
     if (!trimmed) return "";
     const looksLikeHtml = /<[a-z][\s\S]*>/i.test(trimmed);
     if (!looksLikeHtml) return "";
@@ -92,11 +111,11 @@ export function RichText({ html, className }: RichTextProps) {
   }, [html]);
 
   if (!html) return null;
-  const trimmed = html.trim();
+  const trimmed = decodeLegacyHtml(html.trim());
   if (!trimmed) return null;
 
   const proseClasses = cn(
-    "prose prose-neutral max-w-none",
+    "prose prose-neutral w-full min-w-0 max-w-full overflow-hidden",
     "text-[15px] leading-[1.75]",
     "prose-p:text-[15px] prose-p:leading-[1.75] prose-p:text-foreground/90 prose-p:my-3",
     "prose-headings:text-foreground prose-headings:font-extrabold prose-headings:tracking-tight",
@@ -119,8 +138,8 @@ export function RichText({ html, className }: RichTextProps) {
     "[&_figure]:my-5 [&_figure]:text-center",
     "[&_figcaption]:mt-2 [&_figcaption]:text-xs [&_figcaption]:text-muted-foreground [&_figcaption]:italic",
     // Tables - modern, appealing styling
-    "[&_.rt-table-wrap]:w-full [&_.rt-table-wrap]:overflow-x-auto [&_.rt-table-wrap]:my-5 [&_.rt-table-wrap]:rounded-xl [&_.rt-table-wrap]:border [&_.rt-table-wrap]:border-border [&_.rt-table-wrap]:shadow-sm [&_.rt-table-wrap]:bg-card",
-    "[&_table]:w-full [&_table]:text-sm [&_table]:border-collapse [&_table]:m-0",
+    "[&_.rt-table-wrap]:block [&_.rt-table-wrap]:w-full [&_.rt-table-wrap]:min-w-0 [&_.rt-table-wrap]:max-w-full [&_.rt-table-wrap]:overflow-x-auto [&_.rt-table-wrap]:overscroll-x-contain [&_.rt-table-wrap]:touch-pan-x [&_.rt-table-wrap]:my-5 [&_.rt-table-wrap]:rounded-xl [&_.rt-table-wrap]:border [&_.rt-table-wrap]:border-border [&_.rt-table-wrap]:shadow-sm [&_.rt-table-wrap]:bg-card",
+    "[&_table]:w-max [&_table]:min-w-full [&_table]:max-w-none [&_table]:text-sm [&_table]:border-collapse [&_table]:m-0",
     "[&_thead]:bg-gradient-to-r [&_thead]:from-primary/10 [&_thead]:to-primary/[0.04]",
     "[&_th]:text-left [&_th]:font-bold [&_th]:text-foreground [&_th]:px-3 [&_th]:py-2.5 md:[&_th]:px-4 md:[&_th]:py-3 [&_th]:border-b [&_th]:border-primary/20 [&_th]:whitespace-nowrap [&_th]:tracking-tight",
     "[&_td]:px-3 [&_td]:py-2.5 md:[&_td]:px-4 md:[&_td]:py-3 [&_td]:border-b [&_td]:border-border/70 [&_td]:text-foreground/90 [&_td]:align-top",

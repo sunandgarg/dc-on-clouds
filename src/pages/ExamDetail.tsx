@@ -442,10 +442,21 @@ export default function ExamDetail() {
 
             {/* Syllabus */}
             <RichSection id="syllabus" title={<>Syllabus</>}>
+              {exam.syllabus.some((item) => /<[a-z][\s\S]*>|&(?:amp;)?lt;/i.test(item)) && (
+                <div className="space-y-3">
+                  {exam.syllabus
+                    .filter((item) => /<[a-z][\s\S]*>|&(?:amp;)?lt;/i.test(item))
+                    .map((item, index) => <RichText key={`syllabus-rich-${index}`} html={item} />)}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
-                {exam.syllabus.map((s) => (
-                  <Badge key={s} variant="secondary" className="text-sm py-1.5 px-3">{s}</Badge>
-                ))}
+                {exam.syllabus
+                  .filter((item) => !/<[a-z][\s\S]*>|&(?:amp;)?lt;/i.test(item))
+                  .map((item, index) => (
+                    <Badge key={`${item}-${index}`} variant="secondary" className="max-w-full whitespace-normal break-words text-sm py-1.5 px-3">
+                      {item}
+                    </Badge>
+                  ))}
               </div>
               <div className="mt-4 pt-4 border-t border-border">
                 <LinkedSyllabus

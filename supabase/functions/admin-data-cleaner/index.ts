@@ -669,6 +669,9 @@ function cleaningLifecycleUpdate(row: Record<string, unknown>, state: string, su
   return {
     data_clean_attempts: Math.max(Number(row.data_clean_attempts || 0) + 1, 1),
     data_clean_successes: Math.max(Number(row.data_clean_successes || 0) + (successful ? 1 : 0), 0),
+    ...(successful && "ai_clean_pass_count" in row
+      ? { ai_clean_pass_count: Math.max(Number(row.ai_clean_pass_count || 0) + 1, 1) }
+      : {}),
     data_last_checked_at: new Date().toISOString(),
     data_clean_state: state,
   };
@@ -692,7 +695,7 @@ async function applyApprovedItem(admin: any, item: any) {
   if (!table) throw new Error("Unsupported content type");
   const { data: current, error: readError } = await admin
     .from(table)
-    .select("data_clean_attempts,data_clean_successes")
+    .select("*")
     .eq("id", item.entity_id)
     .single();
   if (readError) throw readError;
@@ -704,6 +707,9 @@ async function applyApprovedItem(admin: any, item: any) {
     data_quality_score: Math.round(Number(item.confidence || 0) * 100),
     data_clean_attempts: Math.max(Number(current?.data_clean_attempts || 0), Number(item.cleaning_pass || 1)),
     data_clean_successes: Number(current?.data_clean_successes || 0) + 1,
+    ...(["colleges", "courses", "exams"].includes(item.entity_type)
+      ? { ai_clean_pass_count: Math.max(Number(current?.ai_clean_pass_count || 0) + 1, 1) }
+      : {}),
     data_last_checked_at: now,
     data_clean_state: "cleaned",
     updated_at: now,

@@ -39,7 +39,7 @@ export function RichSection({
     <section
       id={id}
       className={cn(
-        "bg-card rounded-2xl border border-border p-5 md:p-6 scroll-mt-32",
+        "bg-card w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-border p-5 md:p-6 scroll-mt-32",
         className,
       )}
     >
@@ -76,7 +76,7 @@ export function RichSection({
       </button>
       <div
         className={cn(
-          "transition-[max-height,opacity] duration-300",
+          "w-full min-w-0 max-w-full transition-[max-height,opacity] duration-300",
           open ? "mt-4 max-h-none opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden",
         )}
         // Keep mounted for SEO; visually hidden when closed.
