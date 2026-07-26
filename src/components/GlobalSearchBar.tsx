@@ -20,13 +20,6 @@ type GlobalSearchBarProps = {
   onAskAI?: (message?: string) => void;
 };
 
-type FuzzySearchRpc = {
-  rpc: (
-    fn: "search_directory_fuzzy",
-    args: { p_terms: string[]; p_limit: number },
-  ) => Promise<{ data: DirectoryResult[] | null; error: { message?: string } | null }>;
-};
-
 const routeFor = (result: DirectoryResult) => {
   if (result.entity_type === "College") return `/colleges/${result.slug}`;
   if (result.entity_type === "Course") return `/courses/${result.slug}`;
@@ -66,50 +59,20 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
     setLoading(true);
     const timer = window.setTimeout(async () => {
       try {
-        const { data, error } = await (supabase as unknown as FuzzySearchRpc).rpc("search_directory_fuzzy", {
-          p_terms: variants,
-          p_limit: normalizedQuery.length <= 2 ? 6 : 8,
-        });
-        if (requestId.current !== currentRequest) return;
-        if (error) throw error;
-        let hydrated = (data || []) as DirectoryResult[];
-        const missingExamMedia = hydrated
-          .filter((item) => item.entity_type === "Exam" && !item.image_url)
-          .map((item) => item.slug);
-        if (missingExamMedia.length) {
-          const { data: examMedia } = await supabase
-            .from("exams")
-            .select("slug, logo, image")
-            .in("slug", missingExamMedia);
-          const mediaBySlug = new Map((examMedia || []).map((row) => [row.slug, row.logo || row.image || ""]));
-          hydrated = hydrated.map((item) =>
-            item.entity_type === "Exam" && !item.image_url
-              ? { ...item, image_url: mediaBySlug.get(item.slug) || "" }
-              : item
-          );
-        }
-        if (requestId.current === currentRequest) {
-          setResults(hydrated.map((item) => ({
-            ...item,
-            name: compactDisplayText(item.name, "Untitled", 90),
-            subtitle: compactDisplayText(item.subtitle, "", 72),
-          })));
-        }
-      } catch {
-        if (requestId.current !== currentRequest) return;
-        // Safe fallback while the fuzzy-search migration is rolling out.
         const orFor = (column: string) => buildIlikeOr(column, variants);
         const [colleges, courses, exams] = await Promise.all([
-          supabase.from("colleges").select("name,slug,city,logo").eq("is_active", true).or(orFor("name")).limit(3),
-          supabase.from("courses").select("name,slug").eq("is_active", true).or(orFor("name")).limit(3),
-          supabase.from("exams").select("name,slug,logo,image").eq("is_active", true).or(orFor("name")).limit(2),
+          supabase.from("colleges").select("name,slug,city,logo").eq("is_active", true).or(orFor("name")).limit(4),
+          supabase.from("courses").select("name,slug,level,category,image").eq("is_active", true).or(orFor("name")).limit(4),
+          supabase.from("exams").select("name,slug,logo,image,exam_type,category").eq("is_active", true).or(orFor("name")).limit(3),
         ]);
         const fallback: DirectoryResult[] = [
           ...(colleges.data || []).map((row) => ({ entity_type: "College" as const, name: compactDisplayText(row.name, "Untitled college", 90), slug: row.slug, subtitle: compactDisplayText(row.city || "", "", 60), image_url: row.logo || "" })),
-          ...(courses.data || []).map((row) => ({ entity_type: "Course" as const, name: compactDisplayText(row.name, "Untitled course", 90), slug: row.slug, subtitle: "", image_url: "" })),
-          ...(exams.data || []).map((row) => ({ entity_type: "Exam" as const, name: compactDisplayText(row.name, "Untitled exam", 90), slug: row.slug, subtitle: "", image_url: row.logo || row.image || "" })),
+          ...(courses.data || []).map((row) => ({ entity_type: "Course" as const, name: compactDisplayText(row.name, "Untitled course", 90), slug: row.slug, subtitle: compactDisplayText(row.level || row.category || "Course", "", 60), image_url: row.image || "" })),
+          ...(exams.data || []).map((row) => ({ entity_type: "Exam" as const, name: compactDisplayText(row.name, "Untitled exam", 90), slug: row.slug, subtitle: compactDisplayText(row.exam_type || row.category || "Exam", "", 60), image_url: row.logo || row.image || "" })),
         ];
         if (requestId.current === currentRequest) setResults(fallback);
+      } catch {
+        if (requestId.current === currentRequest) setResults([]);
       } finally {
         if (requestId.current === currentRequest) setLoading(false);
       }

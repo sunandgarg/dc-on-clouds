@@ -43,22 +43,6 @@ interface HeroSectionProps {
   onOpenChat?: (initialMessage?: string) => void;
 }
 
-type FuzzyDirectoryRow = {
-  entity_type: SearchResult["type"];
-  name: string;
-  slug: string;
-  subtitle?: string;
-  image_url?: string;
-  logo_url?: string;
-};
-
-type FuzzySearchRpc = {
-  rpc: (
-    fn: "search_directory_fuzzy",
-    args: { p_terms: string[]; p_limit: number },
-  ) => Promise<{ data: FuzzyDirectoryRow[] | null; error: { message?: string } | null }>;
-};
-
 export function HeroSection({ onOpenChat }: HeroSectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -101,40 +85,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
     const timeout = setTimeout(async () => {
       try {
-        const { data: fuzzyData, error: fuzzyError } = await (supabase as unknown as FuzzySearchRpc).rpc("search_directory_fuzzy", {
-          p_terms: variants,
-          p_limit: q.length <= 2 ? 6 : 8,
-        });
-        if (requestId.current !== currentRequest) return;
-        if (!fuzzyError && fuzzyData?.length) {
-          let hydratedRows = fuzzyData;
-          const missingExamMedia = hydratedRows
-            .filter((item) => item.entity_type === "Exam" && !(item.logo_url || item.image_url))
-            .map((item) => item.slug);
-          if (missingExamMedia.length) {
-            const { data: examMedia } = await supabase
-              .from("exams")
-              .select("slug, logo, image")
-              .in("slug", missingExamMedia);
-            const mediaBySlug = new Map((examMedia || []).map((row) => [row.slug, row.logo || row.image || ""]));
-            hydratedRows = hydratedRows.map((item) =>
-              item.entity_type === "Exam" && !(item.logo_url || item.image_url)
-                ? { ...item, logo_url: mediaBySlug.get(item.slug) || "" }
-              : item
-            );
-          }
-          if (requestId.current !== currentRequest) return;
-          setDbResults(hydratedRows.map((item) => ({
-            type: item.entity_type,
-            name: compactDisplayText(item.name, "Untitled", 90),
-            slug: item.slug,
-            location: compactDisplayText(item.subtitle, "", 90),
-            image: item.image_url || "",
-            logo: item.logo_url || item.image_url || "",
-          })));
-          return;
-        }
-
         const [colleges, courses, exams, careers, faculty] = await Promise.all([
           supabase
             .from("colleges")
@@ -142,10 +92,10 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             .eq("is_active", true)
             .or(orFor("name"))
             .limit(4),
-          supabase.from("courses").select("name, slug").eq("is_active", true).or(orFor("name")).limit(3),
+          supabase.from("courses").select("name, slug, level, category, image").eq("is_active", true).or(orFor("name")).limit(4),
           supabase
             .from("exams")
-            .select("name, slug, image, logo")
+            .select("name, slug, image, logo, exam_type, category")
             .eq("is_active", true)
             .or(orFor("name"))
             .limit(3),
@@ -176,13 +126,14 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             type: "Course" as const,
             name: compactDisplayText(c.name, "Untitled course", 90),
             slug: c.slug,
-            location: "",
+            location: compactDisplayText(c.level || c.category || "Course", "", 60),
+            image: c.image || "",
           })),
           ...(exams.data || []).map((e) => ({
             type: "Exam" as const,
             name: compactDisplayText(e.name, "Untitled exam", 90),
             slug: e.slug,
-            location: "",
+            location: compactDisplayText(e.exam_type || e.category || "Exam", "", 60),
             image: e.image || "",
             logo: e.logo || "",
           })),
