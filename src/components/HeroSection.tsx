@@ -288,12 +288,12 @@ const rotatingWord =
               </span>
             </span>
 
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground select-none" aria-label="Trusted by more than one lakh students">
-                <span className="relative flex h-1.5 w-1.5">
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground select-none" aria-label="AI-first guidance trusted by more than one lakh students">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                1L+ students already guided
+                <span className="hidden xs:inline">AI-first guidance •</span> 1L+ students guided
               </span>
           </div>
 
