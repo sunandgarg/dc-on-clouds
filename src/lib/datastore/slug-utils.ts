@@ -59,8 +59,8 @@ export function generateUploadSlug(universitySlug: string, fileName?: string): s
   const now = new Date();
   // Avoid a character-class literal that Tailwind's source scanner mistakes for CSS.
   const timestamp = now.toISOString()
-    .replaceAll('-', '')
-    .replaceAll(':', '')
+    .replace(/-/g, '')
+    .replace(/:/g, '')
     .replace('T', '')
     .replace('.', '')
     .replace('Z', '')
