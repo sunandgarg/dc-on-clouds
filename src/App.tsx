@@ -54,7 +54,7 @@ function DeferredGlobalUi() {
     let timer = 0;
     let idleHandle: number | undefined;
     const show = () => setReady(true);
-    const win = window as Window & typeof globalThis;
+    const win = window as any;
     if ("requestIdleCallback" in win) {
       idleHandle = win.requestIdleCallback(show, { timeout: 2500 });
     } else {
@@ -62,7 +62,7 @@ function DeferredGlobalUi() {
     }
     return () => {
       if (idleHandle !== undefined && "cancelIdleCallback" in win) win.cancelIdleCallback(idleHandle);
-      if (timer) win.clearTimeout(timer);
+      if (timer) window.clearTimeout(timer);
     };
   }, []);
 
