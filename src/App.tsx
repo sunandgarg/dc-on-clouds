@@ -54,14 +54,15 @@ function DeferredGlobalUi() {
     let timer = 0;
     let idleHandle: number | undefined;
     const show = () => setReady(true);
-    if ("requestIdleCallback" in window) {
-      idleHandle = window.requestIdleCallback(show, { timeout: 2500 });
+    const win = window as Window & typeof globalThis;
+    if ("requestIdleCallback" in win) {
+      idleHandle = win.requestIdleCallback(show, { timeout: 2500 });
     } else {
-      timer = window.setTimeout(show, 2200);
+      timer = win.setTimeout(show, 2200);
     }
     return () => {
-      if (idleHandle !== undefined && "cancelIdleCallback" in window) window.cancelIdleCallback(idleHandle);
-      if (timer) window.clearTimeout(timer);
+      if (idleHandle !== undefined && "cancelIdleCallback" in win) win.cancelIdleCallback(idleHandle);
+      if (timer) win.clearTimeout(timer);
     };
   }, []);
 
