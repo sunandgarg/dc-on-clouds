@@ -178,7 +178,7 @@ async function fetchRows(config: TableConfig) {
   for (let from = 0; ; from += 500) {
     const { data, error } = await client.from(config.table).select(selection).order("id", { ascending: true }).range(from, from + 499);
     if (error) throw new Error(`${config.table}: ${error.message}`);
-    rows.push(...((data ?? []) as Json[]));
+    rows.push(...((data ?? []) as unknown as Json[]));
     if ((data?.length ?? 0) < 500) break;
   }
   return rows;

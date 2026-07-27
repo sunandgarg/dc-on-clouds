@@ -193,7 +193,7 @@ async function fetchRows(config: TableConfig) {
       .order("id", { ascending: true })
       .range(from, from + 499);
     if (error) throw new Error(`${config.table}: ${error.message}`);
-    rows.push(...((data ?? []) as Json[]));
+    rows.push(...((data ?? []) as unknown as Json[]));
     if ((data?.length ?? 0) < 500) break;
   }
   report.scanned_rows[config.table] = rows.length;

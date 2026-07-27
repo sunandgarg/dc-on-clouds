@@ -288,19 +288,21 @@ const rotatingWord =
               </span>
             </span>
 
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground select-none" aria-label="Trusted by more than one lakh students">
-                <span className="relative flex h-1.5 w-1.5">
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground select-none flex-wrap" aria-label="AI-first guidance trusted by more than one lakh students">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                1L+ students already guided
+                <span className="hidden min-[390px]:inline">AI-first guidance •</span>
+                <span className="min-[390px]:hidden">AI-first •</span>
+                1L+ students guided
               </span>
           </div>
 
           {/* Primary promise */}
           <div>
             <h1
-              className="max-w-5xl select-none text-[32px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[35px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
+              className="max-w-5xl select-none text-[36px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[40px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
               style={{ overflowWrap: "normal", wordBreak: "normal" }}
             >
               <span className="inline text-[#111827]" style={{ overflowWrap: "normal", wordBreak: "normal" }}>

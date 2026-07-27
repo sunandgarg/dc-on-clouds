@@ -275,7 +275,7 @@ function sanitizePayload(entity: Entity, payload: Json): Json {
       syllabus_content: text(base.syllabus_content) ?? "",
       short_description: text(base.short_description) ?? "",
       domain: text(base.domain, 255) ?? "",
-      study_type: text(base.study_type, 255) ?? "",
+      
       is_active: inferBoolean(base.is_active, false),
       status: publish ? "Published" : "Draft",
       meta_title: text(base.meta_title, 500) ?? "",
