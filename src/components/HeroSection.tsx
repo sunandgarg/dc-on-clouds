@@ -302,19 +302,19 @@ const rotatingWord =
           {/* Primary promise */}
           <div>
             <h1
-              className="max-w-5xl select-none text-[36px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[40px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
+              className="max-w-5xl select-none text-[32px] font-black leading-[1.02] tracking-[-0.052em] text-foreground min-[360px]:text-[36px] min-[390px]:text-[40px] min-[412px]:text-[41px] min-[430px]:text-[44px] sm:text-[56px] sm:leading-[0.96] md:text-[68px] lg:text-[86px]"
               style={{ overflowWrap: "normal", wordBreak: "normal" }}
             >
-              <span className="inline text-[#111827]" style={{ overflowWrap: "normal", wordBreak: "normal" }}>
+              <span className="block whitespace-nowrap text-[#111827] sm:inline sm:whitespace-normal" style={{ overflowWrap: "normal", wordBreak: "normal" }}>
                 Discover Your Ideal{" "}
               </span>
               <span
-                className="relative inline-flex min-w-[3.5em] overflow-visible align-baseline"
+                className="relative inline-flex min-w-[3.5em] overflow-hidden align-baseline"
                 style={{ overflowWrap: "normal", wordBreak: "normal" }}
               >
                 <span
                   key={rotatingWord.label}
-                  className={`absolute left-0 top-0 inline-block animate-dc-word-land whitespace-nowrap bg-gradient-to-r ${rotatingWord.gradient} bg-clip-text text-transparent drop-shadow-[0_12px_28px_rgba(37,99,235,0.08)]`}
+                  className={`absolute left-0 top-0 inline-block animate-dc-word-roll whitespace-nowrap bg-gradient-to-r ${rotatingWord.gradient} bg-clip-text text-transparent`}
                   style={{ overflowWrap: "normal", wordBreak: "normal" }}
                 >
                   {rotatingWord.label}
