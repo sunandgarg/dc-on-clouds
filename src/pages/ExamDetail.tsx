@@ -98,7 +98,7 @@ export default function ExamDetail() {
       "@context": "https://schema.org",
       "@type": "WebPage",
       name: exam.full_name || exam.name,
-      description: exam.page_summary || exam.description || undefined,
+      description: (exam as any).page_summary || exam.description || undefined,
       url: absoluteSiteUrl(buildExamHref(exam as any)),
       primaryImageOfPage: exam.image ? { "@type": "ImageObject", url: exam.image } : undefined,
       about: {

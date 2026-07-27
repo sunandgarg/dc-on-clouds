@@ -124,7 +124,7 @@ export default function CollegeDetail() {
       "@type": "CollegeOrUniversity",
       name: college.name,
       alternateName: college.short_name || undefined,
-      description: college.page_summary || college.description || undefined,
+      description: (college as any).page_summary || college.description || undefined,
       url: absoluteSiteUrl(buildCollegeHref(college as any)),
       image: college.image || undefined,
       logo: college.logo || undefined,

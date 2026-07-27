@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     {
       name: "emit-build-version",
-      generateBundle() {
+      generateBundle(this: any) {
         this.emitFile({
           type: "asset",
           fileName: "version.json",

@@ -135,7 +135,7 @@ export default function CourseDetail() {
   const [leadOpen, setLeadOpen] = useState<null | "apply" | "talk" | "syllabus">(null);
   const seoCourseName = course ? displayText(course.name, "Course") : "";
   const seoFullName = course ? displayText(course.full_name || course.name, seoCourseName) : "";
-  const seoDescription = course ? stripMarkup(course.page_summary || course.short_description || course.description || "") : "";
+  const seoDescription = course ? stripMarkup((course as any).page_summary || course.short_description || course.description || "") : "";
   const seoSubjects = course?.subjects?.map((subject) => displayText(subject)).filter(Boolean) || [];
 
   // Canonicalize to slug-with-id URL once course resolves
