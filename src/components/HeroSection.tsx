@@ -300,7 +300,7 @@ const rotatingWord =
           {/* Primary promise */}
           <div>
             <h1
-              className="max-w-5xl select-none text-[32px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[35px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
+              className="max-w-5xl select-none text-[36px] font-black leading-[0.96] tracking-[-0.052em] text-foreground min-[390px]:text-[40px] sm:text-[56px] md:text-[68px] lg:text-[86px]"
               style={{ overflowWrap: "normal", wordBreak: "normal" }}
             >
               <span className="inline text-[#111827]" style={{ overflowWrap: "normal", wordBreak: "normal" }}>
