@@ -118,7 +118,7 @@ function buildRefs(sql: string): LegacyRefs {
     collegeCourseFees.set(collegeId, bucket);
   }
 
-  const placementNames = new Map(readTable(sql, "college_placement").map((row) => [String(row.id), text(row.name)]).filter(([, name]) => Boolean(name)));
+  const placementNames = new Map(readTable(sql, "college_placement").map((row) => [String(row.id), text(row.name)] as [string, string]).filter(([, name]) => Boolean(name)));
   const collegePlacements = new Map<string, string[]>();
   for (const link of readTable(sql, "college_college_placement")) {
     const collegeId = plain(link.college_id);
