@@ -98,13 +98,13 @@ async function mergeSlug(client: SupabaseClient, table: string, payload: Record<
 }
 
 function buildRefs(sql: string): LegacyRefs {
-  const states = new Map(readTable(sql, "state").map((row) => [String(row.id), text(row.name)]).filter(([, name]) => Boolean(name)));
-  const cities = new Map(readTable(sql, "city").map((row) => [String(row.id), text(row.name)]).filter(([, name]) => Boolean(name)));
-  const commonCategories = new Map(readTable(sql, "common_categories").map((row) => [String(row.id), text(row.name)]).filter(([, name]) => Boolean(name)));
-  const articleCategories = new Map(readTable(sql, "categories").map((row) => [String(row.id), text(row.name)]).filter(([, name]) => Boolean(name)));
+  const states = new Map(readTable(sql, "state").map((row) => [String(row.id), text(row.name)] as [string, string]).filter(([, name]) => Boolean(name)));
+  const cities = new Map(readTable(sql, "city").map((row) => [String(row.id), text(row.name)] as [string, string]).filter(([, name]) => Boolean(name)));
+  const commonCategories = new Map(readTable(sql, "common_categories").map((row) => [String(row.id), text(row.name)] as [string, string]).filter(([, name]) => Boolean(name)));
+  const articleCategories = new Map(readTable(sql, "categories").map((row) => [String(row.id), text(row.name)] as [string, string]).filter(([, name]) => Boolean(name)));
   const authors = new Map(readTable(sql, "directus_users").map((row) => {
     const full = [plain(row.first_name), plain(row.last_name)].filter(Boolean).join(" ").trim();
-    return [String(row.id), full || text(row.email)];
+    return [String(row.id), full || text(row.email)] as [string, string];
   }).filter(([, name]) => Boolean(name)));
 
   const courseAndFees = new Map(readTable(sql, "course_and_fee").map((row) => [String(row.id), row]));
