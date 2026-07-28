@@ -119,9 +119,9 @@ export function RichText({ html, className }: RichTextProps) {
   if (!trimmed) return null;
 
   const proseClasses = cn(
-    "prose prose-neutral w-full min-w-0 max-w-full overflow-visible",
+    "prose prose-neutral w-full min-w-0 max-w-full overflow-visible [&_*]:max-w-full",
     "text-[15px] leading-[1.75]",
-    "prose-p:text-[15px] prose-p:leading-[1.75] prose-p:text-foreground/90 prose-p:my-3",
+    "prose-p:text-[15px] prose-p:leading-[1.75] prose-p:text-foreground/90 prose-p:my-3 prose-p:whitespace-normal prose-p:break-words",
     "prose-headings:text-foreground prose-headings:font-extrabold prose-headings:tracking-tight",
     "prose-h1:text-[26px] md:prose-h1:text-3xl prose-h1:mt-7 prose-h1:mb-3",
     "prose-h2:text-[22px] md:prose-h2:text-2xl prose-h2:mt-6 prose-h2:mb-3",
@@ -143,10 +143,10 @@ export function RichText({ html, className }: RichTextProps) {
     "[&_figcaption]:mt-2 [&_figcaption]:text-xs [&_figcaption]:text-muted-foreground [&_figcaption]:italic",
     // Tables - modern, appealing styling
     "[&_.rt-table-wrap]:block [&_.rt-table-wrap]:w-full [&_.rt-table-wrap]:min-w-0 [&_.rt-table-wrap]:max-w-full [&_.rt-table-wrap]:overflow-x-auto [&_.rt-table-wrap]:overflow-y-visible [&_.rt-table-wrap]:overscroll-x-contain [&_.rt-table-wrap]:touch-auto [&_.rt-table-wrap]:my-5 [&_.rt-table-wrap]:rounded-xl [&_.rt-table-wrap]:border [&_.rt-table-wrap]:border-border [&_.rt-table-wrap]:shadow-sm [&_.rt-table-wrap]:bg-card [&_.rt-table-wrap]:focus-visible:outline-none [&_.rt-table-wrap]:focus-visible:ring-2 [&_.rt-table-wrap]:focus-visible:ring-primary/30",
-    "[&_table]:w-max [&_table]:min-w-[max(640px,100%)] [&_table]:max-w-none [&_table]:text-sm [&_table]:border-collapse [&_table]:m-0",
+    "[&_table]:w-full [&_table]:min-w-full [&_table]:max-w-none [&_table]:text-sm [&_table]:border-collapse [&_table]:m-0",
     "[&_thead]:bg-gradient-to-r [&_thead]:from-primary/10 [&_thead]:to-primary/[0.04]",
-    "[&_th]:text-left [&_th]:font-bold [&_th]:text-foreground [&_th]:px-3 [&_th]:py-2.5 md:[&_th]:px-4 md:[&_th]:py-3 [&_th]:border-b [&_th]:border-primary/20 [&_th]:whitespace-nowrap [&_th]:tracking-tight",
-    "[&_td]:px-3 [&_td]:py-2.5 md:[&_td]:px-4 md:[&_td]:py-3 [&_td]:border-b [&_td]:border-border/70 [&_td]:text-foreground/90 [&_td]:align-top",
+    "[&_th]:text-left [&_th]:font-bold [&_th]:text-foreground [&_th]:px-3 [&_th]:py-2.5 md:[&_th]:px-4 md:[&_th]:py-3 [&_th]:border-b [&_th]:border-primary/20 [&_th]:whitespace-normal [&_th]:break-words [&_th]:tracking-tight",
+    "[&_td]:px-3 [&_td]:py-2.5 md:[&_td]:px-4 md:[&_td]:py-3 [&_td]:border-b [&_td]:border-border/70 [&_td]:text-foreground/90 [&_td]:align-top [&_td]:whitespace-normal [&_td]:break-words",
     "[&_tbody_tr:last-child_td]:border-b-0",
     "[&_tbody_tr:nth-child(even)]:bg-muted/30",
     "[&_tbody_tr:hover]:bg-primary/[0.04] [&_tbody_tr]:transition-colors",

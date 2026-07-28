@@ -467,9 +467,16 @@
   }
 
   .rt-table-wrap table {
-    width: max-content;
-    min-width: max(640px, 100%);
+    width: 100%;
+    min-width: 100%;
     max-width: none;
+  }
+
+  .rt-table-wrap th,
+  .rt-table-wrap td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   @media (max-width: 640px) {
@@ -725,8 +732,8 @@
     border-radius: 0.5rem;
   }
   .article-prose table {
-    width: max-content;
-    min-width: max(640px, 100%);
+    width: 100%;
+    min-width: 100%;
     max-width: none;
     table-layout: auto;
   }

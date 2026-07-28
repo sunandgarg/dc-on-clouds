@@ -39,7 +39,7 @@ export function RichSection({
     <section
       id={id}
       className={cn(
-        "bg-card w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-border p-5 md:p-6 scroll-mt-32",
+        "bg-card w-full min-w-0 max-w-full overflow-visible rounded-2xl border border-border p-5 md:p-6 scroll-mt-32",
         className,
       )}
     >
