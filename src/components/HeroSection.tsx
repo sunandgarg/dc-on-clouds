@@ -179,19 +179,15 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     if (onOpenChat) onOpenChat(prompt);
   };
 
- const showDropdown =
-  isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
-
-const rotatingWords = [
-  { label: "Path", gradient: "from-[#2563EB] to-[#2563EB]" },
-  { label: "College", gradient: "from-[#FF6C32] to-[#FF6C32]" },
-  { label: "Course", gradient: "from-[#FF6C32] to-[#FF6C32]" },
-  { label: "Career", gradient: "from-[#2563EB] to-[#2563EB]" },
-  { label: "Exam", gradient: "from-[#2563EB] to-[#2563EB]" },
-] as const;
-
-const rotatingWord =
-  rotatingWords[headlineIndex % rotatingWords.length];
+  const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
+  const rotatingWords = [
+    { label: "Path", className: "text-primary" },
+    { label: "College", className: "text-accent" },
+    { label: "Course", className: "text-accent" },
+    { label: "Career", className: "text-primary" },
+    { label: "Exam", className: "text-primary" },
+  ] as const;
+  const rotatingWord = rotatingWords[headlineIndex % rotatingWords.length];
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
     if (item.type === "Course") return BookOpen;
@@ -314,7 +310,7 @@ const rotatingWord =
               >
                 <span
                   key={rotatingWord.label}
-                  className={`absolute left-0 top-0 inline-block animate-dc-word-roll whitespace-nowrap bg-gradient-to-r ${rotatingWord.gradient} bg-clip-text text-transparent`}
+                  className={`absolute left-0 top-0 inline-block animate-dc-word-roll whitespace-nowrap ${rotatingWord.className}`}
                   style={{ overflowWrap: "normal", wordBreak: "normal" }}
                 >
                   {rotatingWord.label}

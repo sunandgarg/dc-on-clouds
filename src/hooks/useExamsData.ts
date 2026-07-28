@@ -131,9 +131,38 @@ function mapExam(row: any): DbExam {
   return {
     ...row,
     important_dates: Array.isArray(row.important_dates) ? row.important_dates : JSON.parse(row.important_dates || "[]"),
+    syllabus: parseStringList(row.syllabus),
+    top_colleges: parseStringList(row.top_colleges),
     question_papers: Array.isArray(row.question_papers) ? row.question_papers : JSON.parse(row.question_papers || "[]"),
     brochure_url: row.brochure_url ?? "",
   };
+}
+
+function parseStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value !== "string") return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  } catch {
+    // Legacy plain-text syllabus/top-college fields are handled below.
+  }
+
+  return [trimmed];
 }
 
 export function useSaveExam() {

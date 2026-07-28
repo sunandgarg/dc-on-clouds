@@ -54,6 +54,8 @@ const EXAM_SECTIONS: ScrollSection[] = [
   { id: "faq", label: "Q&A" },
 ];
 
+const HTML_FRAGMENT_RE = /<[a-z][\s\S]*>|&(?:amp;)?(?:lt|#0*60|#x0*3c);/i;
+
 export default function ExamDetail() {
   const { slug, tab } = useParams<{ slug: string; tab?: string }>();
   const navigate = useNavigate();
@@ -147,6 +149,12 @@ export default function ExamDetail() {
   }
 
   const compactExamName = compactEntityLabel((exam as any).short_name || exam.name);
+  const syllabusItems = Array.isArray(exam.syllabus)
+    ? exam.syllabus.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+  const syllabusHasHtml = syllabusItems.some((item) => HTML_FRAGMENT_RE.test(item));
+  const syllabusRichHtml = syllabusHasHtml ? syllabusItems.join(" ") : "";
+  const syllabusBadges = syllabusHasHtml ? [] : syllabusItems;
 
   return (
     <div className="min-h-screen bg-background">
@@ -442,22 +450,16 @@ export default function ExamDetail() {
 
             {/* Syllabus */}
             <RichSection id="syllabus" title={<>Syllabus</>}>
-              {exam.syllabus.some((item) => /<[a-z][\s\S]*>|&(?:amp;)?lt;/i.test(item)) && (
-                <div className="space-y-3">
-                  {exam.syllabus
-                    .filter((item) => /<[a-z][\s\S]*>|&(?:amp;)?lt;/i.test(item))
-                    .map((item, index) => <RichText key={`syllabus-rich-${index}`} html={item} />)}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {exam.syllabus
-                  .filter((item) => !/<[a-z][\s\S]*>|&(?:amp;)?lt;/i.test(item))
-                  .map((item, index) => (
+              {syllabusRichHtml && <RichText html={syllabusRichHtml} />}
+              {syllabusBadges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {syllabusBadges.map((item, index) => (
                     <Badge key={`${item}-${index}`} variant="secondary" className="max-w-full whitespace-normal break-words text-sm py-1.5 px-3">
                       {item}
                     </Badge>
                   ))}
-              </div>
+                </div>
+              )}
               <div className="mt-4 pt-4 border-t border-border">
                 <LinkedSyllabus
                   classes={(exam as any).linked_school_classes || []}

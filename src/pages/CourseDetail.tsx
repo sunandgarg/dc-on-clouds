@@ -662,7 +662,7 @@ export default function CourseDetail() {
             {/* Cut Off - FIX: added w-full overflow-x-auto wrapper to prevent table blowout */}
             <RichSection id="cutoff" title={<>Cut Off</>}>
               {course.cutoff_content && <RichText html={course.cutoff_content} />}
-              <div className="w-full overflow-x-auto -mx-0">
+              <div className="dc-scroll-table">
                 <table className="w-full text-sm min-w-[280px]">
                   <thead>
                     <tr className="border-b border-border">

@@ -360,7 +360,7 @@ export default function CollegeDetail() {
               {college.course_fee_content && (
                 <div className="mb-4"><RichText html={college.course_fee_content} /></div>
               )}
-              <div className="overflow-x-auto -mx-1 px-1">
+              <div className="dc-scroll-table">
                 <table className="w-full text-sm min-w-[420px]">
                   <thead>
                     <tr className="border-b border-border">

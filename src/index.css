@@ -457,9 +457,10 @@
 
   .rt-table-wrap {
     display: block;
+    width: 100%;
     max-width: 100%;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
     overscroll-behavior-x: contain;
     touch-action: pan-x pan-y;
     -webkit-overflow-scrolling: touch;
@@ -467,14 +468,40 @@
 
   .rt-table-wrap table {
     width: max-content;
-    min-width: 640px;
+    min-width: max(640px, 100%);
     max-width: none;
   }
 
   @media (max-width: 640px) {
     .rt-table-wrap {
-      margin-left: -0.25rem;
-      margin-right: -0.25rem;
+      width: calc(100vw - 2rem);
+      max-width: calc(100vw - 2rem);
+      margin-left: 0;
+      margin-right: 0;
+      padding-bottom: 0.35rem;
+    }
+  }
+
+  .dc-scroll-table {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dc-scroll-table > table {
+    width: max-content;
+    min-width: max(420px, 100%);
+    max-width: none;
+  }
+
+  @media (max-width: 640px) {
+    .dc-scroll-table {
+      width: calc(100vw - 2rem);
+      max-width: calc(100vw - 2rem);
       padding-bottom: 0.35rem;
     }
   }
@@ -690,12 +717,17 @@
   .article-prose .tableWrapper {
     width: 100%;
     overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
     -webkit-overflow-scrolling: touch;
     margin: 1.25rem 0;
     border-radius: 0.5rem;
   }
   .article-prose table {
-    min-width: 100%;
+    width: max-content;
+    min-width: max(640px, 100%);
+    max-width: none;
     table-layout: auto;
   }
   .article-prose thead th,
