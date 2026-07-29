@@ -24,3 +24,17 @@ provenance in `data_source_urls`.
 No automated “human” or plagiarism detector can provide a scientifically
 reliable percentage. The enforceable safeguards here are original synthesis,
 named provenance and within-batch long-phrase duplication checks.
+
+## Complete course-catalogue pass
+
+After the narrative record is source-verified, replace generic degree families
+with the institution's complete advertised programme and specialisation list:
+
+```bash
+node scripts/validate-college-course-catalogue.mjs
+node scripts/generate-college-course-catalogue-sql.mjs
+```
+
+This pass only sets `official_courses_verified = true` when the manifest is
+complete. Published fees stay `NULL` until the amount is mapped to the correct
+programme, academic period and student category.
