@@ -12,7 +12,6 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { getPrefillCookie, savePrefillCookie } from "@/components/CookieConsent";
 import { IITAlumniBadge } from "@/components/IITAlumniBadge";
 import { normalizeIndianMobile } from "@/lib/phone";
-import { tryExchangePhoneOtpForSession } from "@/lib/phoneAuth";
 import { functionUrl } from "@/lib/backendMode";
 
 const LEAD_URL = functionUrl("save-lead");
@@ -93,7 +92,7 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
       setOtpToken(json.token);
       if (json.otp) setSentOtp(json.otp); // dev mode (no provider configured)
       toast.success(json.sent ? "OTP sent to your mobile" : "OTP generated (dev mode)");
-      setResendCooldown(30);
+      setResendCooldown(45);
       setStep("otp");
     } catch (err: any) {
       toast.error(err.message || "Could not send OTP");
@@ -122,7 +121,7 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Failed to resend OTP");
       toast.success("OTP resent to your mobile");
-      setResendCooldown(30);
+      setResendCooldown(45);
     } catch (err: any) {
       toast.error(err.message || "Could not resend OTP");
     } finally {
@@ -154,8 +153,6 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) throw new Error(json.error || "Invalid OTP");
-      await tryExchangePhoneOtpForSession(form.phone, otp);
-
       // Save lead with otp_verified=true
       await fetch(LEAD_URL, {
         method: "POST",

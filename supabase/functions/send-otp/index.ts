@@ -7,10 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Universal operations OTP — accepted everywhere. Real SMS is still attempted.
-const MASTER_TEST_OTP = "313125";
-
-
 interface OtpProvider {
   id: string;
   channel: string;
@@ -36,6 +32,15 @@ function normalizeIndianMobile(input: string) {
   if (mobile.startsWith("91") && mobile.length > 10) mobile = mobile.slice(2);
   while (mobile.startsWith("0")) mobile = mobile.slice(1);
   return mobile.slice(0, 10);
+}
+
+function generateOtp(length = 6) {
+  const safeLength = clampNumber(length, 4, 10, 6);
+  const minimum = 10 ** (safeLength - 1);
+  const range = 9 * minimum;
+  const random = new Uint32Array(1);
+  crypto.getRandomValues(random);
+  return String(minimum + (random[0] % range));
 }
 
 async function hashOtp(phone: string, otp: string) {
@@ -482,42 +487,16 @@ async function sendViaFast2SMS(provider: OtpProvider, phone: string, otp?: strin
   const mobile = normalizeIndianMobile(phone);
   if (!/^[0-9]{10}$/.test(mobile)) return { ok: false, detail: "Fast2SMS requires a valid 10-digit Indian mobile number." };
 
-  // Production default:
-  //  1. DLT-approved SMS (works for every valid Indian mobile number)
-  //  2. Fast2SMS' current /dev/otp/send template endpoint
-  //  3. Legacy generic OTP route only as a last compatibility fallback
-  //
-  // The legacy bulkV2 `route: otp` can appear successful while an account is
-  // still limited to its registered/test number. Prefer routes whose provider
-  // response represents a production DLT/template submission.
+  // All authentication and lead-form OTPs use Fast2SMS Smart OTP. This avoids
+  // transactional DLT route timing restrictions and keeps one consistent
+  // delivery contract across login, lead forms, downloads, resend and verify.
   const routeSetting = String(provider.config_json?.fast2sms_route || provider.config_json?.route || provider.config_json?.mode || "").toLowerCase();
-  const route = routeSetting || "auto";
-  const code = otp || MASTER_TEST_OTP;
+  const route = routeSetting || "smart_otp";
+  const code = otp || generateOtp(provider.config_json?.otp_length);
 
-  if (route === "auto" || route === "production") {
-    if (provider.sender_id || provider.config_json?.sender_id) {
-      const dlt = await sendViaFast2SMSDLT(provider, mobile, code);
-      if (dlt.ok) return dlt;
-      console.warn("Fast2SMS production DLT attempt failed; trying template OTP", dlt.detail);
-    }
-    if (otpId) {
-      const templateOtp = await sendViaFast2SMSTemplateOtp(provider, mobile, code);
-      if (templateOtp.ok) return templateOtp;
-      console.warn("Fast2SMS template OTP attempt failed; trying compatibility route", templateOtp.detail);
-    }
-    return sendViaFast2SMSOtpRoute(provider, mobile, code);
-  }
-
-  if (route === "otp" || route === "smart_otp" || route === "send_otp" || route === "default") {
-    const r = otpId
-      ? await sendViaFast2SMSTemplateOtp(provider, mobile, code)
-      : await sendViaFast2SMSOtpRoute(provider, mobile, code);
-    if (r.ok) return r;
-    // Optional fallback to DLT only when admin enables it
-    if (provider.config_json?.otp_fallback_to_dlt === true) {
-      return sendViaFast2SMSDLT(provider, mobile, code);
-    }
-    return r;
+  if (["auto", "production", "otp", "smart_otp", "send_otp", "default"].includes(route)) {
+    if (!otpId) return { ok: false, detail: "Fast2SMS Smart OTP Template ID is not configured." };
+    return sendViaFast2SMSTemplateOtp(provider, mobile, code);
   }
 
   if (route === "q" || route === "quick") {
@@ -549,7 +528,7 @@ async function sendViaFast2SMS(provider: OtpProvider, phone: string, otp?: strin
       return { ok: true, transactionId: parsed.request_id, detail: fast2SmsMessage(parsed, "OTP sent successfully"), raw: parsed };
     }
     if (/Invalid OTP ID/i.test(fast2SmsMessage(parsed, text))) {
-      return sendViaFast2SMSDLT(provider, mobile, otp || MASTER_TEST_OTP);
+      return { ok: false, detail: "Fast2SMS rejected the configured Smart OTP Template ID.", raw: parsed };
     }
     return { ok: false, detail: fast2SmsMessage(parsed, `HTTP ${res.status}: ${text.slice(0, 200)}`), raw: parsed };
   } catch (e: any) {
@@ -876,7 +855,8 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { phone, otp, action = "send", provider_name, type, phone_number_id, version, waba_id } = body;
+    const { phone, action = "send", provider_name, type, phone_number_id, version, waba_id } = body;
+    let otp = String(body.otp || "").trim();
     let { channel = "sms" } = body;
 
     const log = newLogger("send-otp");
@@ -902,15 +882,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 🔑 Universal operations OTP always verifies, no provider call required.
-    if (action === "verify" && String(otp).trim() === MASTER_TEST_OTP) {
-      await log.info("verify", "Master test OTP accepted", { phone_masked: String(phone).slice(-4) });
-      return new Response(JSON.stringify({ success: true, verified: true, master_test: true, results: [{ provider: "master_test", success: true, verified: true }] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -935,6 +906,10 @@ Deno.serve(async (req) => {
         });
       }
     }
+
+    // OTPs are generated only inside this trusted edge function. Browsers never
+    // receive or choose the expected code.
+    if (action === "send" && !otp) otp = generateOtp(6);
 
     if (action === "verify") {
       const stored = await verifyStoredOtp(supabase, phone, otp);
@@ -1072,7 +1047,7 @@ Deno.serve(async (req) => {
       const detail = results.map((r) => `${r.provider}: ${r.detail || "failed"}`).join(" | ");
       await log.error("serve", "All providers failed", { detail });
       return new Response(JSON.stringify({ error: detail || "OTP delivery failed", fallback: true, results }), {
-        status: 200,
+        status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

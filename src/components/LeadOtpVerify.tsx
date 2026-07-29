@@ -3,12 +3,10 @@ import { motion } from "framer-motion";
 import { Loader2, ShieldCheck, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useLeadFormSettings, type LeadOtpMode } from "@/hooks/useLeadFormSettings";
-import { MASTER_TEST_OTP, tryExchangePhoneOtpForSession } from "@/lib/phoneAuth";
 import { functionUrl } from "@/lib/backendMode";
 
 const SEND_OTP_URL = functionUrl("send-otp");
-const RESEND_COOLDOWN = 30; // seconds
+const RESEND_COOLDOWN = 45; // seconds
 const OTP_LENGTH = 6;
 
 interface LeadOtpVerifyProps {
@@ -19,50 +17,34 @@ interface LeadOtpVerifyProps {
   formKey?: string;
 }
 
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 export function LeadOtpVerify({ phone, onVerified, onCancel, formKey }: LeadOtpVerifyProps) {
-  const { data: settings } = useLeadFormSettings();
-  const mode: LeadOtpMode = settings?.otp_mode ?? "off";
-  const channel = (formKey && settings?.form_overrides?.[formKey]) || settings?.channel_preference || "sms";
-  const isTestMode = mode === "test";
+  void formKey;
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [providerManaged, setProviderManaged] = useState(false);
-  const expectedRef = useRef<string>("");
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
   const sendOtp = async (resend = false) => {
     setSending(true);
     try {
-      const code = generateOtp();
-      if (!resend || !providerManaged) expectedRef.current = code;
-      if (!isTestMode) {
-        const res = await fetch(SEND_OTP_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify(
-            resend && providerManaged
-              ? { phone: `+91${phone}`, channel, action: "resend" }
-              : { phone: `+91${phone}`, otp: code, channel, action: "send" }
-          ),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.success) throw new Error(body.error || "Failed to send OTP");
-        const managed = body.results?.some((r: any) => ["fast2sms", "msg91"].includes(String(r.provider).toLowerCase()));
-        setProviderManaged(Boolean(managed));
-        toast.success(`OTP sent to +91 ${phone.slice(0, 5)}*****`);
-      } else {
-        toast.info("Test mode - enter any 6 digits to continue");
-      }
+      const res = await fetch(SEND_OTP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          phone: `+91${phone}`,
+          channel: "sms",
+          action: resend ? "resend" : "send",
+          provider_name: "fast2sms",
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) throw new Error(body.error || "Failed to send OTP");
+      toast.success(`OTP sent to +91 ${phone.slice(0, 5)}*****`);
       setCooldown(RESEND_COOLDOWN);
     } catch (e: any) {
       toast.error(e?.message || "Could not send OTP. Try again.");
@@ -119,35 +101,25 @@ export function LeadOtpVerify({ phone, onVerified, onCancel, formKey }: LeadOtpV
     }
     setVerifying(true);
     try {
-      // 🔑 Universal operations OTP - accept it without contacting provider.
-      if (code === MASTER_TEST_OTP || isTestMode) {
-        await tryExchangePhoneOtpForSession(phone, code);
-        onVerified();
-        return;
-      }
-      if (providerManaged) {
-        const res = await fetch(SEND_OTP_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ phone: `+91${phone}`, otp: code, channel, action: "verify" }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.verified) {
-          toast.error(body.error || "Incorrect OTP. Please try again.");
-          return;
-        }
-        await tryExchangePhoneOtpForSession(phone, code);
-        onVerified();
-        return;
-      }
-      if (code !== expectedRef.current) {
+      const res = await fetch(SEND_OTP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          phone: `+91${phone}`,
+          otp: code,
+          channel: "sms",
+          action: "verify",
+          provider_name: "fast2sms",
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.verified) {
         toast.error("Incorrect OTP. Please try again.");
         return;
       }
-      await tryExchangePhoneOtpForSession(phone, code);
       onVerified();
     } finally {
       setVerifying(false);

@@ -1,5 +1,8 @@
 project_id = "kozdctbbvrnyddlftmvf"
 
+[functions.phone-auth]
+verify_jwt = true
+
 [functions.admin-blog-agent]
 verify_jwt = false
 

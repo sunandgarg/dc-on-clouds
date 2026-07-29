@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { ArrowRight, Loader2, ShieldCheck, Sparkles, GraduationCap, Users, Trophy } from "lucide-react";
@@ -12,32 +12,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import dcLogo from "@/assets/dc-logo.png";
 import { normalizeIndianMobile } from "@/lib/phone";
-import { exchangePhoneOtpForSession, MASTER_TEST_OTP } from "@/lib/phoneAuth";
-import { functionUrl } from "@/lib/backendMode";
-
-const TEST_OTP = MASTER_TEST_OTP;
-const OTP_BYPASS_ADMIN_PHONE = "8377080085";
-const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function saveSentOtp(phone: string, code: string) {
-  try { sessionStorage.setItem(`dc_otp_${phone}`, JSON.stringify({ code, ts: Date.now() })); } catch { /* ignore */ }
-}
-function readSentOtp(phone: string): string {
-  try {
-    const raw = sessionStorage.getItem(`dc_otp_${phone}`);
-    if (!raw) return "";
-    const { code, ts } = JSON.parse(raw);
-    if (!code || Date.now() - ts > OTP_TTL_MS) {
-      sessionStorage.removeItem(`dc_otp_${phone}`);
-      return "";
-    }
-    return String(code);
-  } catch { return ""; }
-}
+import { exchangePhoneOtpForSession, requestPhoneOtp } from "@/lib/phoneAuth";
 
 export default function Auth() {
   const { user, isLoading } = useAuth();
@@ -49,7 +24,6 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [timer, setTimer] = useState(0);
-  const sentOtpRef = useRef("");
 
   useEffect(() => {
     let interval: any;
@@ -77,40 +51,11 @@ export default function Auth() {
     setLoading(true);
     try {
       const phoneDigits = cleanPhone();
-      // Owner-only emergency access. The matching database migration grants
-      // this identity the real admin role, so RLS continues to enforce access.
-      if (phoneDigits === OTP_BYPASS_ADMIN_PHONE) {
-        await signInWithPhoneIdentity(phoneDigits, TEST_OTP);
-        toast({ title: "Admin access granted" });
-        return;
-      }
-      // Generate locally + persist so verification works even if the gateway
-      // verification API is delayed, but wait for SMS delivery confirmation.
-      const code = generateOtp();
-      sentOtpRef.current = code;
-      saveSentOtp(phoneDigits, code);
-
-      const res = await fetch(functionUrl("send-otp"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          phone: `+91${phoneDigits}`,
-          otp: code,
-          channel: "sms",
-          action: "send",
-        }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body.success || body.skipped) {
-        throw new Error(body.error || "SMS gateway did not confirm delivery. Please try again.");
-      }
+      await requestPhoneOtp(phoneDigits, step === "otp" ? "resend" : "send");
 
       toast({ title: "OTP Sent", description: `SMS sent to +91 ${phoneDigits}` });
       setStep("otp");
-      setTimer(30);
+      setTimer(45);
     } catch (err: any) {
       toast({ title: "OTP failed", description: err?.message || "Could not send OTP. Please try again.", variant: "destructive" });
     } finally {
@@ -123,28 +68,6 @@ export default function Auth() {
     if (otp.length < 6) return;
     setLoading(true);
     try {
-      // Accept master test OTP OR provider-verified OTP.
-      const stored = readSentOtp(cleanPhone());
-      let verified = otp === TEST_OTP || (sentOtpRef.current.length === 6 && otp === sentOtpRef.current) || (stored.length === 6 && otp === stored);
-      if (!verified) {
-        try {
-          const res = await fetch(functionUrl("send-otp"), {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({ phone: `+91${cleanPhone()}`, otp, channel: "sms", action: "verify" }),
-          });
-          const body = await res.json().catch(() => ({}));
-          verified = !!(res.ok && body.verified);
-        } catch { /* fallthrough */ }
-      }
-      if (!verified) {
-        toast({ title: "Invalid OTP", description: "Please check the code and try again.", variant: "destructive" });
-        return;
-      }
-
       await signInWithPhoneIdentity(cleanPhone(), otp);
       toast({ title: "Welcome! 🎉", description: "Signed in successfully." });
     } catch (err: any) {
@@ -160,8 +83,6 @@ export default function Auth() {
   };
 
   const changePhoneNumber = () => {
-    try { sessionStorage.removeItem(`dc_otp_${cleanPhone()}`); } catch { /* ignore */ }
-    sentOtpRef.current = "";
     setOtp("");
     setTimer(0);
     setStep("input");

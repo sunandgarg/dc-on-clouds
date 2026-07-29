@@ -3,17 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useInlineOtp } from "@/components/LeadInlineOtp";
 
-vi.mock("@/hooks/useLeadFormSettings", () => ({
-  useLeadFormSettings: () => ({
-    data: { otp_mode: "live", channel_preference: "sms", form_overrides: {} },
-  }),
-}));
-
-vi.mock("@/lib/phoneAuth", () => ({
-  MASTER_TEST_OTP: "000000",
-  tryExchangePhoneOtpForSession: vi.fn().mockResolvedValue(undefined),
-}));
-
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
@@ -48,6 +37,10 @@ describe("useInlineOtp phone corrections", () => {
     fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "45s" })).toBeDisabled());
     expect(screen.getByPlaceholderText("Enter 6-digit OTP sent via SMS")).toBeInTheDocument();
+    const firstRequest = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
+    const firstBody = JSON.parse(String(firstRequest.body));
+    expect(firstBody).toMatchObject({ action: "send", channel: "sms", provider_name: "fast2sms" });
+    expect(firstBody).not.toHaveProperty("otp");
 
     rerender(<OtpHarness phone="9876543211" />);
 

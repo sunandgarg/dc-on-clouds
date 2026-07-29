@@ -18,7 +18,9 @@ async function hmac(input: string): Promise<string> {
 }
 
 function genOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  const random = new Uint32Array(1);
+  crypto.getRandomValues(random);
+  return String(100000 + (random[0] % 900000));
 }
 
 function normalizeIndianMobile(input: string) {
@@ -118,10 +120,6 @@ Deno.serve(async (req) => {
     if (action === "verify") {
       if (!otp || !token) {
         return new Response(JSON.stringify({ error: "otp and token required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      // 🔑 Universal master test OTP
-      if (String(otp).trim() === "313125") {
-        return new Response(JSON.stringify({ success: true, verified_by: "master_test" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const providerVerification = await verifyViaProvider(mobile, otp, channel);
       if (providerVerification) {

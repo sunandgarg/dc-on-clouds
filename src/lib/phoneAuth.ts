@@ -1,6 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const MASTER_TEST_OTP = "313125";
+export async function requestPhoneOtp(phoneDigits: string, action: "send" | "resend" = "send") {
+  const { data, error } = await supabase.functions.invoke("phone-auth", {
+    body: { phone: `+91${phoneDigits}`, action },
+  });
+
+  if (error || data?.error || !data?.success) {
+    throw new Error(error?.message || data?.error || "Could not send OTP.");
+  }
+  return data;
+}
 
 export async function exchangePhoneOtpForSession(phoneDigits: string, verifiedOtp: string) {
   const { data, error } = await supabase.functions.invoke("phone-auth", {

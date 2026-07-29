@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const MASTER_TEST_OTP = "313125";
 const OTP_EXPIRY_MIN = 10;
 
 function json(body: unknown, status = 200) {
@@ -30,38 +29,6 @@ function emailForPhone(phone: string) {
 
 function passwordForPhone(phone: string) {
   return `dc!${phone}!secure2026`;
-}
-
-async function hashOtp(phone: string, otp: string) {
-  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "dekho-otp";
-  const bytes = new TextEncoder().encode(`${phone}:${String(otp).trim()}:${secret}`);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function verifyStoredOtp(admin: any, phone: string, otp: string) {
-  const mobile = phone.startsWith("+") ? phone : `+91${normalizeIndianMobile(phone)}`;
-  const { data } = await admin
-    .from("otp_sessions")
-    .select("id, otp_hash, attempts, max_attempts, expires_at")
-    .eq("phone", mobile)
-    .is("consumed_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!data) return false;
-  if (Number(data.attempts || 0) >= Number(data.max_attempts || 5)) return false;
-
-  const expected = await hashOtp(mobile, otp);
-  if (expected !== data.otp_hash) {
-    await admin.from("otp_sessions").update({ attempts: Number(data.attempts || 0) + 1 }).eq("id", data.id);
-    return false;
-  }
-
-  await admin.from("otp_sessions").update({ consumed_at: new Date().toISOString(), attempts: Number(data.attempts || 0) + 1 }).eq("id", data.id);
-  return true;
 }
 
 async function ensurePhoneUser(admin: any, phone: string) {
@@ -148,7 +115,6 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRole);
 
     if (["send", "request", "start"].includes(action)) {
-      const code = otp || Math.floor(100000 + Math.random() * 900000).toString();
       const res = await fetch(`${supabaseUrl}/functions/v1/send-otp`, {
         method: "POST",
         headers: {
@@ -156,19 +122,14 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${anon}`,
           apikey: anon,
         },
-        body: JSON.stringify({ phone: `+91${phone}`, otp: code, channel: "sms", action: "send" }),
+        body: JSON.stringify({ phone: `+91${phone}`, channel: "sms", action: "send", provider_name: "fast2sms" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) return json({ error: data.error || "OTP send failed", data }, res.ok ? 400 : res.status);
       return json({ success: true, sent: true, expires_in: OTP_EXPIRY_MIN * 60, results: data.results || [] });
     }
 
-    if (!otp) return json({ error: "otp is required" }, 400);
-
-    let verified = otp === MASTER_TEST_OTP;
-    if (!verified) verified = await verifyStoredOtp(admin, `+91${phone}`, otp);
-
-    if (!verified) {
+    if (action === "resend") {
       const res = await fetch(`${supabaseUrl}/functions/v1/send-otp`, {
         method: "POST",
         headers: {
@@ -176,13 +137,34 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${anon}`,
           apikey: anon,
         },
-        body: JSON.stringify({ phone: `+91${phone}`, otp, channel: "sms", action: "verify" }),
+        body: JSON.stringify({ phone: `+91${phone}`, channel: "sms", action: "resend", provider_name: "fast2sms" }),
       });
       const data = await res.json().catch(() => ({}));
-      verified = !!(res.ok && data.verified);
+      if (!res.ok || !data.success) return json({ error: data.error || "OTP resend failed", data }, res.ok ? 400 : res.status);
+      return json({ success: true, sent: true, expires_in: OTP_EXPIRY_MIN * 60, results: data.results || [] });
     }
 
-    if (!verified) return json({ error: "Invalid OTP", verified: false }, 400);
+    if (!otp) return json({ error: "otp is required" }, 400);
+
+    const verifyResponse = await fetch(`${supabaseUrl}/functions/v1/send-otp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${anon}`,
+        apikey: anon,
+      },
+      body: JSON.stringify({
+        phone: `+91${phone}`,
+        otp,
+        channel: "sms",
+        action: "verify",
+        provider_name: "fast2sms",
+      }),
+    });
+    const verification = await verifyResponse.json().catch(() => ({}));
+    const verified = Boolean(verifyResponse.ok && verification.verified);
+
+    if (!verified) return json({ error: verification.error || "Invalid OTP", verified: false }, 400);
 
     const identity = await ensurePhoneUser(admin, phone);
     const authClient = createClient(supabaseUrl, anon);
@@ -209,7 +191,6 @@ Deno.serve(async (req) => {
       access_token: sessionData.session?.access_token,
       refresh_token: sessionData.session?.refresh_token,
       email: identity.email,
-      password: identity.password,
     });
   } catch (e: any) {
     console.error("phone-auth error:", e?.message || e);

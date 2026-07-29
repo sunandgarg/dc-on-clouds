@@ -133,7 +133,7 @@ export default function AdminOtpProviders() {
         template_id: "",
         icon_emoji: "⚡",
         is_active: false,
-        config_json: { fast2sms_route: "auto", variables_order: ["otp", "expiry"], otp_length: 6, otp_expiry_minutes: 10, max_verify_attempts: 5, resend_cooldown_seconds: 45, whatsapp_api_version: "v24.0" },
+        config_json: { fast2sms_route: "smart_otp", route: "smart_otp", otp_fallback_to_dlt: false, variables_order: ["otp", "expiry"], otp_length: 6, otp_expiry_minutes: 10, max_verify_attempts: 5, resend_cooldown_seconds: 45, whatsapp_api_version: "v24.0" },
       } as any);
       if (error) throw error;
     },
@@ -695,7 +695,7 @@ function MasterOtpSwitch() {
         <div>
           <p className="font-semibold text-sm">Send real SMS OTP</p>
           <p className="text-xs text-muted-foreground">
-            Master switch. When OFF, no SMS is dispatched (cost saver). Universal OTP <b>313125</b> always works for verification.
+            Master switch. When OFF, no SMS is dispatched. OTPs are generated and verified securely by the server.
           </p>
         </div>
       </div>

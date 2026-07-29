@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { trackEvent, trackLeadConversion } from "@/lib/analytics";
 import { normalizeIndianMobile } from "@/lib/phone";
+import { functionUrl } from "@/lib/backendMode";
+
+const SEND_OTP_URL = functionUrl("send-otp");
 
 export interface ResourceItem {
   title: string;
@@ -227,9 +230,22 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
   const sendOtp = async (resend = false) => {
     if (!/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter a valid 10-digit Indian mobile number");
     setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({ phone: `+91${phone}` });
+    const response = await fetch(SEND_OTP_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        phone: `+91${phone}`,
+        channel: "sms",
+        action: resend ? "resend" : "send",
+        provider_name: "fast2sms",
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
     setBusy(false);
-    if (error) return toast.error(error.message || "Could not send OTP");
+    if (!response.ok || !result.success) return toast.error(result.error || "Could not send OTP");
     setOtpSent(true);
     setOtp("");
     setResendCooldown(45);
@@ -245,8 +261,23 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
   const verifyOtp = async () => {
     if (otp.length < 4) return toast.error("Enter the OTP");
     setBusy(true);
-    const { error } = await supabase.auth.verifyOtp({ phone: `+91${phone}`, token: otp, type: "sms" });
-    if (!error) {
+    const response = await fetch(SEND_OTP_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        phone: `+91${phone}`,
+        otp,
+        channel: "sms",
+        action: "verify",
+        provider_name: "fast2sms",
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    const verified = response.ok && result.verified;
+    if (verified) {
       await (supabase as any).from("landing_page_leads").insert({
         landing_slug: slug, name: name || phone, phone,
         page_url: window.location.href, referrer: document.referrer, consent: true,
@@ -257,7 +288,7 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
       trackEvent("lp_unlock_success", { lp_type: "exam_ad", lp_slug: slug, source, gate: "otp" });
     }
     setBusy(false);
-    if (error) return toast.error(error.message || "Invalid OTP");
+    if (!verified) return toast.error(result.error || "Invalid OTP");
     onSuccess();
   };
 

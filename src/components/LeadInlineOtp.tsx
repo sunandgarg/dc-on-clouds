@@ -3,9 +3,7 @@ import { Loader2, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useLeadFormSettings } from "@/hooks/useLeadFormSettings";
 import { isStrictIndianMobile, normalizeIndianMobile } from "@/lib/phone";
-import { MASTER_TEST_OTP, tryExchangePhoneOtpForSession } from "@/lib/phoneAuth";
 import { functionUrl } from "@/lib/backendMode";
 
 const SEND_OTP_URL = functionUrl("send-otp");
@@ -36,27 +34,15 @@ export const sanitizeIndianMobile = (raw: string): string => {
  *    and `verifyBlock` (render below the phone row when requested).
  */
 export function useInlineOtp(phone: string, formKey: string) {
-  const { data: settings } = useLeadFormSettings();
-  // Default preference: try WhatsApp FIRST; the server falls back to SMS if no
-  // active WhatsApp provider is configured. Admin form_overrides still win.
-  // 🛑 WhatsApp temporarily disabled - force SMS only regardless of admin setting.
-  const rawAdminChannel =
-    (formKey && settings?.form_overrides?.[formKey]) ||
-    settings?.channel_preference ||
-    "sms";
-  const adminChannel: "sms" | "whatsapp" = rawAdminChannel === "whatsapp" ? "sms" : "sms";
-  const isTestMode = settings?.otp_mode === "test";
+  void formKey;
 
   const [requested, setRequested] = useState(false);
   const [requestedPhone, setRequestedPhone] = useState("");
   const [sending, setSending] = useState(false);
-  const [lastChannel, setLastChannel] = useState<"sms" | "whatsapp">("sms");
   const [code, setCode] = useState("");
   const [verified, setVerified] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [providerManaged, setProviderManaged] = useState(false);
   const [missing, setMissing] = useState(false);
-  const expectedRef = useRef<string>("");
   const cooldownRef = useRef<number | null>(null);
   const latestPhoneRef = useRef("");
   const normalizedPhone = sanitizeIndianMobile(phone);
@@ -77,12 +63,10 @@ export function useInlineOtp(phone: string, formKey: string) {
 
   const resetVerification = () => {
     clearCooldown();
-    expectedRef.current = "";
     setRequested(false);
     setRequestedPhone("");
     setCode("");
     setVerified(false);
-    setProviderManaged(false);
     setMissing(false);
   };
 
@@ -113,39 +97,31 @@ export function useInlineOtp(phone: string, formKey: string) {
     }, 1000);
   };
 
-  const sendOtp = async (overrideChannel?: "sms" | "whatsapp") => {
+  const sendOtp = async () => {
     if (!phoneOk) {
       toast.error(PHONE_HINT);
       return;
     }
     const phoneAtSend = normalizedPhone;
-    // 🛑 WhatsApp disabled - always use SMS.
-    const channelToUse = "sms" as const;
     setSending(true);
     try {
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      expectedRef.current = otp;
-      if (!isTestMode) {
-        const res = await fetch(SEND_OTP_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ phone: `+91${phoneAtSend}`, otp, channel: channelToUse, action: "send" }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.success || body.skipped) throw new Error(body.error || "Failed to send OTP");
-        if (latestPhoneRef.current !== phoneAtSend) return;
-        const usesProviderVerify = Array.isArray(body.results) && body.results.some((r: { provider?: string; channel?: string }) => ["fast2sms", "msg91"].includes(String(r.provider).toLowerCase()) && r.channel === "sms");
-        setProviderManaged(Boolean(usesProviderVerify));
-        setLastChannel("sms");
-        toast.success(`OTP sent via SMS to +91 ${phoneAtSend.slice(0, 5)}*****`);
-      } else {
-        if (latestPhoneRef.current !== phoneAtSend) return;
-        setLastChannel("sms");
-        toast.info(`OTP sent via SMS`);
-      }
+      const res = await fetch(SEND_OTP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          phone: `+91${phoneAtSend}`,
+          channel: "sms",
+          action: requested ? "resend" : "send",
+          provider_name: "fast2sms",
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success || body.skipped) throw new Error(body.error || "Failed to send OTP");
+      if (latestPhoneRef.current !== phoneAtSend) return;
+      toast.success(`OTP sent via SMS to +91 ${phoneAtSend.slice(0, 5)}*****`);
       setRequested(true);
       setRequestedPhone(phoneAtSend);
       setCode("");
@@ -168,20 +144,6 @@ export function useInlineOtp(phone: string, formKey: string) {
       toast.error(`Enter the ${OTP_LENGTH}-digit code`);
       return;
     }
-    if (code === MASTER_TEST_OTP || isTestMode) {
-      await tryExchangePhoneOtpForSession(normalizedPhone, code);
-      setVerified(true);
-      clearMissing();
-      toast.success("Mobile verified ✓");
-      return;
-    }
-    if (expectedRef.current && code === expectedRef.current) {
-      await tryExchangePhoneOtpForSession(normalizedPhone, code);
-      setVerified(true);
-      clearMissing();
-      toast.success("Mobile verified ✓");
-      return;
-    }
     try {
       const res = await fetch(SEND_OTP_URL, {
         method: "POST",
@@ -192,14 +154,13 @@ export function useInlineOtp(phone: string, formKey: string) {
         body: JSON.stringify({
           phone: `+91${normalizedPhone}`,
           otp: code,
-          channel: lastChannel,
+          channel: "sms",
           action: "verify",
-          ...(providerManaged ? { provider_name: "fast2sms" } : {}),
+          provider_name: "fast2sms",
         }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok && body.verified) {
-        await tryExchangePhoneOtpForSession(normalizedPhone, code);
         setVerified(true);
         clearMissing();
         toast.success("Mobile verified ✓");
@@ -274,7 +235,7 @@ export function useInlineOtp(phone: string, formKey: string) {
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => sendOtp("sms")}
+              onClick={() => sendOtp()}
               disabled={sending}
               className="h-7 px-2.5 text-[11px] rounded-md border-primary/40 text-primary hover:bg-primary/10"
             >
