@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
-import { recoverFromChunkFailure } from "@/lib/lazyRetry";
+import { isChunkLoadError, recoverFromChunkFailure } from "@/lib/lazyRetry";
 import { trackEvent } from "@/lib/analytics";
 
 interface State {
@@ -11,17 +11,11 @@ interface State {
   retrying: boolean;
 }
 
-function isChunkError(err: unknown): boolean {
-  return /Loading chunk|Loading CSS chunk|dynamically imported module|Failed to fetch|ChunkLoadError/i.test(
-    String((err as any)?.message || err),
-  );
-}
-
 export class ChunkErrorBoundary extends Component<{ children: ReactNode }, State> {
   state: State = { hasError: false, isChunkError: false, retrying: false };
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, isChunkError: isChunkError(error), message: error.message, retrying: false };
+    return { hasError: true, isChunkError: isChunkLoadError(error), message: error.message, retrying: false };
   }
 
   componentDidCatch(error: Error) {

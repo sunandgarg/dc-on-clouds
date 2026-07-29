@@ -1,12 +1,13 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { HeroSection } from "@/components/HeroSection";
 import { DeferredRender } from "@/components/DeferredRender";
+import { lazyRetry } from "@/lib/lazyRetry";
 
-const HomeBelowFold = lazy(() => import("@/components/HomeBelowFold"));
-const AILeadForm = lazy(() => import("@/components/AILeadForm").then(module => ({ default: module.AILeadForm })));
-const AIChatFullScreen = lazy(() => import("@/components/AIChatFullScreen").then(module => ({ default: module.AIChatFullScreen })));
+const HomeBelowFold = lazyRetry(() => import("@/components/HomeBelowFold"), "HomeBelowFold");
+const AILeadForm = lazyRetry(() => import("@/components/AILeadForm").then(module => ({ default: module.AILeadForm })), "AILeadForm");
+const AIChatFullScreen = lazyRetry(() => import("@/components/AIChatFullScreen").then(module => ({ default: module.AIChatFullScreen })), "AIChatFullScreen");
 
 export default function Index() {
   const [isChatOpen, setIsChatOpen] = useState(false);

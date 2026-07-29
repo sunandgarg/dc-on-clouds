@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { hydrateBootstrap } from "@/lib/bootstrap";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -15,17 +15,17 @@ import { lazyRetry } from "@/lib/lazyRetry";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { useLocation } from "react-router-dom";
 
-const CompareFloatingBar = lazy(() => import("@/components/CompareFloatingBar").then((module) => ({ default: module.CompareFloatingBar })));
-const LockTargetFloatingPromo = lazy(() => import("@/components/LockTargetFloatingPromo").then((module) => ({ default: module.LockTargetFloatingPromo })));
-const FloatingBot = lazy(() => import("@/components/FloatingBot").then((module) => ({ default: module.FloatingBot })));
-const CookieConsent = lazy(() => import("@/components/CookieConsent").then((module) => ({ default: module.CookieConsent })));
-const DeploymentUpdateCoordinator = lazy(() => import("@/components/DeploymentUpdateCoordinator").then((module) => ({ default: module.DeploymentUpdateCoordinator })));
-const WhatsAppButton = lazy(() => import("@/components/WhatsAppButton").then((module) => ({ default: module.WhatsAppButton })));
-const NewsCallButton = lazy(() => import("@/components/NewsCallButton").then((module) => ({ default: module.NewsCallButton })));
-const SiteIntegrations = lazy(() => import("@/components/SiteIntegrations").then((module) => ({ default: module.SiteIntegrations })));
-const AdsenseLoader = lazy(() => import("@/components/ads/AdsenseLoader").then((module) => ({ default: module.AdsenseLoader })));
-const UserTrackingProvider = lazy(() => import("@/hooks/useUserTracking").then((module) => ({ default: module.UserTrackingProvider })));
-const IntentTrackingProvider = lazy(() => import("@/components/IntentTrackingProvider").then((module) => ({ default: module.IntentTrackingProvider })));
+const CompareFloatingBar = lazyRetry(() => import("@/components/CompareFloatingBar").then((module) => ({ default: module.CompareFloatingBar })), "CompareFloatingBar");
+const LockTargetFloatingPromo = lazyRetry(() => import("@/components/LockTargetFloatingPromo").then((module) => ({ default: module.LockTargetFloatingPromo })), "LockTargetFloatingPromo");
+const FloatingBot = lazyRetry(() => import("@/components/FloatingBot").then((module) => ({ default: module.FloatingBot })), "FloatingBot");
+const CookieConsent = lazyRetry(() => import("@/components/CookieConsent").then((module) => ({ default: module.CookieConsent })), "CookieConsent");
+const DeploymentUpdateCoordinator = lazyRetry(() => import("@/components/DeploymentUpdateCoordinator").then((module) => ({ default: module.DeploymentUpdateCoordinator })), "DeploymentUpdateCoordinator");
+const WhatsAppButton = lazyRetry(() => import("@/components/WhatsAppButton").then((module) => ({ default: module.WhatsAppButton })), "WhatsAppButton");
+const NewsCallButton = lazyRetry(() => import("@/components/NewsCallButton").then((module) => ({ default: module.NewsCallButton })), "NewsCallButton");
+const SiteIntegrations = lazyRetry(() => import("@/components/SiteIntegrations").then((module) => ({ default: module.SiteIntegrations })), "SiteIntegrations");
+const AdsenseLoader = lazyRetry(() => import("@/components/ads/AdsenseLoader").then((module) => ({ default: module.AdsenseLoader })), "AdsenseLoader");
+const UserTrackingProvider = lazyRetry(() => import("@/hooks/useUserTracking").then((module) => ({ default: module.UserTrackingProvider })), "UserTrackingProvider");
+const IntentTrackingProvider = lazyRetry(() => import("@/components/IntentTrackingProvider").then((module) => ({ default: module.IntentTrackingProvider })), "IntentTrackingProvider");
 
 function GlobalWhatsApp() {
   const { pathname } = useLocation();

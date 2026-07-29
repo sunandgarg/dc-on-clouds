@@ -1,5 +1,5 @@
 import { useParams, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useMemo, useState, lazy } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Tag, ArrowUp, Share2, Bookmark, ChevronDown, Eye, Clock, Link2, Play, Pause, List, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +23,14 @@ import { useSEO } from "@/hooks/useSEO";
 import { DocumentViewer } from "@/components/detail/DocumentViewer";
 import { RichText } from "@/components/detail/RichText";
 import { absoluteCanonical, absoluteSiteUrl } from "@/lib/constant";
+import { lazyRetry } from "@/lib/lazyRetry";
 
 // Heavy below-the-fold components - lazy loaded for faster initial paint
-const AlsoCheckSection = lazy(() => import("@/components/AlsoCheckSection").then(m => ({ default: m.AlsoCheckSection })));
-const DynamicAdBanner = lazy(() => import("@/components/DynamicAdBanner").then(m => ({ default: m.DynamicAdBanner })));
-const GoogleAd = lazy(() => import("@/components/ads/GoogleAd").then(m => ({ default: m.GoogleAd })));
-const FAQSection = lazy(() => import("@/components/FAQSection").then(m => ({ default: m.FAQSection })));
-const ArticleLinkedResources = lazy(() => import("@/components/detail/ArticleLinkedResources").then(m => ({ default: m.ArticleLinkedResources })));
+const AlsoCheckSection = lazyRetry(() => import("@/components/AlsoCheckSection").then(m => ({ default: m.AlsoCheckSection })), "AlsoCheckSection");
+const DynamicAdBanner = lazyRetry(() => import("@/components/DynamicAdBanner").then(m => ({ default: m.DynamicAdBanner })), "DynamicAdBanner");
+const GoogleAd = lazyRetry(() => import("@/components/ads/GoogleAd").then(m => ({ default: m.GoogleAd })), "GoogleAd");
+const FAQSection = lazyRetry(() => import("@/components/FAQSection").then(m => ({ default: m.FAQSection })), "FAQSection");
+const ArticleLinkedResources = lazyRetry(() => import("@/components/detail/ArticleLinkedResources").then(m => ({ default: m.ArticleLinkedResources })), "ArticleLinkedResources");
 
 const NEWS_CATEGORIES = [
   { label: "All News", value: "" },
