@@ -27,9 +27,7 @@ import { CollegeQuickFacts } from "@/components/detail/CollegeQuickFacts";
 import { AuthorByline } from "@/components/AuthorByline";
 import { MobileBottomBar } from "@/components/MobileBottomBar";
 import { useDbCollege, useCollegesByState, useCollegesByCategory } from "@/hooks/useCollegesData";
-import { useDbCourses } from "@/hooks/useCoursesData";
 import { useApprovalBodies } from "@/hooks/useApprovalBodies";
-import { useDbArticles } from "@/hooks/useArticlesData";
 import { WhatsNewSection } from "@/components/WhatsNewSection";
 import { UsefulLinks } from "@/components/UsefulLinks";
 import { YouTubeVideoButton } from "@/components/YouTubeVideoButton";
@@ -78,6 +76,7 @@ export default function CollegeDetail() {
   // Relational tables store the base database slug, while canonical public
   // URLs append the numeric short ID (for example, iit-delhi-10001).
   const collegeRelationSlug = college?.slug || parseSlugWithId(slug).slug;
+  const [visibleCourseCount, setVisibleCourseCount] = useState(5);
   // Canonicalize URL to slug-with-id once the college resolves
   useEffect(() => {
     if (!college?.slug || !(college as any).short_id) return;
@@ -91,8 +90,6 @@ export default function CollegeDetail() {
   }, [college, location.pathname, location.search, location.hash, navigate]);
   const { data: sameStateColleges } = useCollegesByState(college?.state, collegeRelationSlug);
   const { data: similarColleges } = useCollegesByCategory(college?.category, collegeRelationSlug);
-  const { data: allCourses } = useDbCourses();
-  const { data: allArticles } = useDbArticles();
   const { data: approvalBodies = [] } = useApprovalBodies();
   const [counsellingOpen, setCounsellingOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -104,27 +101,57 @@ export default function CollegeDetail() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("course_fees")
-        .select("*")
+        .select("id,course_slug,course_name,fee_amount,fee_type")
         .eq("college_slug", collegeRelationSlug)
         .order("course_name");
       if (error) throw error;
       return data || [];
     },
     enabled: !!collegeRelationSlug,
+    staleTime: 30 * 60 * 1000,
   });
-  const { data: linkedArticleIds = [] } = useQuery({
-    queryKey: ["article_links", "college", collegeRelationSlug],
+
+  const feeCourseSlugs = collegeFees
+    .map((fee: any) => fee.course_slug)
+    .filter((courseSlug: unknown): courseSlug is string => typeof courseSlug === "string" && courseSlug.length > 0);
+  const visibleFeeCourseSlugs = feeCourseSlugs.slice(0, visibleCourseCount);
+  const { data: feeCourseMetadata = [] } = useQuery({
+    queryKey: ["college-fee-course-metadata", collegeRelationSlug, visibleFeeCourseSlugs],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("article_links")
-        .select("article_id")
-        .eq("entity_type", "college")
-        .eq("entity_slug", collegeRelationSlug);
+        .from("courses")
+        .select("slug,name,duration,avg_fees")
+        .eq("is_active", true)
+        .in("slug", visibleFeeCourseSlugs);
       if (error) throw error;
-      return (data || []).map((d: any) => d.article_id);
+      return data || [];
     },
-    enabled: !!collegeRelationSlug,
+    enabled: visibleFeeCourseSlugs.length > 0,
+    staleTime: 30 * 60 * 1000,
   });
+
+  const { data: popularCourses = [] } = useQuery({
+    queryKey: ["college-popular-courses", college?.category],
+    queryFn: async () => {
+      const categories = Array.from(new Set([college?.category, "Engineering"].filter(Boolean)));
+      const { data, error } = await (supabase as any)
+        .from("courses")
+        .select("slug,name,duration,avg_fees,category")
+        .eq("is_active", true)
+        .in("category", categories)
+        .order("priority", { ascending: true, nullsFirst: false })
+        .order("name")
+        .limit(6);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!college,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    setVisibleCourseCount(5);
+  }, [collegeRelationSlug]);
 
   useSEO({
     title: college ? (college.meta_title || `${college.name} - Admissions, Fees, Placements ${currentYear()}`) : undefined,
@@ -180,10 +207,6 @@ export default function CollegeDetail() {
     );
   }
 
-  const popularCourses = (allCourses ?? [])
-    .filter((c) => c.category === college.category || c.category === "Engineering")
-    .slice(0, 6);
-
   const availableSections = (() => {
     const has = {
       highlights: college.highlights?.length > 0,
@@ -192,15 +215,12 @@ export default function CollegeDetail() {
       gallery: Boolean(college.gallery_images?.length),
       scholarships: Boolean(college.scholarship_details?.trim()),
       hostel: Boolean(college.hostel_life?.trim()),
-      news: (allArticles || []).some((a) =>
-        linkedArticleIds.includes(a.id) ||
-        a.title.toLowerCase().includes((college.short_name || college.name).toLowerCase()) ||
-        a.category?.toLowerCase() === college.category?.toLowerCase()
-      ),
     } as Record<string, boolean>;
 
     return COLLEGE_SECTIONS.filter((section) => has[section.id] ?? true);
   })();
+  const courseRowCount = collegeFees.length || popularCourses.length;
+  const nextCourseBatchSize = Math.min(5, Math.max(0, courseRowCount - visibleCourseCount));
 
   return (
     <div className="min-h-screen bg-background">
@@ -374,7 +394,7 @@ export default function CollegeDetail() {
                 <div className="mb-4"><RichText html={college.course_fee_content} /></div>
               )}
               <div className="dc-scroll-table">
-                <table className="w-full text-sm min-w-[420px]">
+                <table id="college-course-fee-table" className="w-full text-sm min-w-[420px]">
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-2 text-muted-foreground font-medium">Course</th>
@@ -385,8 +405,8 @@ export default function CollegeDetail() {
                   </thead>
                   <tbody>
                     {collegeFees.length > 0 ? (
-                      collegeFees.map((f) => {
-                        const linked = (allCourses ?? []).find((c) => c.slug === f.course_slug);
+                      collegeFees.slice(0, visibleCourseCount).map((f) => {
+                        const linked = feeCourseMetadata.find((c: any) => c.slug === f.course_slug);
                         return (
                           <tr key={f.id} className="border-b border-border last:border-0">
                             <td className="py-3">
@@ -414,7 +434,7 @@ export default function CollegeDetail() {
                         );
                       })
                     ) : (
-                      popularCourses.map((c) => (
+                      popularCourses.slice(0, visibleCourseCount).map((c: any) => (
                         <tr key={c.slug} className="border-b border-border last:border-0">
                           <td className="py-3">
                             <Link to={`/courses/${c.slug}`} className="text-primary font-medium hover:underline">{c.name}</Link>
@@ -430,9 +450,27 @@ export default function CollegeDetail() {
                   </tbody>
                 </table>
               </div>
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {courseRowCount > visibleCourseCount && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl text-xs"
+                    data-testid="show-more-college-courses"
+                    aria-controls="college-course-fee-table"
+                    onClick={() => setVisibleCourseCount((count) => count + 5)}
+                  >
+                    Show {nextCourseBatchSize} more
+                  </Button>
+                )}
+                {courseRowCount > 5 && (
+                  <span className="text-xs text-muted-foreground" aria-live="polite">
+                    Showing {Math.min(visibleCourseCount, courseRowCount)} of {courseRowCount}
+                  </span>
+                )}
                 <Link to="/courses">
-                  <Button variant="outline" size="sm" className="rounded-xl text-xs">View All Courses →</Button>
+                  <Button variant="ghost" size="sm" className="rounded-xl text-xs">Browse course directory →</Button>
                 </Link>
               </div>
             </RichSection>
