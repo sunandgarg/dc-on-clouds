@@ -1,7 +1,7 @@
 import { AlsoCheckSection } from "@/components/AlsoCheckSection";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { buildCollegeHref } from "@/lib/entityUrls";
+import { buildCollegeHref, parseSlugWithId } from "@/lib/entityUrls";
 import { useSEO } from "@/hooks/useSEO";
 import { motion } from "framer-motion";
 import { Star, MapPin, Calendar, GraduationCap, TrendingUp, Building, CheckCircle, Briefcase, BookOpen, Image as ImageIcon, Users, Award, Scale, Newspaper, HelpCircle, DollarSign, ExternalLink, Download, Phone, Shield, Globe, Landmark } from "lucide-react";
@@ -75,6 +75,9 @@ export default function CollegeDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: college, isLoading } = useDbCollege(slug);
+  // Relational tables store the base database slug, while canonical public
+  // URLs append the numeric short ID (for example, iit-delhi-10001).
+  const collegeRelationSlug = college?.slug || parseSlugWithId(slug).slug;
   // Canonicalize URL to slug-with-id once the college resolves
   useEffect(() => {
     if (!college?.slug || !(college as any).short_id) return;
@@ -86,8 +89,8 @@ export default function CollegeDetail() {
       navigate(`${desired}${location.search}${location.hash}`, { replace: true });
     }
   }, [college, location.pathname, location.search, location.hash, navigate]);
-  const { data: sameStateColleges } = useCollegesByState(college?.state, slug);
-  const { data: similarColleges } = useCollegesByCategory(college?.category, slug);
+  const { data: sameStateColleges } = useCollegesByState(college?.state, collegeRelationSlug);
+  const { data: similarColleges } = useCollegesByCategory(college?.category, collegeRelationSlug);
   const { data: allCourses } = useDbCourses();
   const { data: allArticles } = useDbArticles();
   const { data: approvalBodies = [] } = useApprovalBodies();
@@ -97,20 +100,30 @@ export default function CollegeDetail() {
 
 
   const { data: collegeFees = [] } = useQuery({
-    queryKey: ["college_fees", slug],
+    queryKey: ["college_fees", collegeRelationSlug],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("course_fees").select("*").eq("college_slug", slug).order("course_name");
+      const { data, error } = await (supabase as any)
+        .from("course_fees")
+        .select("*")
+        .eq("college_slug", collegeRelationSlug)
+        .order("course_name");
+      if (error) throw error;
       return data || [];
     },
-    enabled: !!slug,
+    enabled: !!collegeRelationSlug,
   });
   const { data: linkedArticleIds = [] } = useQuery({
-    queryKey: ["article_links", "college", slug],
+    queryKey: ["article_links", "college", collegeRelationSlug],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("article_links").select("article_id").eq("entity_type", "college").eq("entity_slug", slug);
+      const { data, error } = await (supabase as any)
+        .from("article_links")
+        .select("article_id")
+        .eq("entity_type", "college")
+        .eq("entity_slug", collegeRelationSlug);
+      if (error) throw error;
       return (data || []).map((d: any) => d.article_id);
     },
-    enabled: !!slug,
+    enabled: !!collegeRelationSlug,
   });
 
   useSEO({
@@ -192,7 +205,7 @@ export default function CollegeDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="colleges" itemSlug={slug} />
+      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="colleges" itemSlug={college.slug} />
 
       <main className="container px-3 md:px-6 py-3 md:py-6 max-w-full" style={{ overflowX: "clip" }}>
         <PageBreadcrumb items={[{ label: "Colleges", href: "/colleges" }, { label: college.name }]} />
@@ -424,7 +437,7 @@ export default function CollegeDetail() {
               </div>
             </RichSection>
 
-            <DynamicAdBanner variant="horizontal" position="mid-page" page="colleges" itemSlug={slug} />
+            <DynamicAdBanner variant="horizontal" position="mid-page" page="colleges" itemSlug={college.slug} />
             <LeadCaptureForm variant="inline" title="📞 Get admission guidance for this college" source={`college_inline_${college.slug}`} interestedCollegeSlug={college.slug} />
 
             {/* Admissions */}
@@ -524,7 +537,7 @@ export default function CollegeDetail() {
                 <RichText html={college.cutoff} />
               </RichSection>
             )}
-            <DynamicAdBanner variant="horizontal" position="mid-page" page="colleges" itemSlug={slug} />
+            <DynamicAdBanner variant="horizontal" position="mid-page" page="colleges" itemSlug={college.slug} />
 
             {/* Rankings */}
             <RichSection
@@ -621,7 +634,7 @@ export default function CollegeDetail() {
               </RichSection>
             )}
 
-            <DynamicAdBanner variant="horizontal" position="bottom" page="colleges" itemSlug={slug} />
+            <DynamicAdBanner variant="horizontal" position="bottom" page="colleges" itemSlug={college.slug} />
 
             {/* Compare */}
             <section id="compare" className="bg-card rounded-2xl border border-border p-5 scroll-mt-32">
@@ -663,7 +676,7 @@ export default function CollegeDetail() {
             <section id="faq" className="scroll-mt-32">
               <FAQSection
                 page="colleges"
-                itemSlug={slug}
+                itemSlug={college.slug}
                 title={`FAQs`}
                 fallback={buildDefaultFaqs("college", {
                   name: college.name,
@@ -739,7 +752,7 @@ export default function CollegeDetail() {
                 </div>
               )}
 
-              <DynamicAdBanner variant="vertical" position="sidebar" page="colleges" itemSlug={slug} />
+              <DynamicAdBanner variant="vertical" position="sidebar" page="colleges" itemSlug={college.slug} />
             </div>
           </aside>
         </div>
