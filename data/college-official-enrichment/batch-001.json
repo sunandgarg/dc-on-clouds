@@ -1,0 +1,189 @@
+{
+  "batch": "college-official-001",
+  "researched_at": "2026-07-29",
+  "records": [
+    {
+      "slug": "iit-delhi",
+      "name": "IIT Delhi",
+      "official_website": "https://home.iitd.ac.in/",
+      "established": 1961,
+      "type": "Government",
+      "address": "Indian Institute of Technology Delhi, Hauz Khas, New Delhi 110016, India",
+      "approvals": ["Institute of National Importance"],
+      "naac_grade": "",
+      "ranking": "NIRF 2025: #2 Engineering, #4 Overall",
+      "courses_scope": "programme_families_only",
+      "description": "IIT Delhi is a public technical and research institute in Hauz Khas, New Delhi. Its academic portfolio spans undergraduate engineering and design, postgraduate technology, science, management, public policy and research programmes. Students should choose a programme first and then follow its official admission route: JEE Advanced and JoSAA for most BTech admissions, UCEED for BDes, and the relevant national test or institute process for postgraduate and doctoral study.",
+      "page_summary": "IIT Delhi offers BTech, BDes, MTech, MSc, MBA, MDes, public-policy and doctoral pathways from its Hauz Khas campus. This page separates verified programme and admission information from fees that still need a programme-specific official circular.",
+      "admission_process": "Undergraduate engineering admission is primarily through JEE Advanced followed by JoSAA counselling, while BDes admission uses UCEED. Postgraduate admission depends on the programme: GATE is used for many MTech routes, JAM for MSc, CAT for MBA, and institute shortlisting, tests or interviews may apply to research and other postgraduate programmes. Applicants must use the current IIT Delhi admission notice for the exact eligibility, category rules and reporting schedule.",
+      "eligibility_criteria": "Eligibility is programme-specific. BTech applicants must satisfy the current JEE Advanced and JoSAA conditions; BDes applicants follow UCEED requirements. MTech, MSc, MBA, MDes, MS Research, MPP, MA and PhD applicants should check the official 2026–27 brochure or department notice because qualifying degrees, test scores, experience requirements and selection stages differ.",
+      "course_fee_content": "Verified programme families are listed below. IIT Delhi publishes fees through academic circulars and programme prospectuses, and the payable amount can change by entry year, programme, category, income band and hostel choice. A fee is therefore left blank unless it is tied to the correct official circular and student category; applicants should use the current fee circular before making a payment decision.",
+      "placement_content": "IIT Delhi runs institute and academic-unit career processes for eligible students, but outcomes differ by degree, discipline and graduating cohort. This page does not convert an isolated offer into an average package or promise a placement. Students comparing outcomes should use the institute's latest placement or annual report and check the programme-level context behind every number.",
+      "facilities_content": "The Hauz Khas campus combines teaching spaces, laboratories, libraries, student activity areas, sports facilities, health support and residential services. Facilities available to a student can depend on the academic unit and programme, so department pages and current campus notices remain the best source for specialised laboratories or access rules.",
+      "facilities": ["Central library", "Laboratories", "Hostels", "Sports facilities", "Health services", "Student activity facilities"],
+      "hostel_life": "IIT Delhi operates halls of residence through its hostel-management system. Hostel allotment is governed by institute rules and availability; accepting a hostel seat is not compulsory. The official 2026–27 prospectus notes that some newer postgraduate hostels have different accommodation conditions and charges, so students should verify the current allotment and fee circular rather than relying on a single historic amount.",
+      "scholarship_available": true,
+      "scholarship_details": "Financial support varies by programme and student category. IIT Delhi publishes institute assistantships, scholarships and fee-related rules through its academic and programme notices. Research applicants may also find assistantship or externally funded fellowship routes. Eligibility, continuation conditions and amounts must be checked in the current official notice.",
+      "rankings_content": "In the Government of India's NIRF 2025 results, IIT Delhi is ranked 2nd in Engineering and 4th Overall. Rankings describe performance under a published methodology; they should be considered alongside programme fit, curriculum, research opportunities, location and cost.",
+      "related_courses": ["btech", "bdes", "master-of-technology-mtech", "msc", "mba", "phd", "ma"],
+      "courses": [
+        {"slug": "btech", "name": "Bachelor of Technology"},
+        {"slug": "bdes", "name": "Bachelor of Design"},
+        {"slug": "master-of-technology-mtech", "name": "Master of Technology"},
+        {"slug": "msc", "name": "Master of Science"},
+        {"slug": "mba", "name": "Master of Business Administration"},
+        {"slug": "ma", "name": "Master of Arts"},
+        {"slug": "phd", "name": "Doctor of Philosophy"}
+      ],
+      "sources": {
+        "official": [
+          "https://home.iitd.ac.in/",
+          "https://academics.iitd.ac.in/",
+          "https://academics.iitd.ac.in/undergraduate-academic-rules/",
+          "https://academics.iitd.ac.in/pg-admissions/",
+          "https://academics.iitd.ac.in/circulars/",
+          "https://home.iitd.ac.in/hall-of-residence.php",
+          "https://home.iitd.ac.in/uploads/PROSPECTUS%202026-27.pdf"
+        ],
+        "ranking": ["https://www.nirfindia.org/Rankings/2025/EngineeringRanking.html", "https://www.nirfindia.org/Rankings/2025/OverallRanking.html"]
+      }
+    },
+    {
+      "slug": "iit-bombay",
+      "name": "IIT Bombay",
+      "official_website": "https://www.iitb.ac.in/",
+      "established": 1958,
+      "type": "Government",
+      "address": "Indian Institute of Technology Bombay, Powai, Mumbai 400076, Maharashtra, India",
+      "approvals": ["Institute of National Importance"],
+      "naac_grade": "",
+      "ranking": "NIRF 2025: #3 Engineering, #3 Overall",
+      "courses_scope": "programme_families_only",
+      "description": "IIT Bombay is a public technical and research institute located at Powai in Mumbai. Its degree pathways include BTech, BS and BDes programmes, technology, science, design, management and public-policy master's routes, and doctoral research across engineering, sciences, humanities and management. Admissions are programme-led, so the relevant official academic page—not a generic college form—should determine the test, eligibility and application process.",
+      "page_summary": "IIT Bombay's Powai campus offers undergraduate, master's and doctoral programmes across engineering, science, design, management and public policy. Verified course families are shown without inventing a common fee for programmes that follow different official circulars.",
+      "admission_process": "BTech and BS admission generally follows JEE Advanced and JoSAA, while BDes uses UCEED. MTech applicants usually enter through GATE and the applicable counselling or institute process; MSc admissions use JAM, MDes uses CEED and MBA follows the management school's published selection route. Research and other master's programmes may add a written test or interview. Candidates must confirm the current route on IIT Bombay's Academic Office page.",
+      "eligibility_criteria": "Eligibility varies by degree and academic division. Applicants should match their qualifying examination, required subjects, national test score and category documents to the current official brochure. Meeting the minimum condition does not by itself guarantee admission where shortlisting, counselling, tests or interviews apply.",
+      "course_fee_content": "IIT Bombay publishes academic and hostel fee circulars for new and continuing students. The amount depends on programme, entry batch, category and accommodation. Course rows are verified here, but fee cells remain blank until a value is mapped to the correct 2026–27 circular and student category.",
+      "placement_content": "IIT Bombay has an institute Placement Cell serving multiple degree groups and an internship process. Placement participation, hiring roles and outcomes vary by programme and year. Students should consult the latest official placement report or Placement Cell material rather than treating a highest offer as a representative result. No recruiter has been added here without a current official source.",
+      "facilities_content": "The Powai campus includes academic departments, research centres, library and computing resources, sports and cultural spaces, healthcare, dining and residential facilities. Specialised facilities belong to particular departments or centres, so prospective students should confirm access and curriculum relevance with the academic division.",
+      "facilities": ["Library", "Research laboratories", "Hostels", "Sports facilities", "Healthcare", "Student activity facilities"],
+      "hostel_life": "IIT Bombay's Student Affairs and hostel administration manage residential accommodation and student activities. Official information describes furnished rooms, common areas, councils, sports and cultural activity across the hostel system. Allotment, room type and charges are governed by the current entrant instructions and fee circular.",
+      "scholarship_available": true,
+      "scholarship_details": "Institute and external financial assistance is available under published eligibility rules. The applicable support depends on programme, category, family income, academic standing and funding source. Students should use the current Academic Office or student-support notice for documents, deadlines and renewal conditions.",
+      "rankings_content": "In NIRF 2025, IIT Bombay is ranked 3rd in Engineering and 3rd Overall. These are national category positions under the NIRF methodology, not a guarantee of outcomes for an individual programme or student.",
+      "related_courses": ["btech", "bachelor-of-science-bsc", "bdes", "master-of-technology-mtech", "msc", "mba", "ma", "phd"],
+      "courses": [
+        {"slug": "btech", "name": "Bachelor of Technology"},
+        {"slug": "bachelor-of-science-bsc", "name": "Bachelor of Science"},
+        {"slug": "bdes", "name": "Bachelor of Design"},
+        {"slug": "master-of-technology-mtech", "name": "Master of Technology"},
+        {"slug": "msc", "name": "Master of Science"},
+        {"slug": "mba", "name": "Master of Business Administration"},
+        {"slug": "ma", "name": "Master of Arts and related research pathways"},
+        {"slug": "phd", "name": "Doctor of Philosophy"}
+      ],
+      "sources": {
+        "official": [
+          "https://www.iitb.ac.in/about-iit-bombay",
+          "https://acad.iitb.ac.in/",
+          "https://acad.iitb.ac.in/admissions/bachelors",
+          "https://acad.iitb.ac.in/index.php/admissions/masters",
+          "https://acad.iitb.ac.in/admissions/fees-structure",
+          "https://www.iitb.ac.in/students/students-affair-office",
+          "https://campus.placements.iitb.ac.in/"
+        ],
+        "ranking": ["https://www.nirfindia.org/Rankings/2025/EngineeringRanking.html", "https://www.nirfindia.org/Rankings/2025/OverallRanking.html"]
+      }
+    },
+    {
+      "slug": "iit-madras",
+      "name": "IIT Madras",
+      "official_website": "https://www.iitm.ac.in/",
+      "established": 1959,
+      "type": "Government",
+      "address": "Indian Institute of Technology Madras, Chennai 600036, Tamil Nadu, India",
+      "approvals": ["Institute of National Importance"],
+      "naac_grade": "",
+      "ranking": "NIRF 2025: #1 Engineering, #1 Overall",
+      "courses_scope": "programme_families_only",
+      "description": "IIT Madras is a public technical and research institute in Chennai with campus and approved non-campus academic pathways. Its portfolio includes BTech, BS, dual-degree, MTech, MSc, MA, MBA, MS by Research and PhD programmes, alongside selected diploma and interdisciplinary options. Because the institute offers several admission formats, applicants should identify the exact programme before comparing eligibility, delivery mode or fees.",
+      "page_summary": "IIT Madras offers engineering, science, humanities, management and research pathways from Chennai, plus selected approved non-campus programmes. Programme families and current ranking context are verified; fees stay blank where the official amount depends on the route and term.",
+      "admission_process": "BTech and conventional dual-degree admission follows JEE Advanced and JoSAA. Postgraduate routes vary: GATE is used for many MTech admissions, JAM for MSc, CAT for MBA, and research programmes use the institute's research admission portal with department evaluation. IIT Madras also runs separately administered BS and other non-campus programmes with their own application and qualifier rules.",
+      "eligibility_criteria": "The required qualification, subjects and selection process depend on the programme and delivery mode. Applicants should use the current academic curriculum, admissions portal and programme page to verify eligibility. A campus BTech route and an online BS route are separate products and should not be treated as interchangeable.",
+      "course_fee_content": "Verified degree families are shown below. IIT Madras fees differ across campus programmes, research categories and separately administered non-campus degrees. A fee is left blank unless the official source identifies the programme, entry period and applicable student category.",
+      "placement_content": "Career outcomes at IIT Madras vary across campus degree, department and cohort. The institute's official placement and annual reporting should be used for programme-level interpretation. This page avoids turning a single offer or an unverified recruiter list into a general placement claim.",
+      "facilities_content": "The Chennai campus supports teaching, research, library and computing work alongside healthcare, transport, sport, student activities and residential services. Individual departments and centres maintain specialised laboratories; students should check the relevant academic unit for facilities tied to a chosen programme.",
+      "facilities": ["Library", "Research laboratories", "Hostels", "Institute hospital", "Sports facilities", "Campus transport", "Student activity facilities"],
+      "hostel_life": "IIT Madras describes itself as a residential institute and publishes hostel information through the Office of Hostel Management. Official campus information lists 20 hostels, room and LAN facilities, common spaces, sports and cultural activity. Allotment type, mess arrangements and charges should be checked in the current hostel circular.",
+      "scholarship_available": true,
+      "scholarship_details": "IIT Madras publishes institute, government, alumni and externally supported scholarships. Eligibility can depend on income, category, programme, entrance rank and continuing academic performance. Applicants should verify current amounts and renewal conditions on the official scholarship page before budgeting.",
+      "rankings_content": "IIT Madras is ranked 1st in both Engineering and Overall in NIRF 2025. The positions provide national context, while programme choice should still consider curriculum, admission route, mode, research interests and total cost.",
+      "related_courses": ["btech", "bachelor-of-science-bsc", "master-of-technology-mtech", "msc", "mba", "ma", "phd"],
+      "courses": [
+        {"slug": "btech", "name": "Bachelor of Technology"},
+        {"slug": "bachelor-of-science-bsc", "name": "Bachelor of Science and BS pathways"},
+        {"slug": "master-of-technology-mtech", "name": "Master of Technology"},
+        {"slug": "msc", "name": "Master of Science"},
+        {"slug": "ma", "name": "Master of Arts"},
+        {"slug": "mba", "name": "Master of Business Administration"},
+        {"slug": "phd", "name": "Doctor of Philosophy and research pathways"}
+      ],
+      "sources": {
+        "official": [
+          "https://www.iitm.ac.in/academics/academic-curricula",
+          "https://www.iitm.ac.in/annual-reports",
+          "https://research.iitm.ac.in/",
+          "https://www.iitm.ac.in/campus-life/hostel-life",
+          "https://ccw.iitm.ac.in/?q=node%2F11",
+          "https://www.iitm.ac.in/academics/academic-services/scholarships-and-financial-assistance"
+        ],
+        "ranking": ["https://www.nirfindia.org/Rankings/2025/EngineeringRanking.html", "https://www.nirfindia.org/Rankings/2025/OverallRanking.html"]
+      }
+    },
+    {
+      "slug": "aiims-delhi",
+      "name": "AIIMS Delhi",
+      "official_website": "https://www.aiims.edu/",
+      "established": 1956,
+      "type": "Government",
+      "address": "All India Institute of Medical Sciences, Ansari Nagar, New Delhi 110029, India",
+      "approvals": ["Autonomous institution established by an Act of Parliament"],
+      "naac_grade": "",
+      "ranking": "NIRF 2025: #1 Medical, #1 Dental, #8 Overall",
+      "courses_scope": "programme_families_only",
+      "description": "AIIMS New Delhi is an autonomous public medical institution established by an Act of Parliament in 1956. It combines medical and health-sciences education with clinical care and research. Official course groups include MBBS, nursing and allied-health undergraduate programmes, MSc and biotechnology study, MD, MS and MDS, super-specialty DM and MCh routes, fellowships and PhD programmes.",
+      "page_summary": "AIIMS New Delhi offers undergraduate, postgraduate, super-specialty and doctoral health-sciences programmes at Ansari Nagar. Courses and national rankings are sourced from AIIMS and NIRF; academic fee rows remain blank unless a current programme prospectus supports the exact amount.",
+      "admission_process": "Admission is programme-specific. MBBS admission follows the current national medical admission and counselling framework, while nursing, allied-health, postgraduate, super-specialty and doctoral routes follow the applicable AIIMS or national notice. Applicants should use the current prospectus and examination notice because dates, eligibility, seat rules and counselling authorities differ.",
+      "eligibility_criteria": "Eligibility depends on the programme, qualifying degree, required subjects, internship or registration status, and the applicable entrance or counselling process. Candidates should read the current AIIMS prospectus and official examination notice for their course rather than applying an MBBS rule to postgraduate, nursing or allied-health admission.",
+      "course_fee_content": "AIIMS publishes programme and hostel charges through prospectuses, academic rules and hostel notices. The course list below is verified at programme-family level. Academic fee cells are blank until the amount is tied to the current prospectus, course and applicant category; hostel charges are not presented as tuition.",
+      "placement_content": "Medical education at AIIMS New Delhi leads into internships, residency, clinical, research, public-health and academic pathways rather than a single conventional campus-placement model. Career progression depends on the qualification, registration requirements and competitive recruitment or residency process. No corporate recruiter list or package claim is shown without an official source.",
+      "facilities_content": "AIIMS New Delhi integrates teaching departments, hospitals and specialty centres with laboratories, library resources, skills and academic facilities, hostels and student support. Clinical exposure and facility access depend on the programme and department, so applicants should consult the official course and department material.",
+      "facilities": ["Teaching hospitals", "Specialty centres", "Laboratories", "Library", "Hostels", "Skills and academic facilities"],
+      "hostel_life": "AIIMS provides hostel accommodation for eligible undergraduate, postgraduate, resident and research categories under published allotment rules. Room facilities and entitlement vary, and accommodation may be subject to availability. The hostel page lists separate hostel charges; boarding and other actual expenses are additional.",
+      "scholarship_available": true,
+      "scholarship_details": "Financial assistance can arise from government schemes, category-based support, fellowships, stipends or programme-specific rules. Availability is not uniform across courses. Students should verify the current prospectus and scholarship or fellowship notice for eligibility, documentation and payment terms.",
+      "rankings_content": "In NIRF 2025, AIIMS New Delhi is ranked 1st in Medical, 1st in Dental and 8th Overall. Category ranks reflect NIRF's published methodology and do not replace programme eligibility, clinical-training details or current admission rules.",
+      "related_courses": ["mbbs", "bsc-nursing", "msc-nursing", "doctor-of-medicine-md", "master-of-surgery-ms", "master-of-dental-surgery-mds", "dm-cardiology", "mch-master-of-chirurgiae", "phd"],
+      "courses": [
+        {"slug": "mbbs", "name": "Bachelor of Medicine and Bachelor of Surgery"},
+        {"slug": "bsc-nursing", "name": "BSc Nursing and related undergraduate nursing routes"},
+        {"slug": "msc-nursing", "name": "MSc Nursing"},
+        {"slug": "doctor-of-medicine-md", "name": "Doctor of Medicine"},
+        {"slug": "master-of-surgery-ms", "name": "Master of Surgery"},
+        {"slug": "master-of-dental-surgery-mds", "name": "Master of Dental Surgery"},
+        {"slug": "dm-cardiology", "name": "DM super-specialty programmes"},
+        {"slug": "mch-master-of-chirurgiae", "name": "MCh super-specialty programmes"},
+        {"slug": "phd", "name": "Doctor of Philosophy"}
+      ],
+      "sources": {
+        "official": [
+          "https://www.aiims.edu/index.php/en/academic_section_courses",
+          "https://www.aiims.edu/index.php/en/hostel_accomodation_hos_official/fees",
+          "https://www.aiims.edu/index.php/en/hostel_accomodation_faqs",
+          "https://www.aiims.edu/aiims/academic/Academic%20Rules%20n%20Procedures-8-3-22.pdf"
+        ],
+        "ranking": ["https://www.nirfindia.org/Rankings/2025/MedicalRanking.html", "https://www.nirfindia.org/Rankings/2025/DentalRanking.html", "https://www.nirfindia.org/Rankings/2025/OverallRanking.html"]
+      }
+    }
+  ]
+}

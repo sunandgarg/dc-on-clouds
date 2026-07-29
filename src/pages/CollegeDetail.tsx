@@ -385,8 +385,14 @@ export default function CollegeDetail() {
                             </td>
                             <td className="py-3 text-muted-foreground">{linked?.duration || "-"}</td>
                             <td className="py-3 text-foreground font-medium">
-                              ₹{Number(f.fee_amount).toLocaleString("en-IN")}
-                              <span className="text-xs text-muted-foreground"> /{f.fee_type?.toLowerCase() || "yr"}</span>
+                              {f.fee_amount === null || f.fee_amount === undefined || f.fee_amount === "" ? (
+                                <span className="text-xs text-muted-foreground">Check official fee notice</span>
+                              ) : (
+                                <>
+                                  ₹{Number(f.fee_amount).toLocaleString("en-IN")}
+                                  {f.fee_type && <span className="text-xs text-muted-foreground"> /{f.fee_type.toLowerCase()}</span>}
+                                </>
+                              )}
                             </td>
                             <td className="py-3 text-right">
                               {linked && <Link to={`/courses/${linked.slug}`}><Button size="sm" variant="ghost" className="text-xs"><ExternalLink className="w-3 h-3" /></Button></Link>}
