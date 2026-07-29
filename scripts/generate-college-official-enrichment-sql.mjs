@@ -60,7 +60,7 @@ SET
   scholarship_details = ${literal(record.scholarship_details)},
   rankings_content = ${literal(record.rankings_content)},
   related_courses = ${textArray(record.related_courses)},
-  courses_count = ${record.courses.length},
+  ${coursesComplete ? `courses_count = ${record.courses.length},` : ""}
   data_source_urls = ${json(sources)},
   data_clean_method = 'official_source',
   data_clean_state = ${literal(coursesComplete ? "verified" : "official_partial")},
