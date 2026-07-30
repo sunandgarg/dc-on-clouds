@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadGateDialog } from "@/components/LeadGateDialog";
 import { DekhoLogoInline } from "@/components/DekhoLogoInline";
-import { getProgramCategoryIcon, resolveProgramCategoryArtwork } from "@/lib/programCategoryImages";
+import { getProgramCategoryIcon } from "@/lib/programCategoryImages";
 
 function formatPrice(price: number) {
   if (price >= 100000) return `₹${(price / 100000).toFixed(price % 100000 === 0 ? 0 : 1)}L`;
@@ -97,7 +97,7 @@ export function TrendingPrograms() {
         {/* Category chips strip - horizontal snap carousel on mobile + desktop */}
         {visibleCategories.length > 0 && (
           <nav aria-label="Program categories" className="mb-6 -mx-4 md:mx-0">
-            <div className="flex items-end gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-hide pb-2 px-4 md:px-1 snap-x snap-mandatory">
+            <div className="flex items-start gap-7 md:gap-9 lg:justify-between overflow-x-auto scrollbar-hide pb-3 px-4 md:px-1 snap-x snap-mandatory">
               <CategoryChip
                 label="All"
                 emoji="✨"
@@ -110,7 +110,7 @@ export function TrendingPrograms() {
                   label={c.name}
                   emoji={c.icon_emoji}
                   iconUrl={c.icon_url}
-                  artworkUrl={resolveProgramCategoryArtwork(c.slug, c.icon_url)}
+                  artworkUrl={getProgramCategoryIcon(c.slug) || c.icon_url}
                   active={activeCat === c.slug}
                   onClick={() => { setActiveCat(c.slug); setVisibleRows(1); }}
                 />
@@ -329,19 +329,23 @@ function CategoryChip({
         onClick={onClick}
         aria-pressed={active}
         aria-label={label}
-        className={`group snap-start shrink-0 relative w-[92px] md:w-[108px] overflow-hidden rounded-2xl border bg-white transition-all ${
+        className={`group snap-start relative flex w-[108px] md:w-[124px] shrink-0 flex-col items-center gap-2 rounded-xl px-2 py-2 transition-all ${
           active
-            ? "border-primary ring-2 ring-primary/30 shadow-md"
-            : "border-border hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm"
+            ? "bg-primary/5 text-primary"
+            : "text-foreground hover:bg-muted/60"
         }`}
       >
         <img
           src={artworkUrl}
-          alt={`${label} programs`}
+          alt=""
+          aria-hidden
           loading="lazy"
-          className="aspect-square w-full object-cover"
+          className="h-9 w-9 md:h-10 md:w-10 object-contain"
         />
-        {active && <span className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-primary" />}
+        <span className={`text-[11px] md:text-xs font-semibold text-center leading-tight whitespace-nowrap ${active ? "text-primary" : "text-foreground"}`}>
+          {label}
+        </span>
+        {active && <span className="absolute inset-x-5 bottom-0 h-0.5 rounded-full bg-primary" />}
       </button>
     );
   }
@@ -369,13 +373,13 @@ function CategoryChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`group snap-start flex flex-col items-center gap-1.5 shrink-0 px-1 transition ${active ? "" : "opacity-90 hover:opacity-100"}`}
+      className={`group snap-start relative flex w-[108px] md:w-[124px] shrink-0 flex-col items-center gap-2 rounded-xl px-2 py-2 transition-all ${active ? "bg-primary/5" : "hover:bg-muted/60"}`}
     >
       <span
-        className={`inline-flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full text-xl md:text-2xl transition-all ${
+        className={`inline-flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full text-lg md:text-xl transition-all ${
           active
-            ? "bg-blue-50 ring-2 ring-blue-500 scale-105"
-            : "bg-card border border-border group-hover:border-blue-400 group-hover:-translate-y-0.5"
+            ? "bg-white ring-2 ring-primary"
+            : "bg-white border border-border group-hover:border-primary/50"
         }`}
       >
         <span aria-hidden>{emoji || "🎓"}</span>
@@ -383,6 +387,7 @@ function CategoryChip({
       <span className={`text-[10px] md:text-[11px] font-semibold text-center leading-tight whitespace-nowrap ${active ? "text-primary" : "text-foreground"}`}>
         {label}
       </span>
+      {active && <span className="absolute inset-x-5 bottom-0 h-0.5 rounded-full bg-primary" />}
     </button>
   );
 }

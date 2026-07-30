@@ -9,7 +9,7 @@ import { SEO } from "@/components/SEO";
 import { LeadGateDialog } from "@/components/LeadGateDialog";
 import { ProgramCard } from "@/components/TrendingPrograms";
 import { GraduationCap } from "lucide-react";
-import { resolveProgramCategoryArtwork } from "@/lib/programCategoryImages";
+import { getProgramCategoryIcon } from "@/lib/programCategoryImages";
 
 interface ProgramCategory { id: string; slug: string; name: string; icon_emoji: string; icon_url: string; }
 
@@ -80,7 +80,7 @@ export default function AllPremiumPrograms() {
         {/* Categories on top */}
         {cats.length > 0 && (
           <nav aria-label="Program categories" className="mb-8 -mx-1">
-            <div className="flex items-end gap-5 md:gap-8 overflow-x-auto scrollbar-hide pb-2 px-1">
+            <div className="flex items-start gap-7 md:gap-10 lg:justify-between overflow-x-auto scrollbar-hide pb-3 px-1">
               <Chip label="All" emoji="✨" active={activeCat === "all"} onClick={() => setActiveCat("all")} />
               {cats.map((c) => (
                 <Chip
@@ -88,7 +88,7 @@ export default function AllPremiumPrograms() {
                   label={c.name}
                   emoji={c.icon_emoji}
                   iconUrl={c.icon_url}
-                  artworkUrl={resolveProgramCategoryArtwork(c.slug, c.icon_url)}
+                  artworkUrl={getProgramCategoryIcon(c.slug) || c.icon_url}
                   active={activeCat === c.slug}
                   onClick={() => setActiveCat(c.slug)}
                 />
@@ -135,22 +135,25 @@ function Chip({ label, emoji, iconUrl, artworkUrl, active, onClick }: { label: s
         onClick={onClick}
         aria-pressed={active}
         aria-label={label}
-        className={`group relative w-28 md:w-32 shrink-0 overflow-hidden rounded-2xl border bg-white transition-all ${
+        className={`group relative flex w-[112px] md:w-[132px] shrink-0 flex-col items-center gap-2 rounded-xl px-2 py-2 transition-all ${
           active
-            ? "border-primary ring-2 ring-primary/30 shadow-md"
-            : "border-border hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm"
+            ? "bg-primary/5 text-primary"
+            : "text-foreground hover:bg-muted/60"
         }`}
       >
-        <img src={artworkUrl} alt={`${label} programs`} loading="lazy" className="aspect-square w-full object-cover" />
-        {active && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-primary" />}
+        <img src={artworkUrl} alt="" aria-hidden loading="lazy" className="h-10 w-10 md:h-11 md:w-11 object-contain" />
+        <span className={`text-xs md:text-sm font-semibold leading-tight text-center whitespace-nowrap ${active ? "text-primary" : "text-foreground"}`}>
+          {label}
+        </span>
+        {active && <span className="absolute inset-x-5 bottom-0 h-0.5 rounded-full bg-primary" />}
       </button>
     );
   }
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
-      className={`group flex flex-col items-center gap-1.5 shrink-0 px-1 transition ${active ? "" : "opacity-90 hover:opacity-100"}`}>
-      <span className={`inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl text-2xl md:text-3xl transition-all ${
-        active ? "bg-blue-50 ring-2 ring-blue-500 scale-105" : "bg-card border border-border group-hover:border-blue-400 group-hover:-translate-y-0.5"
+      className={`group relative flex w-[112px] md:w-[132px] shrink-0 flex-col items-center gap-2 rounded-xl px-2 py-2 transition-all ${active ? "bg-primary/5" : "hover:bg-muted/60"}`}>
+      <span className={`inline-flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full text-xl md:text-2xl transition-all ${
+        active ? "ring-2 ring-primary bg-white" : "bg-white border border-border group-hover:border-primary/50"
       }`}>
         {iconUrl ? (
           <img
@@ -164,7 +167,8 @@ function Chip({ label, emoji, iconUrl, artworkUrl, active, onClick }: { label: s
           <span aria-hidden>{emoji || "🎓"}</span>
         )}
       </span>
-      <span className={`text-[11px] md:text-xs font-semibold whitespace-nowrap ${active ? "text-primary" : "text-foreground"}`}>{label}</span>
+      <span className={`text-xs md:text-sm font-semibold whitespace-nowrap ${active ? "text-primary" : "text-foreground"}`}>{label}</span>
+      {active && <span className="absolute inset-x-5 bottom-0 h-0.5 rounded-full bg-primary" />}
     </button>
   );
 }
