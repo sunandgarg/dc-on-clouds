@@ -8,6 +8,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadGateDialog } from "@/components/LeadGateDialog";
 import { DekhoLogoInline } from "@/components/DekhoLogoInline";
+import {
+  getProgramCategoryArtwork,
+  getProgramCategoryIcon,
+} from "@/lib/programCategoryImages";
 
 function formatPrice(price: number) {
   if (price >= 100000) return `₹${(price / 100000).toFixed(price % 100000 === 0 ? 0 : 1)}L`;
@@ -109,6 +113,7 @@ export function TrendingPrograms() {
                   label={c.name}
                   emoji={c.icon_emoji}
                   iconUrl={c.icon_url}
+                  artworkUrl={getProgramCategoryArtwork(c.slug)}
                   active={activeCat === c.slug}
                   onClick={() => { setActiveCat(c.slug); setVisibleRows(1); }}
                 />
@@ -212,6 +217,7 @@ export function ProgramCard({ prog, onLead }: { prog: any; onLead: () => void })
   const months = parseInt(String(prog.duration).match(/\d+/)?.[0] || "12") || 12;
   const emi = prog.emi_starts_at && prog.emi_starts_at > 0 ? prog.emi_starts_at : Math.max(1, Math.round(discountedPrice / months));
   const href = prog.slug ? `/premium-programs/${prog.slug}` : null;
+  const fallbackIcon = getProgramCategoryIcon(prog.category_slug);
   return (
     <article className="group bg-card rounded-2xl border border-border overflow-hidden flex flex-col hover:shadow-xl hover:border-primary/40 transition-all">
       <div className="relative h-36 w-full bg-gradient-to-br from-primary/15 to-accent/15 overflow-hidden">
@@ -222,6 +228,16 @@ export function ProgramCard({ prog, onLead }: { prog: any; onLead: () => void })
         )}
         {prog.image_url ? (
           <img src={prog.image_url} alt={prog.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : fallbackIcon ? (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white via-orange-50 to-slate-50">
+            <img
+              src={fallbackIcon}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              className="w-20 h-20 object-contain group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-primary/40">
             <GraduationCap className="w-12 h-12" />
@@ -291,17 +307,41 @@ function CategoryChip({
   label,
   emoji,
   iconUrl,
+  artworkUrl,
   active,
   onClick,
 }: {
   label: string;
   emoji?: string;
   iconUrl?: string;
+  artworkUrl?: string;
   active: boolean;
   onClick: () => void;
 }) {
-  // When an icon image is supplied it already contains the label baked in,
-  // so we render it bigger and skip the duplicate text below.
+  if (artworkUrl) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={active}
+        aria-label={label}
+        className={`group snap-start shrink-0 relative w-[92px] md:w-[108px] overflow-hidden rounded-2xl border bg-white transition-all ${
+          active
+            ? "border-primary ring-2 ring-primary/30 shadow-md"
+            : "border-border hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm"
+        }`}
+      >
+        <img
+          src={artworkUrl}
+          alt={`${label} programs`}
+          loading="lazy"
+          className="aspect-square w-full object-cover"
+        />
+        {active && <span className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-primary" />}
+      </button>
+    );
+  }
+  // Admin-supplied icons remain supported for categories without first-party artwork.
   if (iconUrl) {
     return (
       <button
@@ -313,13 +353,7 @@ function CategoryChip({
           active ? "ring-2 ring-blue-500 bg-blue-50" : "hover:-translate-y-0.5"
         }`}
       >
-        <img
-          src={iconUrl}
-          alt=""
-          aria-hidden
-          loading="lazy"
-          className="h-9 w-9 md:h-10 md:w-10 object-contain"
-        />
+        <img src={iconUrl} alt="" aria-hidden loading="lazy" className="h-9 w-9 md:h-10 md:w-10 object-contain" />
         <span className={`text-[10px] md:text-[11px] font-semibold text-center leading-tight whitespace-nowrap ${active ? "text-primary" : "text-foreground"}`}>
           {label}
         </span>

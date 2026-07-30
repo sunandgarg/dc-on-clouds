@@ -9,6 +9,7 @@ import { SEO } from "@/components/SEO";
 import { LeadGateDialog } from "@/components/LeadGateDialog";
 import { ProgramCard } from "@/components/TrendingPrograms";
 import { GraduationCap } from "lucide-react";
+import { getProgramCategoryArtwork } from "@/lib/programCategoryImages";
 
 interface ProgramCategory { id: string; slug: string; name: string; icon_emoji: string; icon_url: string; }
 
@@ -50,7 +51,9 @@ export default function AllPremiumPrograms() {
   const filtered = useMemo(() => {
     if (!programs) return [] as any[];
     if (activeCat === "all") return programs as any[];
-    return (programs as any[]).filter((p) => p.category_slug === activeCat);
+    return (programs as any[]).filter((p) =>
+      p.category_slug === activeCat || (Array.isArray(p.category_slugs) && p.category_slugs.includes(activeCat)),
+    );
   }, [programs, activeCat]);
 
   const cats = categories || [];
@@ -80,7 +83,15 @@ export default function AllPremiumPrograms() {
             <div className="flex items-end gap-5 md:gap-8 overflow-x-auto scrollbar-hide pb-2 px-1">
               <Chip label="All" emoji="✨" active={activeCat === "all"} onClick={() => setActiveCat("all")} />
               {cats.map((c) => (
-                <Chip key={c.id} label={c.name} emoji={c.icon_emoji} iconUrl={c.icon_url} active={activeCat === c.slug} onClick={() => setActiveCat(c.slug)} />
+                <Chip
+                  key={c.id}
+                  label={c.name}
+                  emoji={c.icon_emoji}
+                  iconUrl={c.icon_url}
+                  artworkUrl={getProgramCategoryArtwork(c.slug)}
+                  active={activeCat === c.slug}
+                  onClick={() => setActiveCat(c.slug)}
+                />
               ))}
             </div>
           </nav>
@@ -116,7 +127,25 @@ export default function AllPremiumPrograms() {
   );
 }
 
-function Chip({ label, emoji, iconUrl, active, onClick }: { label: string; emoji?: string; iconUrl?: string; active: boolean; onClick: () => void; }) {
+function Chip({ label, emoji, iconUrl, artworkUrl, active, onClick }: { label: string; emoji?: string; iconUrl?: string; artworkUrl?: string; active: boolean; onClick: () => void; }) {
+  if (artworkUrl) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={active}
+        aria-label={label}
+        className={`group relative w-28 md:w-32 shrink-0 overflow-hidden rounded-2xl border bg-white transition-all ${
+          active
+            ? "border-primary ring-2 ring-primary/30 shadow-md"
+            : "border-border hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm"
+        }`}
+      >
+        <img src={artworkUrl} alt={`${label} programs`} loading="lazy" className="aspect-square w-full object-cover" />
+        {active && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-primary" />}
+      </button>
+    );
+  }
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
       className={`group flex flex-col items-center gap-1.5 shrink-0 px-1 transition ${active ? "" : "opacity-90 hover:opacity-100"}`}>
