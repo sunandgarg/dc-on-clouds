@@ -19,6 +19,7 @@ import { Plus, Pencil, Trash2, X, HelpCircle, MapPin, GripVertical, Star, Extern
 import { Link } from "react-router-dom";
 
 import { CSVTools } from "@/components/CSVTools";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 import { useDraftState } from "@/hooks/useDraftState";
 // ─── FAQ Management ───────────────────────────────────────────────────
 
@@ -273,10 +274,16 @@ function PlacesManager() {
                 <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className="rounded-xl mt-1" />
               </div>
             </div>
-            <div>
-              <Label>Image URL</Label>
-              <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." className="rounded-xl mt-1" />
-            </div>
+            <UploadOrUrlField
+              label="Place Image"
+              value={form.image_url}
+              onChange={(image_url) => setForm({ ...form, image_url })}
+              kind="image"
+              folder="popular-places"
+              preset="place"
+              maxSizeMb={5}
+              placeholder="Paste an image URL or upload"
+            />
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <Label>College Count</Label>
