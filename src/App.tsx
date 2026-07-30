@@ -155,7 +155,6 @@ const AdminFacilities = lazyRetry(() => import("./pages/AdminFacilities"), "Admi
 const AdminContacts = lazyRetry(() => import("./pages/AdminContacts"), "AdminContacts");
 const AdminCourseFees = lazyRetry(() => import("./pages/AdminCourseFees"), "AdminCourseFees");
 const AdminPromotedPrograms = lazyRetry(() => import("./pages/AdminPromotedPrograms"), "AdminPromotedPrograms");
-const AdminProgramCategories = lazyRetry(() => import("./pages/AdminProgramCategories"), "AdminProgramCategories");
 const PremiumProgramDetail = lazyRetry(() => import("./pages/PremiumProgramDetail"), "PremiumProgramDetail");
 const AllPremiumPrograms = lazyRetry(() => import("./pages/AllPremiumPrograms"), "AllPremiumPrograms");
 const AdminPriority = lazyRetry(() => import("./pages/AdminPriority"), "AdminPriority");
@@ -370,7 +369,7 @@ const App = () => (
               <Route path="/admin/contacts" element={<ProtectedRoute module="contacts"><AdminContacts /></ProtectedRoute>} />
               <Route path="/admin/course-fees" element={<ProtectedRoute module="course_fees"><AdminCourseFees /></ProtectedRoute>} />
               <Route path="/admin/promoted-programs" element={<ProtectedRoute module="promoted_programs"><AdminPromotedPrograms /></ProtectedRoute>} />
-              <Route path="/admin/program-categories" element={<ProtectedRoute module="promoted_programs"><AdminProgramCategories /></ProtectedRoute>} />
+              <Route path="/admin/program-categories" element={<ProtectedRoute module="promoted_programs"><AdminPromotedPrograms /></ProtectedRoute>} />
               <Route path="/premium-programs" element={<AllPremiumPrograms />} />
               <Route path="/premium-programs/:slug" element={<PremiumProgramDetail />} />
               <Route path="/admin/priority" element={<ProtectedRoute requireAdmin><AdminPriority /></ProtectedRoute>} />

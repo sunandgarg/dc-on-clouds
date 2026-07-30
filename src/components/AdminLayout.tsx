@@ -66,6 +66,7 @@ const groups: NavGroup[] = [
       { label: "College Study Material", href: "/admin/college-study", icon: Library, module: "study_material" },
       { label: "Board Toppers", href: "/admin/toppers", icon: Award, module: "study_material" },
       { label: "Board Quick Links", href: "/admin/board-links", icon: FileText, module: "study_material" },
+      { label: "Upgrade Yourself with IIT / IIM / Dr. Tag", href: "/admin/promoted-programs", icon: GraduationCap, module: "promoted_programs" },
     ],
   },
   {
@@ -101,8 +102,6 @@ const groups: NavGroup[] = [
     icon: PanelTop,
     items: [
       { label: "FAQs / Places", href: "/admin/content", icon: HelpCircle, module: "content" },
-      { label: "Popular Programs", href: "/admin/promoted-programs", icon: Star, module: "promoted_programs" },
-      { label: "Program Categories", href: "/admin/program-categories", icon: Star, module: "promoted_programs" },
       { label: "Hero Banners & Images", href: "/admin/banners", icon: Image, module: "banners" },
       { label: "Hero Background", href: "/admin/hero", icon: Image },
       { label: "Global Discovery Bar", href: "/admin/hero-categories", icon: PanelTop },

@@ -16,7 +16,7 @@ const ITEMS: Array<{ label: string; href: string; module?: Module; keywords?: st
   { label: "Referrals", href: "/admin/referrals", module: "referrals" },
   { label: "Users & Roles", href: "/admin/users", module: "users" },
   { label: "Ads Manager", href: "/admin/ads", module: "ads" },
-  { label: "Trending Programs", href: "/admin/promoted-programs", module: "promoted_programs" },
+  { label: "Upgrade Yourself with IIT / IIM / Dr. Tag", href: "/admin/promoted-programs", module: "promoted_programs", keywords: "popular premium program categories" },
   { label: "Featured Colleges", href: "/admin/featured", module: "featured" },
   { label: "Banners", href: "/admin/banners", module: "banners" },
   { label: "Integrations (GA / GTM / Clarity)", href: "/admin/integrations", module: "integrations" },

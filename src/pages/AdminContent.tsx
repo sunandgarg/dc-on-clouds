@@ -335,17 +335,17 @@ export default function AdminContent() {
         <TabsList className="mb-4">
           <TabsTrigger value="faqs" className="gap-2"><HelpCircle className="w-4 h-4" />FAQs</TabsTrigger>
           <TabsTrigger value="places" className="gap-2"><MapPin className="w-4 h-4" />Popular Places</TabsTrigger>
-          <TabsTrigger value="trending" className="gap-2"><Star className="w-4 h-4" />Trending Programs</TabsTrigger>
+          <TabsTrigger value="trending" className="gap-2"><Star className="w-4 h-4" />Upgrade Yourself</TabsTrigger>
         </TabsList>
         <TabsContent value="faqs"><FAQManager /></TabsContent>
         <TabsContent value="places"><PlacesManager /></TabsContent>
         <TabsContent value="trending">
           <div className="bg-card rounded-2xl border border-border p-6 text-center">
             <Star className="w-10 h-10 text-primary mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-foreground mb-1">Manage Trending Programs</h3>
-            <p className="text-sm text-muted-foreground mb-4">Add, edit, and feature premium courses on the homepage with discounts and EMI offers.</p>
+            <h3 className="text-lg font-bold text-foreground mb-1">Upgrade Yourself with IIT / IIM / Dr. Tag</h3>
+            <p className="text-sm text-muted-foreground mb-4">Manage category logos and programmes together in one editor.</p>
             <Link to="/admin/promoted-programs">
-              <Button className="gap-2"><ExternalLink className="w-4 h-4" /> Open Trending Programs editor</Button>
+              <Button className="gap-2"><ExternalLink className="w-4 h-4" /> Open Upgrade Yourself editor</Button>
             </Link>
           </div>
         </TabsContent>

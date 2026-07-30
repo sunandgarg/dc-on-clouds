@@ -8,10 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadGateDialog } from "@/components/LeadGateDialog";
 import { DekhoLogoInline } from "@/components/DekhoLogoInline";
-import {
-  getProgramCategoryArtwork,
-  getProgramCategoryIcon,
-} from "@/lib/programCategoryImages";
+import { getProgramCategoryIcon, resolveProgramCategoryArtwork } from "@/lib/programCategoryImages";
 
 function formatPrice(price: number) {
   if (price >= 100000) return `₹${(price / 100000).toFixed(price % 100000 === 0 ? 0 : 1)}L`;
@@ -113,7 +110,7 @@ export function TrendingPrograms() {
                   label={c.name}
                   emoji={c.icon_emoji}
                   iconUrl={c.icon_url}
-                  artworkUrl={getProgramCategoryArtwork(c.slug)}
+                  artworkUrl={resolveProgramCategoryArtwork(c.slug, c.icon_url)}
                   active={activeCat === c.slug}
                   onClick={() => { setActiveCat(c.slug); setVisibleRows(1); }}
                 />

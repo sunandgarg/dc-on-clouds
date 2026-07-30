@@ -9,7 +9,7 @@ import { SEO } from "@/components/SEO";
 import { LeadGateDialog } from "@/components/LeadGateDialog";
 import { ProgramCard } from "@/components/TrendingPrograms";
 import { GraduationCap } from "lucide-react";
-import { getProgramCategoryArtwork } from "@/lib/programCategoryImages";
+import { resolveProgramCategoryArtwork } from "@/lib/programCategoryImages";
 
 interface ProgramCategory { id: string; slug: string; name: string; icon_emoji: string; icon_url: string; }
 
@@ -88,7 +88,7 @@ export default function AllPremiumPrograms() {
                   label={c.name}
                   emoji={c.icon_emoji}
                   iconUrl={c.icon_url}
-                  artworkUrl={getProgramCategoryArtwork(c.slug)}
+                  artworkUrl={resolveProgramCategoryArtwork(c.slug, c.icon_url)}
                   active={activeCat === c.slug}
                   onClick={() => setActiveCat(c.slug)}
                 />

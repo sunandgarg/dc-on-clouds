@@ -16,6 +16,7 @@ import { RepeaterField } from "@/components/admin/RepeaterField";
 import { ArrayFieldEditor } from "@/components/ArrayFieldEditor";
 import { Link } from "react-router-dom";
 import { useDraftState } from "@/hooks/useDraftState";
+import { ProgramCategoriesManager } from "@/pages/AdminProgramCategories";
 
 const BADGES = ["New", "Popular", "Best Seller", "Featured", "Trending"];
 const PROGRAM_TYPES = ["Bachelor's Degree", "Master's Degree", "Diploma", "Certificate", "PhD", "Doctorate"];
@@ -159,11 +160,19 @@ export default function AdminPromotedPrograms() {
   const update = (k: string, v: any) => setEditing((p: any) => ({ ...p, [k]: v }));
 
   return (
-    <AdminLayout title="Popular Programs">
+    <AdminLayout title="Upgrade Yourself with IIT / IIM / Dr. Tag">
+      <ProgramCategoriesManager onChanged={reload} />
+
+      <section className="mt-8 border-t border-border pt-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-foreground">Upgrade Yourself programmes</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Add, edit, order, and publish the IIT, IIM, doctorate, and professional programmes shown below the category selector.
+          </p>
+        </div>
       <div className="mb-3"><AIGenerateDialog entityType="promoted_programs" table="promoted_programs" upsertKey="slug" /></div>
       <p className="text-sm text-muted-foreground mb-3">
         Premium programs shown on the homepage carousel. Each program also has a detail page at <code>/premium-programs/&lt;slug&gt;</code>.
-        Manage chip categories in <Link to="/admin/program-categories" className="text-primary underline">Program Categories</Link>.
       </p>
       {!supportsMultiCategory && (
         <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100">
@@ -558,6 +567,7 @@ export default function AdminPromotedPrograms() {
           )}
         </DialogContent>
       </Dialog>
+      </section>
     </AdminLayout>
   );
 }

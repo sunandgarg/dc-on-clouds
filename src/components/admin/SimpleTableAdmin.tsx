@@ -11,6 +11,7 @@ import { Plus, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { CSVTools } from "@/components/CSVTools";
 import { RowDataIO } from "@/components/admin/RowDataIO";
+import type { ImagePresetKey } from "@/components/ImageHint";
 
 export type FieldType = "text" | "number" | "textarea" | "boolean" | "author" | "combobox" | "image";
 export interface FieldDef {
@@ -21,6 +22,9 @@ export interface FieldDef {
   placeholder?: string;
   /** Options for `combobox` field type. Free text is always allowed. */
   options?: string[];
+  /** Storage folder and optional visual guidance for image uploads. */
+  folder?: string;
+  preset?: ImagePresetKey;
 }
 
 interface Props {
@@ -39,9 +43,10 @@ interface Props {
   ioColumns?: string[] | "*";
   ioTypeHints?: Record<string, "number" | "boolean" | "array" | "json">;
   ioBaseName?: string;
+  onChanged?: () => void;
 }
 
-export function SimpleTableAdmin({ table, fields, titleKey = "name", subtitleKey, defaultValues = {}, orderBy, previewBasePath, previewSlugKey = "slug", previewSuffix = "", ioColumns = "*", ioTypeHints = {}, ioBaseName }: Props) {
+export function SimpleTableAdmin({ table, fields, titleKey = "name", subtitleKey, defaultValues = {}, orderBy, previewBasePath, previewSlugKey = "slug", previewSuffix = "", ioColumns = "*", ioTypeHints = {}, ioBaseName, onChanged }: Props) {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
@@ -74,14 +79,19 @@ export function SimpleTableAdmin({ table, fields, titleKey = "name", subtitleKey
     if (error) { toast.error(error.message); return; }
     toast.success("Saved");
     setEditing(null);
-    load();
+    await load();
+    onChanged?.();
   };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     const { error } = await (supabase as any).from(table).delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Deleted"); load(); }
+    else {
+      toast.success("Deleted");
+      await load();
+      onChanged?.();
+    }
   };
 
   return (
@@ -93,7 +103,10 @@ export function SimpleTableAdmin({ table, fields, titleKey = "name", subtitleKey
             filename={`${ioBaseName || table}.csv`}
             columns={ioColumns}
             typeHints={ioTypeHints}
-            onImported={load}
+            onImported={async () => {
+              await load();
+              onChanged?.();
+            }}
           />
         </div>
       )}
@@ -142,6 +155,8 @@ export function SimpleTableAdmin({ table, fields, titleKey = "name", subtitleKey
                   <ImageUploadField
                     value={editing[f.key] ?? ""}
                     onChange={(v) => setEditing({ ...editing, [f.key]: v })}
+                    folder={f.folder}
+                    preset={f.preset}
                   />
                 ) : (
                   <Input
