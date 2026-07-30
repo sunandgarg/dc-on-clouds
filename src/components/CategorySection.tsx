@@ -5,9 +5,9 @@ import { Star, MapPin, ArrowRight, Clock, Users, TrendingUp, GraduationCap, Book
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { useDbColleges, useHomepageCategoryColleges } from "@/hooks/useCollegesData";
-import { useDbCourses } from "@/hooks/useCoursesData";
-import { useDbExams } from "@/hooks/useExamsData";
+import { useHomepageCategoryColleges } from "@/hooks/useCollegesData";
+import { useHomepageCategoryCourses } from "@/hooks/useCoursesData";
+import { useHomepageCategoryExams } from "@/hooks/useExamsData";
 
 import { useStreamCategories } from "@/hooks/useStreamCategories";
 
@@ -17,10 +17,9 @@ export function CategorySection() {
   const { data: dbCategories = [] } = useStreamCategories();
   const categories = useMemo(() => dbCategories, [dbCategories]);
   const [activeCategory, setActiveCategory] = useState<string>(DEFAULT_CATEGORY);
-  const { data: allColleges } = useDbColleges();
-  const { data: categoryColleges = [] } = useHomepageCategoryColleges(activeCategory);
-  const { data: allCourses } = useDbCourses();
-  const { data: allExams } = useDbExams();
+  const { data: colleges = [] } = useHomepageCategoryColleges(activeCategory);
+  const { data: courses = [] } = useHomepageCategoryCourses(activeCategory);
+  const { data: exams = [] } = useHomepageCategoryExams(activeCategory);
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const userInteractedRef = useRef(false);
@@ -59,26 +58,6 @@ export function CategorySection() {
       el.removeEventListener("pointerdown", stop);
     };
   }, [isMobile]);
-
-  const eqCat = (a?: string, b?: string) => (a || "").toLowerCase() === (b || "").toLowerCase();
-  const matchCat = (item: any, cat: string) => {
-    if (eqCat(item.category, cat)) return true;
-    const arr: string[] = item.categories || [];
-    return arr.some((c) => eqCat(c, cat));
-  };
-
-  const colleges = useMemo(() => (categoryColleges.length ? categoryColleges : (allColleges || []))
-    .filter((c: any) => matchCat(c, activeCategory))
-    .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
-    .slice(0, 5), [allColleges, categoryColleges, activeCategory]);
-
-  const courses = useMemo(() => (allCourses || [])
-    .filter((c: any) => matchCat(c, activeCategory))
-    .slice(0, 5), [allCourses, activeCategory]);
-
-  const exams = useMemo(() => (allExams || [])
-    .filter((e: any) => matchCat(e, activeCategory))
-    .slice(0, 5), [allExams, activeCategory]);
 
   return (
     <section className="py-10 md:py-14 bg-gradient-to-b from-primary/5 to-background" aria-labelledby="explore-heading">
@@ -141,12 +120,12 @@ export function CategorySection() {
             </div>
             <div className="space-y-3">
               {colleges.length === 0 && <p className="text-xs text-muted-foreground italic">No colleges yet.</p>}
-              {colleges.map((college: any, i: number) => (
+              {colleges.map((college, i) => (
                 <Link key={college.slug} to={`/colleges/${college.slug}`} className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 transition-colors">
                   <div className="relative flex-shrink-0">
                     <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center z-10">#{i + 1}</span>
-                    {college.image ? (
-                      <img src={college.image} alt={college.name} className="w-12 h-12 rounded-lg object-cover" loading="lazy" />
+                    {college.logo || college.image ? (
+                      <img src={college.logo || college.image} alt={`${college.name} logo`} className="w-12 h-12 rounded-lg border border-border bg-card p-1 object-contain" loading="lazy" />
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-primary" /></div>
                     )}
@@ -182,7 +161,7 @@ export function CategorySection() {
             </div>
             <div className="space-y-3">
               {courses.length === 0 && <p className="text-xs text-muted-foreground italic">No courses yet.</p>}
-              {courses.map((course: any) => (
+              {courses.map((course) => (
                 <Link key={course.slug} to={`/courses/${course.slug}`} className="group block p-3 rounded-xl hover:bg-muted/50 transition-colors">
                   <h4 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">{course.name}</h4>
                   <div className="flex items-center justify-between mt-2 gap-2">
@@ -212,7 +191,7 @@ export function CategorySection() {
             </div>
             <div className="space-y-3">
               {exams.length === 0 && <p className="text-xs text-muted-foreground italic">No exams yet.</p>}
-              {exams.map((exam: any) => (
+              {exams.map((exam) => (
                 <Link key={exam.slug} to={`/exams/${exam.slug}`} className="group flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors gap-2">
                   <div className="min-w-0 flex-1">
                     <h4 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">{exam.short_name || exam.name}</h4>

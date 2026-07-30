@@ -39,7 +39,8 @@ describe("useInlineOtp phone corrections", () => {
     expect(screen.getByPlaceholderText("Enter 6-digit OTP sent via SMS")).toBeInTheDocument();
     const firstRequest = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
     const firstBody = JSON.parse(String(firstRequest.body));
-    expect(firstBody).toMatchObject({ action: "send", channel: "sms", provider_name: "fast2sms" });
+    expect(firstBody).toMatchObject({ action: "send", channel: "sms" });
+    expect(firstBody).not.toHaveProperty("provider_name");
     expect(firstBody).not.toHaveProperty("otp");
 
     rerender(<OtpHarness phone="9876543211" />);
@@ -53,5 +54,25 @@ describe("useInlineOtp phone corrections", () => {
       expect.any(String),
       expect.objectContaining({ body: expect.stringContaining("+919876543211") }),
     ));
+  });
+
+  it("shows the OTP input before the provider request completes", async () => {
+    let resolveRequest!: (value: unknown) => void;
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise((resolve) => {
+      resolveRequest = resolve;
+    }) as Promise<Response>);
+
+    render(<OtpHarness phone="9876543210" />);
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+
+    expect(screen.getByPlaceholderText("Enter 6-digit OTP sent via SMS")).toBeInTheDocument();
+    expect(screen.getByText(/Sending OTP to/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Verify" })).toBeDisabled();
+
+    resolveRequest({
+      ok: true,
+      json: async () => ({ success: true, results: [{ provider: "fast2sms", channel: "sms" }] }),
+    });
+    await waitFor(() => expect(screen.queryByText(/Sending OTP to/)).not.toBeInTheDocument());
   });
 });

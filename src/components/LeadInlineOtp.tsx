@@ -103,6 +103,15 @@ export function useInlineOtp(phone: string, formKey: string) {
       return;
     }
     const phoneAtSend = normalizedPhone;
+    const wasRequested = requested;
+
+    // Reveal the verification UI immediately; SMS delivery continues in the
+    // background. Roll back only when the first request actually fails.
+    setRequested(true);
+    setRequestedPhone(phoneAtSend);
+    setCode("");
+    setVerified(false);
+    tickCooldown();
     setSending(true);
     try {
       const res = await fetch(SEND_OTP_URL, {
@@ -114,20 +123,17 @@ export function useInlineOtp(phone: string, formKey: string) {
         body: JSON.stringify({
           phone: `+91${phoneAtSend}`,
           channel: "sms",
-          action: requested ? "resend" : "send",
-          provider_name: "fast2sms",
+          action: wasRequested ? "resend" : "send",
         }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.success || body.skipped) throw new Error(body.error || "Failed to send OTP");
       if (latestPhoneRef.current !== phoneAtSend) return;
       toast.success(`OTP sent via SMS to +91 ${phoneAtSend.slice(0, 5)}*****`);
-      setRequested(true);
-      setRequestedPhone(phoneAtSend);
-      setCode("");
-      setVerified(false);
-      tickCooldown();
     } catch (e: unknown) {
+      if (!wasRequested && latestPhoneRef.current === phoneAtSend) {
+        resetVerification();
+      }
       toast.error(e instanceof Error ? e.message : "Could not send OTP. Try again.");
     } finally {
       setSending(false);
@@ -156,7 +162,6 @@ export function useInlineOtp(phone: string, formKey: string) {
           otp: code,
           channel: "sms",
           action: "verify",
-          provider_name: "fast2sms",
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -215,7 +220,7 @@ export function useInlineOtp(phone: string, formKey: string) {
           type="button"
           size="sm"
           onClick={verify}
-          disabled={code.length !== OTP_LENGTH}
+          disabled={sending || code.length !== OTP_LENGTH}
           className="h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
         >
           Verify
@@ -225,7 +230,9 @@ export function useInlineOtp(phone: string, formKey: string) {
         <p className={`text-[11px] leading-tight ${missing ? "text-destructive font-medium" : "text-muted-foreground"}`}>
           {missing
             ? "Please verify your OTP before submitting"
-            : `Sent to +91 ${requestedPhone.slice(0, 5)}*****. Wrong number? Edit the mobile number above, then tap Get OTP again.`}
+            : sending
+              ? `Sending OTP to +91 ${requestedPhone.slice(0, 5)}*****…`
+              : `Sent to +91 ${requestedPhone.slice(0, 5)}*****. Wrong number? Edit the mobile number above, then tap Get OTP again.`}
         </p>
         {cooldown > 0 ? (
           <span className="text-[11px] text-muted-foreground">Resend options in {cooldown}s</span>

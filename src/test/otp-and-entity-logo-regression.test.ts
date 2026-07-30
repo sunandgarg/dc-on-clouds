@@ -1,0 +1,54 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
+
+describe("OTP latency and entity logo regressions", () => {
+  it("sends login OTP directly without the phone-auth relay", () => {
+    const phoneAuth = read("src/lib/phoneAuth.ts");
+    const requestFunction = phoneAuth.slice(
+      phoneAuth.indexOf("export async function requestPhoneOtp"),
+      phoneAuth.indexOf("export async function exchangePhoneOtpForSession"),
+    );
+    expect(phoneAuth).toContain('functionUrl("send-otp")');
+    expect(requestFunction).toContain("fetch(SEND_OTP_URL");
+    expect(requestFunction).not.toContain('functions.invoke("phone-auth"');
+  });
+
+  it("does not pin sends to one provider, allowing active-provider fallback", () => {
+    for (const path of [
+      "src/lib/phoneAuth.ts",
+      "src/components/LeadInlineOtp.tsx",
+      "src/components/LeadOtpVerify.tsx",
+      "src/components/landing/ExamAdBlocks.tsx",
+      "supabase/functions/phone-auth/index.ts",
+    ]) {
+      expect(read(path)).not.toMatch(/provider_name:\s*"fast2sms"/);
+    }
+  });
+
+  it("does not derive an auth password from the user's phone number", () => {
+    const phoneAuthFunction = read("supabase/functions/phone-auth/index.ts");
+    expect(phoneAuthFunction).toContain("crypto.getRandomValues");
+    expect(phoneAuthFunction).not.toContain("secure2026");
+    expect(phoneAuthFunction).not.toContain("passwordForPhone");
+  });
+
+  it("enables real production OTP delivery in the database migration", () => {
+    const migration = read("supabase/migrations/20260730155000_enable_production_otp.sql");
+    expect(migration).toContain("'on'");
+    expect(migration).toContain("'delivery_mode', 'production'");
+    expect(migration).toContain("'fast2sms_route', 'smart_otp'");
+  });
+
+  it("uses contained logo-first images in college comparison and exam cards", () => {
+    const collegeDetail = read("src/pages/CollegeDetail.tsx");
+    const examCard = read("src/components/ExamCard.tsx");
+    expect(collegeDetail).toContain("src={c.logo || c.image}");
+    expect(collegeDetail).toContain("aspect-square");
+    expect(collegeDetail).toContain("object-contain");
+    expect(examCard).toContain("src={exam.logo || exam.image}");
+    expect(examCard).toContain("object-contain");
+  });
+});

@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import dcLogo from "@/assets/dc-logo.png";
-import { normalizeIndianMobile } from "@/lib/phone";
+import { isStrictIndianMobile, normalizeIndianMobile } from "@/lib/phone";
 import { exchangePhoneOtpForSession, requestPhoneOtp } from "@/lib/phoneAuth";
 
 export default function Auth() {
@@ -44,19 +44,28 @@ export default function Auth() {
 
   const handleSendOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (cleanPhone().length !== 10) {
+    if (!isStrictIndianMobile(cleanPhone())) {
       toast({ title: "Invalid number", description: "Enter a valid 10-digit mobile number", variant: "destructive" });
       return;
     }
+    const wasOtpStep = step === "otp";
+    const phoneDigits = cleanPhone();
+
+    // Show the OTP screen immediately while delivery runs asynchronously.
+    // If the provider rejects the initial request, restore the phone screen.
+    setStep("otp");
+    setOtp("");
+    setTimer(45);
     setLoading(true);
     try {
-      const phoneDigits = cleanPhone();
-      await requestPhoneOtp(phoneDigits, step === "otp" ? "resend" : "send");
+      await requestPhoneOtp(phoneDigits, wasOtpStep ? "resend" : "send");
 
       toast({ title: "OTP Sent", description: `SMS sent to +91 ${phoneDigits}` });
-      setStep("otp");
-      setTimer(45);
     } catch (err: any) {
+      if (!wasOtpStep) {
+        setStep("input");
+        setTimer(0);
+      }
       toast({ title: "OTP failed", description: err?.message || "Could not send OTP. Please try again.", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -149,7 +158,9 @@ export default function Auth() {
               <p className="text-sm text-muted-foreground mt-1">
                 {step === "input"
                   ? "Login or signup to apply, save & track"
-                  : `Enter the 6-digit code for +91 ${phone}`}
+                  : loading
+                    ? `Sending a 6-digit code to +91 ${phone}…`
+                    : `Enter the 6-digit code for +91 ${phone}`}
               </p>
             </div>
 

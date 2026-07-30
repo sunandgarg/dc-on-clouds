@@ -52,7 +52,7 @@ const emptyCollege: Partial<DbCollege> = {
   slug: "", name: "", short_name: "", location: "", city: "", state: "", type: "Private", category: "Engineering",
   rating: 0, reviews: 0, courses_count: 0, fees: "", placement: "", ranking: "", image: "", logo: "",
   tags: [], established: 2000, description: "", highlights: [], facilities: [], approvals: [], naac_grade: "",
-  top_recruiters: [], is_active: true, status: "Draft", carousel_images: [], brochure_url: "",
+  top_recruiters: [], is_active: true, show_in_explore_by_category: false, status: "Draft", carousel_images: [], brochure_url: "",
   eligibility_criteria: "", admission_process: "", scholarship_details: "", hostel_life: "",
   gallery_images: [], cutoff: "", course_fee_content: "", placement_content: "", rankings_content: "",
   facilities_content: "", meta_title: "", meta_description: "", meta_keywords: "",
@@ -189,6 +189,7 @@ export default function AdminColleges() {
                 { key: "priority", label: "Priority", type: "number", width: 90 },
                 { key: "rating", label: "Rating", type: "number", width: 80 },
                 { key: "status", label: "Status", type: "select", options: ["Draft","Published"], width: 110 },
+                { key: "show_in_explore_by_category", label: "Homepage Explore", type: "boolean", width: 120 },
                 { key: "is_active", label: "Active", type: "boolean", width: 80 },
               ]}
             />
@@ -436,6 +437,24 @@ export default function AdminColleges() {
                     <div className="flex items-center gap-2">
                       <input type="checkbox" checked={editing.is_active !== false} onChange={(e) => update("is_active", e.target.checked)} className="rounded" />
                       <label className="text-sm text-foreground">Active</label>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="college-show-in-explore"
+                          checked={!!editing.show_in_explore_by_category}
+                          onChange={(e) => update("show_in_explore_by_category", e.target.checked)}
+                          className="rounded"
+                        />
+                        <label htmlFor="college-show-in-explore" className="text-sm font-medium text-foreground">
+                          Show in homepage Explore by Category
+                        </label>
+                      </div>
+                      <p className="ml-5 mt-1 text-[10.5px] text-muted-foreground">
+                        Checked colleges replace the automatic category list; the latest checks appear first.
+                        {editing.explore_by_category_checked_at && ` Last checked ${new Date(editing.explore_by_category_checked_at).toLocaleString()}.`}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <input

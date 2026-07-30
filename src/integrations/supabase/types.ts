@@ -1735,6 +1735,7 @@ export type Database = {
           description: string
           eligibility_criteria: string
           established: number
+          explore_by_category_checked_at: string | null
           facilities: string[]
           facilities_content: string
           featured_rank: number | null
@@ -1771,6 +1772,7 @@ export type Database = {
           secondary_state: string | null
           short_id: number
           short_name: string
+          show_in_explore_by_category: boolean
           slug: string
           square_ad_image: string
           state: string
@@ -1805,6 +1807,7 @@ export type Database = {
           description?: string
           eligibility_criteria?: string
           established?: number
+          explore_by_category_checked_at?: string | null
           facilities?: string[]
           facilities_content?: string
           featured_rank?: number | null
@@ -1841,6 +1844,7 @@ export type Database = {
           secondary_state?: string | null
           short_id?: number
           short_name?: string
+          show_in_explore_by_category?: boolean
           slug: string
           square_ad_image?: string
           state?: string
@@ -1875,6 +1879,7 @@ export type Database = {
           description?: string
           eligibility_criteria?: string
           established?: number
+          explore_by_category_checked_at?: string | null
           facilities?: string[]
           facilities_content?: string
           featured_rank?: number | null
@@ -1911,6 +1916,7 @@ export type Database = {
           secondary_state?: string | null
           short_id?: number
           short_name?: string
+          show_in_explore_by_category?: boolean
           slug?: string
           square_ad_image?: string
           state?: string
@@ -2036,6 +2042,7 @@ export type Database = {
           duration: string
           duration_type: string
           eligibility: string
+          explore_by_category_checked_at: string | null
           fee: number
           fee_type: string
           fees_content: string
@@ -2061,6 +2068,7 @@ export type Database = {
           recruiters_content: string
           scope_content: string
           short_description: string
+          show_in_explore_by_category: boolean
           short_id: number
           slug: string
           specialization_content: string
@@ -2092,6 +2100,7 @@ export type Database = {
           duration?: string
           duration_type?: string
           eligibility?: string
+          explore_by_category_checked_at?: string | null
           fee?: number
           fee_type?: string
           fees_content?: string
@@ -2117,6 +2126,7 @@ export type Database = {
           recruiters_content?: string
           scope_content?: string
           short_description?: string
+          show_in_explore_by_category?: boolean
           short_id?: number
           slug: string
           specialization_content?: string
@@ -2148,6 +2158,7 @@ export type Database = {
           duration?: string
           duration_type?: string
           eligibility?: string
+          explore_by_category_checked_at?: string | null
           fee?: number
           fee_type?: string
           fees_content?: string
@@ -2173,6 +2184,7 @@ export type Database = {
           recruiters_content?: string
           scope_content?: string
           short_description?: string
+          show_in_explore_by_category?: boolean
           short_id?: number
           slug?: string
           specialization_content?: string
@@ -2422,6 +2434,7 @@ export type Database = {
           exam_date: string
           exam_pattern: string
           exam_type: string
+          explore_by_category_checked_at: string | null
           frequency: string
           full_name: string
           gender_wise: string
@@ -2454,6 +2467,7 @@ export type Database = {
           seats: string
           short_id: number
           short_name: string
+          show_in_explore_by_category: boolean
           slug: string
           status: string
           summary_content: string
@@ -2486,6 +2500,7 @@ export type Database = {
           exam_date?: string
           exam_pattern?: string
           exam_type?: string
+          explore_by_category_checked_at?: string | null
           frequency?: string
           full_name?: string
           gender_wise?: string
@@ -2518,6 +2533,7 @@ export type Database = {
           seats?: string
           short_id?: number
           short_name?: string
+          show_in_explore_by_category?: boolean
           slug: string
           status?: string
           summary_content?: string
@@ -2550,6 +2566,7 @@ export type Database = {
           exam_date?: string
           exam_pattern?: string
           exam_type?: string
+          explore_by_category_checked_at?: string | null
           frequency?: string
           full_name?: string
           gender_wise?: string
@@ -2582,6 +2599,7 @@ export type Database = {
           seats?: string
           short_id?: number
           short_name?: string
+          show_in_explore_by_category?: boolean
           slug?: string
           status?: string
           summary_content?: string

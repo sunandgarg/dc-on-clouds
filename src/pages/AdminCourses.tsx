@@ -45,7 +45,7 @@ const FEE_TYPES = ["Per Year", "Per Semester", "Total Course", "Per Month"];
 const emptyCourse: Partial<DbCourse> = {
   slug: "", name: "", full_name: "", category: "Engineering", duration: "", level: "Undergraduate",
   colleges_count: 0, avg_fees: "", avg_salary: "", growth: "", description: "", eligibility: "",
-  top_exams: [], careers: [], subjects: [], image: "", mode: "Full-Time", specializations: [], is_active: true, ...({ priority: 50 } as any),
+  top_exams: [], careers: [], subjects: [], image: "", mode: "Full-Time", specializations: [], is_active: true, show_in_explore_by_category: false, ...({ priority: 50 } as any),
   status: "Draft", short_description: "", domain: "", duration_type: "", study_type: "", rating: 0,
   fee_type: "", fee: 0, low_fee: 0, high_fee: 0, syllabus_pdf_url: "",
   about_content: "", scope_content: "", subjects_content: "", placements_content: "",
@@ -124,7 +124,7 @@ export default function AdminCourses() {
           table="courses"
           filename="courses.csv"
           columns="*"
-          typeHints={{ fee: "number", low_fee: "number", high_fee: "number", colleges_count: "number", rating: "number", priority: "number", is_active: "boolean", top_exams: "array", careers: "array", subjects: "array", specializations: "array" }}
+          typeHints={{ fee: "number", low_fee: "number", high_fee: "number", colleges_count: "number", rating: "number", priority: "number", is_active: "boolean", show_in_explore_by_category: "boolean", top_exams: "array", careers: "array", subjects: "array", specializations: "array" }}
         />
       </div>
 
@@ -147,6 +147,7 @@ export default function AdminCourses() {
             { key: "duration", label: "Duration", width: 100 },
             { key: "priority", label: "Priority", type: "number", width: 90 },
             { key: "status", label: "Status", type: "select", options: ["Draft","Published"], width: 110 },
+            { key: "show_in_explore_by_category", label: "Homepage Explore", type: "boolean", width: 120 },
             { key: "is_active", label: "Active", type: "boolean", width: 80 },
           ]}
         />
@@ -300,9 +301,29 @@ export default function AdminCourses() {
                     />
                     <p className="text-[10.5px] text-muted-foreground mt-1">Higher = appears first in listings & filters. Default 50.</p>
                   </div>
-                  <div className="flex items-center gap-2 mt-5">
-                    <input type="checkbox" checked={editing.is_active !== false} onChange={(e) => update("is_active", e.target.checked)} className="rounded" />
-                    <label className="text-sm text-foreground">Active</label>
+                  <div className="mt-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" checked={editing.is_active !== false} onChange={(e) => update("is_active", e.target.checked)} className="rounded" />
+                      <label className="text-sm text-foreground">Active</label>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="course-show-in-explore"
+                          checked={!!editing.show_in_explore_by_category}
+                          onChange={(e) => update("show_in_explore_by_category", e.target.checked)}
+                          className="rounded"
+                        />
+                        <label htmlFor="course-show-in-explore" className="text-sm font-medium text-foreground">
+                          Show in homepage Explore by Category
+                        </label>
+                      </div>
+                      <p className="ml-5 mt-1 text-[10.5px] text-muted-foreground">
+                        Checked courses replace the automatic category list; the latest checks appear first.
+                        {editing.explore_by_category_checked_at && ` Last checked ${new Date(editing.explore_by_category_checked_at).toLocaleString()}.`}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3 max-w-md"><AuthorPicker value={(editing as any).author_id} onChange={(v) => update("author_id" as any, v)} label="Author profile (byline)" /></div>

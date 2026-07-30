@@ -681,7 +681,16 @@ export default function CollegeDetail() {
                 {(similarColleges ?? []).slice(0, 4).map((c) => (
                   <Link key={c.slug} to={`/colleges/${c.slug}`} className="bg-muted rounded-xl p-3 hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-3">
-                      <img src={c.image} alt={c.name} className="w-14 h-14 rounded-lg object-cover" loading="lazy" />
+                      {(c.logo || c.image) ? (
+                        <img
+                          src={c.logo || c.image}
+                          alt={`${c.name} logo`}
+                          className="w-12 h-12 flex-none aspect-square rounded-lg border border-border bg-card p-1 object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 flex-none aspect-square rounded-lg border border-border bg-card" aria-hidden="true" />
+                      )}
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
                         <p className="text-xs text-muted-foreground">{c.location}</p>

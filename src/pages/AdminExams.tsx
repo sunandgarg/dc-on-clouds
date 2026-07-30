@@ -44,7 +44,7 @@ const emptyExam: Partial<DbExam> = {
   slug: "", name: "", full_name: "", category: "Engineering", level: "National", exam_date: "",
   applicants: "", eligibility: "", mode: "Online (CBT)", description: "", important_dates: [],
   syllabus: [], top_colleges: [], image: "", registration_url: "", duration: "", exam_type: "",
-  language: "English", frequency: "Once", application_mode: "Online", status: "Upcoming", is_active: true, ...({ priority: 50 } as any),
+  language: "English", frequency: "Once", application_mode: "Online", status: "Upcoming", is_active: true, show_in_explore_by_category: false, ...({ priority: 50 } as any),
   short_name: "", logo: "", application_start_date: "", application_end_date: "", result_date: "",
   website: "", negative_marking: false, seats: "", age_limit: "", sample_paper_url: "",
   summary_content: "", application_process: "", exam_pattern: "", cutoff_content: "",
@@ -154,7 +154,7 @@ export default function AdminExams() {
           table="exams"
           filename="exams.csv"
           columns="*"
-          typeHints={{ priority: "number", is_active: "boolean", is_top_exam: "boolean", negative_marking: "boolean", top_colleges: "array", syllabus: "array" }}
+          typeHints={{ priority: "number", is_active: "boolean", show_in_explore_by_category: "boolean", is_top_exam: "boolean", negative_marking: "boolean", top_colleges: "array", syllabus: "array" }}
         />
       </div>
 
@@ -177,6 +177,7 @@ export default function AdminExams() {
             { key: "exam_date", label: "Exam Date", width: 140 },
             { key: "priority", label: "Priority", type: "number", width: 90 },
             { key: "status", label: "Status", width: 140 },
+            { key: "show_in_explore_by_category", label: "Homepage Explore", type: "boolean", width: 120 },
             { key: "is_active", label: "Active", type: "boolean", width: 80 },
           ]}
         />
@@ -332,9 +333,29 @@ export default function AdminExams() {
                     />
                     <p className="text-[10.5px] text-muted-foreground mt-1">Higher = appears first in listings & filters. Default 50.</p>
                   </div>
-                  <div className="flex items-center gap-2 mt-5">
-                    <input type="checkbox" checked={editing.is_active !== false} onChange={(e) => update("is_active", e.target.checked)} className="rounded" />
-                    <label className="text-sm text-foreground">Active</label>
+                  <div className="mt-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" checked={editing.is_active !== false} onChange={(e) => update("is_active", e.target.checked)} className="rounded" />
+                      <label className="text-sm text-foreground">Active</label>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="exam-show-in-explore"
+                          checked={!!editing.show_in_explore_by_category}
+                          onChange={(e) => update("show_in_explore_by_category", e.target.checked)}
+                          className="rounded"
+                        />
+                        <label htmlFor="exam-show-in-explore" className="text-sm font-medium text-foreground">
+                          Show in homepage Explore by Category
+                        </label>
+                      </div>
+                      <p className="ml-5 mt-1 text-[10.5px] text-muted-foreground">
+                        Checked exams replace the automatic category list; the latest checks appear first.
+                        {editing.explore_by_category_checked_at && ` Last checked ${new Date(editing.explore_by_category_checked_at).toLocaleString()}.`}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3 max-w-md"><AuthorPicker value={(editing as any).author_id} onChange={(v) => update("author_id" as any, v)} label="Author profile (byline)" /></div>

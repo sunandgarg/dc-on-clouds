@@ -28,6 +28,8 @@ export type DbCollege = {
   naac_grade: string;
   top_recruiters: string[];
   is_active: boolean;
+  show_in_explore_by_category: boolean;
+  explore_by_category_checked_at: string | null;
   created_at: string;
   updated_at: string;
   // New fields
@@ -80,6 +82,10 @@ export type AdminCollegeListFilters = {
 
 const ADMIN_COLLEGE_LIST_SELECT = "id,slug,name,short_name,location,city,state,type,category,rating,reviews,courses_count,established,image,logo,status,is_active,updated_at,priority,featured_rank,affiliation_kind,is_partner";
 const PUBLIC_COLLEGE_CARD_SELECT = "id,slug,name,short_name,location,city,state,type,category,rating,reviews,courses_count,fees,image,logo,tags,established,approvals,naac_grade,is_active,status,priority,priority_updated_at,featured_rank,affiliation_kind,parent_university_slug,is_partner";
+const HOMEPAGE_EXPLORE_COLLEGE_SELECT = "id,slug,name,short_name,city,state,category,categories,rating,image,logo,priority,show_in_explore_by_category,explore_by_category_checked_at";
+type HomepageExploreCollege = Pick<DbCollege, "id" | "slug" | "name" | "short_name" | "city" | "state" | "category" | "rating" | "image" | "logo" | "priority" | "show_in_explore_by_category" | "explore_by_category_checked_at"> & {
+  categories: string[];
+};
 
 const COLLEGE_PAGE_SIZE = 1000;
 
@@ -171,13 +177,51 @@ export function useHomepageCategoryColleges(category: string) {
   return useQuery({
     queryKey: ["homepage-category-colleges", category],
     queryFn: async () => {
-      const base = () => supabase.from("colleges").select(PUBLIC_COLLEGE_CARD_SELECT).eq("is_active", true).order("priority", { ascending: true, nullsFirst: false }).order("rating", { ascending: false, nullsFirst: false }).limit(8);
-      const [primary, additional] = await Promise.all([base().ilike("category", category), base().contains("categories", [category])]);
-      if (primary.error) throw primary.error;
-      if (additional.error && !String(additional.error.message).includes("categories")) throw additional.error;
-      const unique = new Map<string, DbCollege>();
-      [...(primary.data || []), ...(additional.data || [])].forEach((row: any) => unique.set(row.id, row));
-      return [...unique.values()].slice(0, 5);
+      const selectedBase = () => supabase
+        .from("colleges")
+        .select(HOMEPAGE_EXPLORE_COLLEGE_SELECT)
+        .eq("is_active", true)
+        .eq("show_in_explore_by_category", true)
+        .order("explore_by_category_checked_at", { ascending: false, nullsFirst: false })
+        .limit(5);
+
+      const [selectedPrimary, selectedAdditional] = await Promise.all([
+        selectedBase().ilike("category", category),
+        selectedBase().contains("categories", [category]),
+      ]);
+      if (selectedPrimary.error) throw selectedPrimary.error;
+      if (selectedAdditional.error) throw selectedAdditional.error;
+
+      const selected = new Map<string, HomepageExploreCollege>();
+      [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
+        .forEach((row) => selected.set(row.id, row as HomepageExploreCollege));
+
+      if (selected.size > 0) {
+        return [...selected.values()]
+          .sort((a, b) => Date.parse(b.explore_by_category_checked_at || "0") - Date.parse(a.explore_by_category_checked_at || "0"))
+          .slice(0, 5);
+      }
+
+      const fallbackBase = () => supabase
+        .from("colleges")
+        .select(HOMEPAGE_EXPLORE_COLLEGE_SELECT)
+        .eq("is_active", true)
+        .order("priority", { ascending: true, nullsFirst: false })
+        .order("rating", { ascending: false, nullsFirst: false })
+        .limit(5);
+      const [fallbackPrimary, fallbackAdditional] = await Promise.all([
+        fallbackBase().ilike("category", category),
+        fallbackBase().contains("categories", [category]),
+      ]);
+      if (fallbackPrimary.error) throw fallbackPrimary.error;
+      if (fallbackAdditional.error) throw fallbackAdditional.error;
+
+      const fallback = new Map<string, HomepageExploreCollege>();
+      [...(fallbackPrimary.data || []), ...(fallbackAdditional.data || [])]
+        .forEach((row) => fallback.set(row.id, row as HomepageExploreCollege));
+      return [...fallback.values()]
+        .sort((a, b) => (a.priority ?? 101) - (b.priority ?? 101) || (b.rating ?? 0) - (a.rating ?? 0))
+        .slice(0, 5);
     },
     staleTime: 10 * 60_000,
   });
@@ -376,7 +420,7 @@ export function useSaveCollege() {
       // status, etc.) reflect everywhere without a hard refresh.
       qc.invalidateQueries({ predicate: (q) => {
         const k = q.queryKey?.[0];
-        return typeof k === "string" && (k.startsWith("db-college") || k.startsWith("admin-colleges") || k.startsWith("infinite-college") || k === "featured-colleges");
+        return typeof k === "string" && (k.startsWith("db-college") || k.startsWith("admin-colleges") || k.startsWith("infinite-college") || k === "featured-colleges" || k === "homepage-category-colleges");
       }});
       toast.success("College saved!");
     },

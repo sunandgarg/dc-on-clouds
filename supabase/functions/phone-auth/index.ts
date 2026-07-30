@@ -27,13 +27,18 @@ function emailForPhone(phone: string) {
   return `phone${phone}@auth.dekhocampus.in`;
 }
 
-function passwordForPhone(phone: string) {
-  return `dc!${phone}!secure2026`;
+function randomPassword() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  const token = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `dc!${token}`;
 }
 
 async function ensurePhoneUser(admin: any, phone: string) {
   const email = emailForPhone(phone);
-  const password = passwordForPhone(phone);
+  // Rotate the synthetic identity password after every successful OTP. It must
+  // never be derivable from a public phone number or committed source code.
+  const password = randomPassword();
   const e164Phone = `+91${phone}`;
   const metadata = { phone, display_name: phone, phone_verified: true, auth_provider: "phone_otp" };
 
@@ -122,7 +127,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${anon}`,
           apikey: anon,
         },
-        body: JSON.stringify({ phone: `+91${phone}`, channel: "sms", action: "send", provider_name: "fast2sms" }),
+        body: JSON.stringify({ phone: `+91${phone}`, channel: "sms", action: "send" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) return json({ error: data.error || "OTP send failed", data }, res.ok ? 400 : res.status);
@@ -137,7 +142,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${anon}`,
           apikey: anon,
         },
-        body: JSON.stringify({ phone: `+91${phone}`, channel: "sms", action: "resend", provider_name: "fast2sms" }),
+        body: JSON.stringify({ phone: `+91${phone}`, channel: "sms", action: "resend" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) return json({ error: data.error || "OTP resend failed", data }, res.ok ? 400 : res.status);
@@ -158,7 +163,6 @@ Deno.serve(async (req) => {
         otp,
         channel: "sms",
         action: "verify",
-        provider_name: "fast2sms",
       }),
     });
     const verification = await verifyResponse.json().catch(() => ({}));

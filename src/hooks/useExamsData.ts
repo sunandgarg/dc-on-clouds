@@ -29,6 +29,8 @@ export type DbExam = {
   application_mode: string;
   status: string;
   is_active: boolean;
+  show_in_explore_by_category: boolean;
+  explore_by_category_checked_at: string | null;
   created_at: string;
   updated_at: string;
   // New fields
@@ -67,6 +69,12 @@ export type DbExam = {
   short_id?: number | null;
 };
 
+const HOMEPAGE_EXPLORE_EXAM_SELECT = "id,slug,name,short_name,category,categories,exam_date,application_start_date,applicants,level,priority,updated_at,show_in_explore_by_category,explore_by_category_checked_at";
+type HomepageExploreExam = Pick<DbExam, "id" | "slug" | "name" | "short_name" | "category" | "exam_date" | "application_start_date" | "applicants" | "level" | "show_in_explore_by_category" | "explore_by_category_checked_at" | "updated_at"> & {
+  categories: string[];
+  priority: number | null;
+};
+
 export function useDbExams() {
   return useQuery({
     queryKey: ["db-exams"],
@@ -82,6 +90,59 @@ export function useDbExams() {
       return (data ?? []).map(mapExam);
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useHomepageCategoryExams(category: string) {
+  return useQuery({
+    queryKey: ["homepage-category-exams", category],
+    queryFn: async () => {
+      const selectedBase = () => supabase
+        .from("exams")
+        .select(HOMEPAGE_EXPLORE_EXAM_SELECT)
+        .eq("is_active", true)
+        .eq("show_in_explore_by_category", true)
+        .order("explore_by_category_checked_at", { ascending: false, nullsFirst: false })
+        .limit(5);
+      const [selectedPrimary, selectedAdditional] = await Promise.all([
+        selectedBase().ilike("category", category),
+        selectedBase().contains("categories", [category]),
+      ]);
+      if (selectedPrimary.error) throw selectedPrimary.error;
+      if (selectedAdditional.error) throw selectedAdditional.error;
+
+      const selected = new Map<string, HomepageExploreExam>();
+      [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
+        .forEach((row) => selected.set(row.id, row as HomepageExploreExam));
+      if (selected.size > 0) {
+        return [...selected.values()]
+          .sort((a, b) => Date.parse(b.explore_by_category_checked_at || "0") - Date.parse(a.explore_by_category_checked_at || "0"))
+          .slice(0, 5);
+      }
+
+      const fallbackBase = () => supabase
+        .from("exams")
+        .select(HOMEPAGE_EXPLORE_EXAM_SELECT)
+        .eq("is_active", true)
+        .order("priority", { ascending: true, nullsFirst: false })
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("name")
+        .limit(5);
+      const [fallbackPrimary, fallbackAdditional] = await Promise.all([
+        fallbackBase().ilike("category", category),
+        fallbackBase().contains("categories", [category]),
+      ]);
+      if (fallbackPrimary.error) throw fallbackPrimary.error;
+      if (fallbackAdditional.error) throw fallbackAdditional.error;
+
+      const fallback = new Map<string, HomepageExploreExam>();
+      [...(fallbackPrimary.data || []), ...(fallbackAdditional.data || [])]
+        .forEach((row) => fallback.set(row.id, row as HomepageExploreExam));
+      return [...fallback.values()]
+        .sort((a, b) => (a.priority ?? 101) - (b.priority ?? 101) || Date.parse(b.updated_at || "0") - Date.parse(a.updated_at || "0"))
+        .slice(0, 5);
+    },
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -186,6 +247,7 @@ export function useSaveExam() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["db-exams"] });
+      qc.invalidateQueries({ queryKey: ["homepage-category-exams"] });
       toast.success("Exam saved!");
     },
     onError: (e) => toast.error(`Failed: ${e.message}`),

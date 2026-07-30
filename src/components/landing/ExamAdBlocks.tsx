@@ -229,28 +229,36 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
 
   const sendOtp = async (resend = false) => {
     if (!/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter a valid 10-digit Indian mobile number");
-    setBusy(true);
-    const response = await fetch(SEND_OTP_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({
-        phone: `+91${phone}`,
-        channel: "sms",
-        action: resend ? "resend" : "send",
-        provider_name: "fast2sms",
-      }),
-    });
-    const result = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok || !result.success) return toast.error(result.error || "Could not send OTP");
     setOtpSent(true);
     setOtp("");
     setResendCooldown(45);
-    trackEvent("lp_otp_sent", { lp_type: "exam_ad", lp_slug: slug, source });
-    toast.success(resend ? "A new OTP was sent" : "OTP sent to your phone");
+    setBusy(true);
+    try {
+      const response = await fetch(SEND_OTP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          phone: `+91${phone}`,
+          channel: "sms",
+          action: resend ? "resend" : "send",
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.error || "Could not send OTP");
+      trackEvent("lp_otp_sent", { lp_type: "exam_ad", lp_slug: slug, source });
+      toast.success(resend ? "A new OTP was sent" : "OTP sent to your phone");
+    } catch (error) {
+      if (!resend) {
+        setOtpSent(false);
+        setResendCooldown(0);
+      }
+      toast.error(error instanceof Error ? error.message : "Could not send OTP");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const changeNumber = () => {
@@ -272,7 +280,6 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
         otp,
         channel: "sms",
         action: "verify",
-        provider_name: "fast2sms",
       }),
     });
     const result = await response.json().catch(() => ({}));

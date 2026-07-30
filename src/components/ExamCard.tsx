@@ -47,11 +47,11 @@ export function ExamCard({ exam, index }: ExamCardProps) {
         {/* Header - clickable image + name */}
         <div className="flex items-start gap-4 mb-4">
           <Link to={buildExamHref(exam)} className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden block bg-muted group">
-            {exam.image || exam.logo ? (
+            {exam.logo || exam.image ? (
               <img
-                src={exam.image || exam.logo}
-                alt={examName}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                src={exam.logo || exam.image}
+                alt={`${examName} logo`}
+                className="w-full h-full bg-card p-1 object-contain group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
               />
             ) : (

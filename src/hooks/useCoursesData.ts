@@ -23,6 +23,8 @@ export type DbCourse = {
   mode: string;
   specializations: string[];
   is_active: boolean;
+  show_in_explore_by_category: boolean;
+  explore_by_category_checked_at: string | null;
   created_at: string;
   updated_at: string;
   // New fields
@@ -54,6 +56,12 @@ export type DbCourse = {
   short_id?: number | null;
 };
 
+const HOMEPAGE_EXPLORE_COURSE_SELECT = "id,slug,name,category,categories,colleges_count,growth,avg_salary,priority,updated_at,show_in_explore_by_category,explore_by_category_checked_at";
+type HomepageExploreCourse = Pick<DbCourse, "id" | "slug" | "name" | "category" | "colleges_count" | "growth" | "avg_salary" | "show_in_explore_by_category" | "explore_by_category_checked_at" | "updated_at"> & {
+  categories: string[];
+  priority: number | null;
+};
+
 export function useDbCourses() {
   return useQuery({
     queryKey: ["db-courses"],
@@ -69,6 +77,59 @@ export function useDbCourses() {
       return data as DbCourse[];
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useHomepageCategoryCourses(category: string) {
+  return useQuery({
+    queryKey: ["homepage-category-courses", category],
+    queryFn: async () => {
+      const selectedBase = () => supabase
+        .from("courses")
+        .select(HOMEPAGE_EXPLORE_COURSE_SELECT)
+        .eq("is_active", true)
+        .eq("show_in_explore_by_category", true)
+        .order("explore_by_category_checked_at", { ascending: false, nullsFirst: false })
+        .limit(5);
+      const [selectedPrimary, selectedAdditional] = await Promise.all([
+        selectedBase().ilike("category", category),
+        selectedBase().contains("categories", [category]),
+      ]);
+      if (selectedPrimary.error) throw selectedPrimary.error;
+      if (selectedAdditional.error) throw selectedAdditional.error;
+
+      const selected = new Map<string, HomepageExploreCourse>();
+      [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
+        .forEach((row) => selected.set(row.id, row as HomepageExploreCourse));
+      if (selected.size > 0) {
+        return [...selected.values()]
+          .sort((a, b) => Date.parse(b.explore_by_category_checked_at || "0") - Date.parse(a.explore_by_category_checked_at || "0"))
+          .slice(0, 5);
+      }
+
+      const fallbackBase = () => supabase
+        .from("courses")
+        .select(HOMEPAGE_EXPLORE_COURSE_SELECT)
+        .eq("is_active", true)
+        .order("priority", { ascending: true, nullsFirst: false })
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("name")
+        .limit(5);
+      const [fallbackPrimary, fallbackAdditional] = await Promise.all([
+        fallbackBase().ilike("category", category),
+        fallbackBase().contains("categories", [category]),
+      ]);
+      if (fallbackPrimary.error) throw fallbackPrimary.error;
+      if (fallbackAdditional.error) throw fallbackAdditional.error;
+
+      const fallback = new Map<string, HomepageExploreCourse>();
+      [...(fallbackPrimary.data || []), ...(fallbackAdditional.data || [])]
+        .forEach((row) => fallback.set(row.id, row as HomepageExploreCourse));
+      return [...fallback.values()]
+        .sort((a, b) => (a.priority ?? 101) - (b.priority ?? 101) || Date.parse(b.updated_at || "0") - Date.parse(a.updated_at || "0"))
+        .slice(0, 5);
+    },
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -130,6 +191,7 @@ export function useSaveCourse() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["db-courses"] });
+      qc.invalidateQueries({ queryKey: ["homepage-category-courses"] });
       toast.success("Course saved!");
     },
     onError: (e) => toast.error(`Failed: ${e.message}`),

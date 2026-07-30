@@ -1,12 +1,28 @@
 import { supabase } from "@/integrations/supabase/client";
+import { functionUrl } from "@/lib/backendMode";
+
+const SEND_OTP_URL = functionUrl("send-otp");
 
 export async function requestPhoneOtp(phoneDigits: string, action: "send" | "resend" = "send") {
-  const { data, error } = await supabase.functions.invoke("phone-auth", {
-    body: { phone: `+91${phoneDigits}`, action },
+  // Send directly through the OTP router. Going through phone-auth first added
+  // a second Edge Function cold start before the SMS request even began.
+  const response = await fetch(SEND_OTP_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({
+      phone: `+91${phoneDigits}`,
+      channel: "sms",
+      action,
+    }),
   });
+  const data = await response.json().catch(() => ({}));
 
-  if (error || data?.error || !data?.success) {
-    throw new Error(error?.message || data?.error || "Could not send OTP.");
+  if (!response.ok || data?.error || !data?.success) {
+    throw new Error(data?.error || "Could not send OTP.");
   }
   return data;
 }

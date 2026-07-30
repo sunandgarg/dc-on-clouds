@@ -39,7 +39,6 @@ export function LeadOtpVerify({ phone, onVerified, onCancel, formKey }: LeadOtpV
           phone: `+91${phone}`,
           channel: "sms",
           action: resend ? "resend" : "send",
-          provider_name: "fast2sms",
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -112,7 +111,6 @@ export function LeadOtpVerify({ phone, onVerified, onCancel, formKey }: LeadOtpV
           otp: code,
           channel: "sms",
           action: "verify",
-          provider_name: "fast2sms",
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -146,7 +144,7 @@ export function LeadOtpVerify({ phone, onVerified, onCancel, formKey }: LeadOtpV
         </div>
         <h3 className="text-lg font-bold text-foreground">Verify your mobile</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          We sent a 6-digit code to <span className="font-semibold text-foreground">+91 {phone}</span>
+          {sending ? "Sending" : "We sent"} a 6-digit code to <span className="font-semibold text-foreground">+91 {phone}</span>
         </p>
 
         <div className="flex justify-between gap-2 mt-5" onPaste={onPaste}>
@@ -168,7 +166,7 @@ export function LeadOtpVerify({ phone, onVerified, onCancel, formKey }: LeadOtpV
         <Button
           type="button"
           onClick={verify}
-          disabled={verifying || code.length !== OTP_LENGTH}
+          disabled={sending || verifying || code.length !== OTP_LENGTH}
           className="w-full mt-5 rounded-xl h-11"
         >
           {verifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
