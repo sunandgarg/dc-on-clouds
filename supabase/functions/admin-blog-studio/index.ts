@@ -33,19 +33,34 @@ async function requireAdmin(req: Request) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
-    const { topic, word_limit = 1200, audience = "Indian students and parents" } = await req.json();
+    const {
+      topic,
+      word_limit = 1200,
+      audience = "Indian students and parents",
+      content_goals = ["SEO", "AEO", "GEO", "AIO", "LLMO", "LLM"],
+      image = {},
+    } = await req.json();
     if (!String(topic || "").trim()) throw new Error("A blog topic is required");
     const admin = await requireAdmin(req);
     const signals = await competitorSignals();
     const config = await loadBlogAiConfig(admin, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await applyBlogTextRuntimeControl(admin, "blog-studio", config);
-    const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Create one original, fact-conscious education news article about: ${topic}\nAudience: ${audience}\nTarget length: ${word_limit} words.\nResearch signals - use only for trend awareness and never copy wording, structure, titles, claims or images:\n${JSON.stringify(signals)}\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker,hero_hook}.\nRules: natural plain language, short paragraphs, only the small hyphen '-', never an em dash, no unverifiable claims, current official sources in a final Sources section, no keyword stuffing, and current SEO, GEO and AEO guidance. This is AI-assisted and requires editor review. Never claim human authorship, undetectability or '0 AI'.`;
+    const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Create one original, fact-conscious education news article about: ${topic}\nAudience: ${audience}\nTarget length: ${word_limit} words.\nDiscovery goals: ${JSON.stringify(content_goals)}.\nResearch signals - use only for trend awareness and never copy wording, structure, titles, claims or images:\n${JSON.stringify(signals)}\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker,hero_hook}.\nRules: open with a concise direct answer; use natural plain language, descriptive headings, comparison-ready facts, short paragraphs, FAQs, named entities, and only the small hyphen '-'. Never use an em dash. Include current official sources in a final Sources section, avoid unverifiable claims and keyword stuffing, and optimise for the configured search, answer-engine, geographic and AI-discovery goals. This is AI-assisted and requires editor review. Never claim human authorship, undetectability, a detector score or '0 AI'.`;
     const raw = await generateBlogJson(config, prompt, { admin, feature: "blog-studio", operation: "draft" });
     const draft = JSON.parse(raw.replace(/^```json|```$/g, "").trim());
     draft.slug = slugify(draft.slug || draft.title || topic);
-    await applyImageRuntimeControl(admin, config);
-    draft.featured_image = await generateAndUploadBlogCover(admin, config, draft.slug, draft.hero_hook || draft.title || topic);
-    return new Response(JSON.stringify({ draft, model_used: `${blogTextProviderLabel(config.textModel)}:${config.textModel}`, image_model_used: `openai:${config.imageModel}`, competitor_sources: signals.map(s => s.url) }), { headers: { ...cors, "Content-Type": "application/json" } });
+    draft.featured_image = "";
+    if (image?.mode !== "none") {
+      await applyImageRuntimeControl(admin, config);
+      draft.featured_image = await generateAndUploadBlogCover(admin, config, draft.slug, draft.hero_hook || draft.title || topic, {
+        mode: image?.mode === "template" ? "template" : "generated",
+        templateUrl: String(image?.template_url || ""),
+        includeLogo: image?.include_logo !== false,
+        logoUrl: String(image?.logo_url || ""),
+        resolution: image?.resolution === "web" || image?.resolution === "2k" ? image.resolution : "4k",
+      });
+    }
+    return new Response(JSON.stringify({ draft, model_used: `${blogTextProviderLabel(config.textModel)}:${config.textModel}`, image_model_used: image?.mode === "none" ? "none" : image?.mode === "template" ? "template" : `openai:${config.imageModel}`, research_sources: signals.map(s => s.url) }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
   }

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type State = { text_model: string; image_model: string; image_quality: "low" | "medium" | "high"; claude_key_set: boolean; openai_key_set: boolean };
-const defaults: State = { text_model: "auto-sonnet", image_model: "gpt-image-1", image_quality: "medium", claude_key_set: false, openai_key_set: false };
+const defaults: State = { text_model: "gemini-3.5-flash", image_model: "gpt-image-1", image_quality: "medium", claude_key_set: false, openai_key_set: false };
 
 const TEXT_MODELS = {
   anthropic: [
@@ -64,7 +64,7 @@ export function BlogAISettingsCard() {
   };
 
   return <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50/40 p-5 dark:border-orange-900 dark:bg-orange-950/10">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="flex items-center gap-2 font-semibold"><Newspaper className="h-5 w-5 text-orange-500" /> Blog-only AI providers</h2><p className="mt-1 text-sm text-muted-foreground">Set the default text provider for blog/news generation here, then fine-tune per feature in the Runtime Control Centre above. OpenAI GPT Image continues to power branded DekhoCampus editorial backdrops. Keys are write-only and encrypted before database storage.</p></div><div className="flex gap-2"><Badge variant={settings.claude_key_set ? "default" : "destructive"}>Claude {settings.claude_key_set ? "ready" : "missing"}</Badge><Badge variant="outline">Gemini via env/runtime</Badge><Badge variant={settings.openai_key_set ? "default" : "destructive"}>OpenAI {settings.openai_key_set ? "ready" : "missing"}</Badge></div></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="flex items-center gap-2 font-semibold"><Newspaper className="h-5 w-5 text-orange-500" /> Blog-only AI providers</h2><p className="mt-1 text-sm text-muted-foreground">Gemini is the recommended default text provider. You can switch to Claude or OpenAI here, then fine-tune each feature in the Runtime Control Centre above. OpenAI GPT Image powers optional generated backdrops; templates do not consume image-generation credits. Keys are write-only and encrypted before database storage.</p></div><div className="flex gap-2"><Badge variant={settings.claude_key_set ? "default" : "secondary"}>Claude {settings.claude_key_set ? "ready" : "optional"}</Badge><Badge variant={textProvider === "gemini" ? "default" : "outline"}>{textProvider === "gemini" ? "Gemini selected" : "Gemini available"}</Badge><Badge variant={settings.openai_key_set ? "default" : "destructive"}>OpenAI {settings.openai_key_set ? "ready" : "missing"}</Badge></div></div>
     <div className="mt-4 grid gap-4 md:grid-cols-2">
       <div className="space-y-3">
         <Label className="flex items-center gap-2"><Newspaper className="h-4 w-4" /> Claude API key</Label>

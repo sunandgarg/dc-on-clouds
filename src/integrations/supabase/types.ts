@@ -4725,6 +4725,7 @@ export type Database = {
           batch_start_date: string
           brochure_url: string
           category_slug: string
+          category_slugs: string[]
           certificate_image: string
           college_name: string
           college_slug: string
@@ -4786,6 +4787,7 @@ export type Database = {
           batch_start_date?: string
           brochure_url?: string
           category_slug?: string
+          category_slugs?: string[]
           certificate_image?: string
           college_name: string
           college_slug?: string
@@ -4847,6 +4849,7 @@ export type Database = {
           batch_start_date?: string
           brochure_url?: string
           category_slug?: string
+          category_slugs?: string[]
           certificate_image?: string
           college_name?: string
           college_slug?: string

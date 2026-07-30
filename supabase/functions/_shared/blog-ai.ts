@@ -10,6 +10,17 @@ export type BlogAiConfig = {
   imageQuality: "low" | "medium" | "high";
 };
 
+export type BlogCoverOptions = {
+  mode?: "generated" | "template";
+  templateUrl?: string;
+  promptStyle?: string;
+  includeLogo?: boolean;
+  logoUrl?: string;
+  logoPosition?: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-right";
+  aspectRatio?: "16:9" | "1:1" | "4:5";
+  resolution?: "web" | "2k" | "4k";
+};
+
 const DEFAULT_CLAUDE_TEXT_MODEL = "auto-sonnet";
 const DEFAULT_OPENAI_IMAGE_MODEL = "gpt-image-1";
 const LEGACY_CLAUDE_MODEL_IDS = new Set([
@@ -94,7 +105,7 @@ export async function loadBlogAiConfig(admin: any, serviceRoleKey: string): Prom
     claudeKey: await decryptBlogSecret(data?.claude_api_key_ciphertext || "", serviceRoleKey),
     openaiKey: await decryptBlogSecret(data?.openai_api_key_ciphertext || "", serviceRoleKey),
     textModel: inferTextProvider(data?.text_model) === "anthropic" ? normalizeClaudeTextModel(data?.text_model) : String(data?.text_model || GEMINI_MODEL),
-    imageModel: ["gpt-image-2", ""].includes(String(data?.image_model || "")) ? DEFAULT_OPENAI_IMAGE_MODEL : data.image_model,
+    imageModel: ["gpt-image-2", ""].includes(String(data?.image_model || "")) ? DEFAULT_OPENAI_IMAGE_MODEL : String(data?.image_model || DEFAULT_OPENAI_IMAGE_MODEL),
     imageQuality: data?.image_quality || "medium",
   };
 }
@@ -200,7 +211,7 @@ function wrapCoverTitle(hook: string) {
   return compact;
 }
 
-async function maybeGenerateBackdrop(config: BlogAiConfig, hook: string) {
+async function maybeGenerateBackdrop(config: BlogAiConfig, hook: string, promptStyle = "") {
   if (!config.openaiKey) return null;
 
   const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -208,7 +219,7 @@ async function maybeGenerateBackdrop(config: BlogAiConfig, hook: string) {
     headers: { Authorization: `Bearer ${config.openaiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: config.imageModel,
-      prompt: `Create a premium abstract editorial background for an Indian education-news cover. Use a 16:9 composition with a calm ivory paper texture, elegant orange energy waves in the corners, subtle blue depth, and a very clean bright center. No text, no logos, no people, no icons, no watermarks. The mood should feel sharp, trustworthy and modern for this topic: "${normalizeHook(hook)}".`,
+      prompt: `Create a premium abstract editorial background for an Indian education-news cover. Use a calm bright centre with enough negative space for a headline. No text, no logos, no watermarks. Art direction: ${normalizeHook(promptStyle || "clean, credible, student-focused editorial design")}. Topic: "${normalizeHook(hook)}".`,
       size: "1536x1024",
       quality: config.imageQuality,
       output_format: "webp",
@@ -225,16 +236,51 @@ async function maybeGenerateBackdrop(config: BlogAiConfig, hook: string) {
   return image ? `data:image/webp;base64,${image}` : null;
 }
 
-function buildBlogCoverSvg(hook: string, backdropHref: string | null) {
+function outputDimensions(aspectRatio: BlogCoverOptions["aspectRatio"], resolution: BlogCoverOptions["resolution"]) {
+  const longEdge = resolution === "4k" ? 3840 : resolution === "2k" ? 2560 : 1600;
+  if (aspectRatio === "1:1") return { width: longEdge, height: longEdge };
+  if (aspectRatio === "4:5") return { width: Math.round(longEdge * 0.8), height: longEdge };
+  return { width: longEdge, height: Math.round(longEdge * 9 / 16) };
+}
+
+function logoMarkup(options: BlogCoverOptions) {
+  if (options.includeLogo === false) return "";
+  const position = options.logoPosition || "top-center";
+  const coords = {
+    "top-left": { x: 196, y: 160 },
+    "top-center": { x: 640, y: 160 },
+    "top-right": { x: 1084, y: 160 },
+    "bottom-left": { x: 196, y: 652 },
+    "bottom-right": { x: 1084, y: 652 },
+  }[position];
+
+  if (options.logoUrl) {
+    return `<image href="${escapeXml(options.logoUrl)}" x="${coords.x}" y="${coords.y}" width="320" height="118" preserveAspectRatio="xMidYMid meet"/>`;
+  }
+
+  return `
+    <g transform="translate(${coords.x + 160} ${coords.y + 58}) scale(.46)">
+      <g transform="translate(-272 -120)">
+        <path d="M20 84 123 36l114 40-36 32L86 73 38 117Z" fill="#111827"/>
+        <path d="m47 116c-12 39-10 74 8 103" fill="none" stroke="#f28b43" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="56" cy="224" r="9" fill="#f28b43"/>
+        <text x="92" y="142" font-family="Plus Jakarta Sans, Inter, Arial, sans-serif" font-size="94" font-weight="800" letter-spacing="-2.4" fill="#111827">Dekho</text>
+        <text x="449" y="142" font-family="Plus Jakarta Sans, Inter, Arial, sans-serif" font-size="94" font-weight="800" letter-spacing="-2.4" fill="#f28b43">Campus</text>
+      </g>
+    </g>`;
+}
+
+function buildBlogCoverSvg(hook: string, backdropHref: string | null, options: BlogCoverOptions = {}) {
   const lines = wrapCoverTitle(hook);
   const titleSize = lines.length >= 4 ? 56 : lines.length === 3 ? 64 : 74;
   const lineHeight = titleSize + 12;
   const titleStartY = 510 - ((lines.length - 1) * lineHeight) / 2;
   const safeLines = lines.map((line) => escapeXml(line));
   const safeHook = escapeXml(normalizeHook(hook));
+  const dimensions = outputDimensions(options.aspectRatio, options.resolution);
 
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="${safeHook}">
+    <svg xmlns="http://www.w3.org/2000/svg" width="${dimensions.width}" height="${dimensions.height}" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${safeHook}">
       <defs>
         <linearGradient id="paperGlow" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#ffffff"/>
@@ -270,15 +316,7 @@ function buildBlogCoverSvg(hook: string, backdropHref: string | null) {
       <rect x="128" y="92" width="1344" height="716" rx="44" fill="url(#paperGlow)" fill-opacity="0.94" filter="url(#softShadow)"/>
       <rect x="160" y="124" width="1280" height="652" rx="34" fill="#ffffff" fill-opacity="0.84" stroke="#e7edf4"/>
 
-      <g transform="translate(800 208)">
-        <g transform="translate(-272 -12)">
-          <path d="M20 84 123 36l114 40-36 32L86 73 38 117Z" fill="#111827"/>
-          <path d="m47 116c-12 39-10 74 8 103" fill="none" stroke="#f28b43" stroke-width="9" stroke-linecap="round"/>
-          <circle cx="56" cy="224" r="9" fill="#f28b43"/>
-          <text x="92" y="142" font-family="Plus Jakarta Sans, Inter, Arial, sans-serif" font-size="94" font-weight="800" letter-spacing="-2.4" fill="url(#inkFade)">Dekho</text>
-          <text x="449" y="142" font-family="Plus Jakarta Sans, Inter, Arial, sans-serif" font-size="94" font-weight="800" letter-spacing="-2.4" fill="#f28b43">Campus</text>
-        </g>
-      </g>
+      ${logoMarkup(options)}
 
       <g transform="translate(800 334)">
         <rect x="-112" y="-26" width="224" height="48" rx="24" fill="#fff4ec" stroke="#ffd8be"/>
@@ -297,20 +335,20 @@ function buildBlogCoverSvg(hook: string, backdropHref: string | null) {
   `.trim();
 }
 
-export async function generateAndUploadBlogCover(admin: any, config: BlogAiConfig, slug: string, hook: string) {
+export async function generateAndUploadBlogCover(admin: any, config: BlogAiConfig, slug: string, hook: string, options: BlogCoverOptions = {}) {
   const safeHook = normalizeHook(hook);
-  let backdropHref: string | null = null;
+  let backdropHref: string | null = options.mode === "template" && options.templateUrl ? options.templateUrl : null;
 
-  if (config.openaiKey) {
+  if (options.mode !== "template" && config.openaiKey) {
     try {
-      backdropHref = await maybeGenerateBackdrop(config, safeHook);
+      backdropHref = await maybeGenerateBackdrop(config, safeHook, options.promptStyle);
       if (backdropHref) await logAiUsage(admin, { provider: "openai", model: config.imageModel, feature: "blog-cover", operation: "image-generation", imageCount: 1, estimatedCostUsd: config.imageQuality === "high" ? 0.12 : config.imageQuality === "medium" ? 0.06 : 0.03, metadata: { quality: config.imageQuality, slug } });
     } catch (error) {
       console.warn("Blog cover backdrop generation failed, using deterministic brand template instead.", error);
     }
   }
 
-  const svg = buildBlogCoverSvg(safeHook, backdropHref);
+  const svg = buildBlogCoverSvg(safeHook, backdropHref, options);
   const path = `blog-covers/${slug}-${Date.now()}.svg`;
   const { error } = await admin.storage.from("admin-uploads").upload(path, encoder.encode(svg), { contentType: "image/svg+xml", cacheControl: "31536000", upsert: false });
   if (error) throw error;

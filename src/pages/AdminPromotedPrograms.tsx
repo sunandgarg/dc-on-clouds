@@ -35,7 +35,7 @@ function parseJsonField(v: any, fallback: any) {
 
 const empty: any = {
   title: "", college_name: "", college_slug: "", course_slug: "", slug: "",
-  category_slug: "",
+  category_slug: "", category_slugs: [],
   badge: "New", badge_variant: "default", program_type: "Bachelor's Degree",
   tag: "IIT", delivery_mode: "Online", country: "India",
   duration: "24 Months", original_price: 0, discount_percent: 0,
@@ -57,6 +57,7 @@ export default function AdminPromotedPrograms() {
   const [cats, setCats] = useState<any[]>([]);
   const [editing, setEditing] = useDraftState<any | null>('admin.promoted-programs.editing.v1', null);
   const [loading, setLoading] = useState(false);
+  const [supportsMultiCategory, setSupportsMultiCategory] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -64,7 +65,9 @@ export default function AdminPromotedPrograms() {
       (supabase as any).from("promoted_programs").select("*").order("display_order"),
       (supabase as any).from("program_categories").select("slug,name,icon_emoji").eq("is_active", true).order("display_order"),
     ]);
-    setRows(pData || []);
+    const programRows = pData || [];
+    setRows(programRows);
+    setSupportsMultiCategory(programRows.some((row: any) => Object.prototype.hasOwnProperty.call(row, "category_slugs")));
     setCats(cData || []);
     setLoading(false);
   };
@@ -81,6 +84,9 @@ export default function AdminPromotedPrograms() {
     setEditing({
       ...empty,
       ...row,
+      category_slugs: Array.isArray(row.category_slugs)
+        ? row.category_slugs
+        : (row.category_slug ? [row.category_slug] : []),
       highlights: coerce(row.highlights, []),
       learning_outcomes: coerce(row.learning_outcomes, []),
       curriculum: (coerce(row.curriculum, []) as any[]).map((c: any) => ({
@@ -107,7 +113,7 @@ export default function AdminPromotedPrograms() {
     if (!editing.title || !editing.college_name) { toast.error("Title and College Name required"); return; }
     const tag = (editing.tag || "").trim();
     if (!tag) { toast.error("Tag is required (IIT / IIM / Dr. or custom)"); return; }
-    let finalSlug = (editing.slug || "").trim() || slugify(`${editing.title}-${editing.college_name}`);
+    const finalSlug = (editing.slug || "").trim() || slugify(`${editing.title}-${editing.college_name}`);
 
     // Curriculum items use a multi-line `modules_text` field in the admin UI -
     // split to the structured `modules` array the detail page expects.
@@ -118,7 +124,23 @@ export default function AdminPromotedPrograms() {
       return { ...rest, modules };
     }) : [];
 
-    const { id, created_at, updated_at, ...rest } = { ...editing, slug: finalSlug, tag, curriculum };
+    const categorySlugs = Array.from(new Set(
+      (Array.isArray(editing.category_slugs) ? editing.category_slugs : [])
+        .map((value: unknown) => String(value || "").trim())
+        .filter(Boolean),
+    ));
+    const categorySlug = categorySlugs.includes(editing.category_slug)
+      ? editing.category_slug
+      : (categorySlugs[0] || "");
+    const { id, created_at, updated_at, ...rest } = {
+      ...editing,
+      slug: finalSlug,
+      tag,
+      curriculum,
+      category_slug: categorySlug,
+      category_slugs: categorySlugs,
+    };
+    if (!supportsMultiCategory) delete (rest as any).category_slugs;
     const { error } = id
       ? await (supabase as any).from("promoted_programs").update(rest).eq("id", id)
       : await (supabase as any).from("promoted_programs").insert(rest);
@@ -143,6 +165,11 @@ export default function AdminPromotedPrograms() {
         Premium programs shown on the homepage carousel. Each program also has a detail page at <code>/premium-programs/&lt;slug&gt;</code>.
         Manage chip categories in <Link to="/admin/program-categories" className="text-primary underline">Program Categories</Link>.
       </p>
+      {!supportsMultiCategory && (
+        <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100">
+          Multi-category assignment is ready in code and will activate after the pending production Supabase migration. Primary categories continue to work now.
+        </div>
+      )}
 
       <div className="mb-3">
         <CSVTools
@@ -194,12 +221,56 @@ export default function AdminPromotedPrograms() {
                   <Field label="URL Slug (auto-generated if empty)">
                     <Input value={editing.slug} onChange={(e) => update("slug", e.target.value)} placeholder="dba-esgci-paris" />
                   </Field>
-                  <Field label="Category (chip above cards)">
-                    <select value={editing.category_slug || ""} onChange={(e) => update("category_slug", e.target.value)} className="w-full h-9 rounded-lg border border-border bg-card px-2 text-sm">
+                  <Field label="Primary category">
+                    <select
+                      value={editing.category_slug || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEditing((previous: any) => ({
+                          ...previous,
+                          category_slug: value,
+                          category_slugs: value
+                            ? Array.from(new Set([value, ...(previous.category_slugs || [])]))
+                            : (previous.category_slugs || []),
+                        }));
+                      }}
+                      className="w-full h-9 rounded-lg border border-border bg-card px-2 text-sm"
+                    >
                       <option value="">- Uncategorised -</option>
                       {cats.map((c) => <option key={c.slug} value={c.slug}>{c.icon_emoji} {c.name}</option>)}
                     </select>
                   </Field>
+                  {supportsMultiCategory && <div className="sm:col-span-2">
+                    <label className="text-xs text-muted-foreground">Visible in categories</label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {cats.map((category) => {
+                        const selected = (editing.category_slugs || []).includes(category.slug);
+                        return (
+                          <button
+                            key={category.slug}
+                            type="button"
+                            onClick={() => setEditing((previous: any) => {
+                              const next = selected
+                                ? (previous.category_slugs || []).filter((slug: string) => slug !== category.slug)
+                                : [...(previous.category_slugs || []), category.slug];
+                              return {
+                                ...previous,
+                                category_slugs: next,
+                                category_slug: previous.category_slug === category.slug && selected
+                                  ? (next[0] || "")
+                                  : (previous.category_slug || category.slug),
+                              };
+                            })}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                              selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary/50"
+                            }`}
+                          >
+                            {category.icon_emoji} {category.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>}
                   <Field label="College (search)">
                     <SlugSearchInput table="colleges" value={editing.college_slug} onChange={(slug, row) => setEditing((p:any)=>({ ...p, college_slug: slug, college_name: row?.name || p.college_name }))} />
                   </Field>

@@ -65,7 +65,9 @@ export function TrendingPrograms() {
   const filteredPrograms = useMemo(() => {
     if (!programs) return [] as any[];
     if (activeCat === "all") return programs as any[];
-    return (programs as any[]).filter((p) => p.category_slug === activeCat);
+    return (programs as any[]).filter((p) =>
+      p.category_slug === activeCat || (Array.isArray(p.category_slugs) && p.category_slugs.includes(activeCat)),
+    );
   }, [programs, activeCat]);
 
   const visibleCount = visibleRows * PER_ROW;

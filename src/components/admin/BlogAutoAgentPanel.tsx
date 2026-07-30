@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bot, CheckCircle2, Clock, ExternalLink, ImageIcon, Loader2, Play, Save, Sparkles, Timer } from "lucide-react";
+import { Bot, CheckCircle2, CirclePause, Clock, ExternalLink, ImageIcon, Loader2, OctagonX, Play, RotateCcw, Save, Sparkles, Square, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 type Settings = {
   enabled: boolean;
@@ -19,6 +21,22 @@ type Settings = {
   word_limit: number;
   author_mode: "none" | "single" | "round_robin";
   author_ids: string[];
+  language: string;
+  audience: string;
+  tone: string;
+  content_goals: string[];
+  required_sections: string[];
+  minimum_sources: number;
+  editorial_quality_target: number;
+  human_review_required: boolean;
+  image_mode: "generated" | "template" | "none";
+  image_template_url: string;
+  image_prompt_style: string;
+  include_logo: boolean;
+  logo_url: string;
+  logo_position: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-right";
+  image_aspect_ratio: "16:9" | "1:1" | "4:5";
+  output_resolution: "web" | "2k" | "4k";
   last_run_at?: string | null;
   next_run_at?: string | null;
 };
@@ -26,7 +44,7 @@ type Settings = {
 type Source = { id?: string; name: string; url: string; source_type: "competitor" | "own"; is_active: boolean };
 type Run = {
   id: string;
-  status: "running" | "completed" | "skipped" | "failed";
+  status: "running" | "paused" | "cancelling" | "cancelled" | "aborted" | "completed" | "skipped" | "failed";
   trigger_type: string;
   started_at: string;
   finished_at?: string | null;
@@ -52,6 +70,22 @@ const DEFAULT_SETTINGS: Settings = {
   word_limit: 1200,
   author_mode: "none",
   author_ids: [],
+  language: "English",
+  audience: "Indian students and parents",
+  tone: "Clear, practical, trustworthy",
+  content_goals: ["SEO", "AEO", "GEO", "AIO", "LLMO", "LLM"],
+  required_sections: ["Quick answer", "Key facts", "Step-by-step guidance", "FAQs", "Sources"],
+  minimum_sources: 2,
+  editorial_quality_target: 80,
+  human_review_required: true,
+  image_mode: "generated",
+  image_template_url: "",
+  image_prompt_style: "Premium editorial, clean, credible, student-focused",
+  include_logo: true,
+  logo_url: "",
+  logo_position: "top-center",
+  image_aspect_ratio: "16:9",
+  output_resolution: "4k",
 };
 
 const DEFAULT_SOURCES: Source[] = [
@@ -73,19 +107,23 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
   const [generatedArticles, setGeneratedArticles] = useState<GeneratedArticle[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [now, setNow] = useState(Date.now());
+  const [supportsAdvancedSettings, setSupportsAdvancedSettings] = useState(false);
 
   const load = async (showLoader = false) => {
     if (showLoader) setLoading(true);
     try {
       const [{ data: settingsData }, { data: sourceData }, { data: runData }, { data: authorData }] = await Promise.all([
         (supabase as any).from("blog_auto_agent_settings")
-          .select("enabled,interval_minutes,posts_per_run,daily_post_cap,publish_status,model_provider,word_limit,author_mode,author_ids,last_run_at,next_run_at")
+          .select("*")
           .eq("id", "default").maybeSingle(),
         (supabase as any).from("blog_research_sources").select("*").order("display_order"),
         (supabase as any).from("blog_auto_agent_runs").select("*").order("started_at", { ascending: false }).limit(5),
         (supabase as any).from("authors").select("id,name,designation,photo").eq("is_active", true).order("display_order"),
       ]);
-      if (settingsData) setSettings({ ...DEFAULT_SETTINGS, ...settingsData });
+      if (settingsData) {
+        setSupportsAdvancedSettings(Object.prototype.hasOwnProperty.call(settingsData, "image_mode"));
+        setSettings({ ...DEFAULT_SETTINGS, ...settingsData });
+      }
       if (sourceData?.length) setSources(sourceData);
       setAuthors(authorData || []);
       if (runData) {
@@ -117,6 +155,8 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
   }, []);
 
   const activeRun = runs.find((run) => run.status === "running");
+  const pausedRun = runs.find((run) => run.status === "paused");
+  const currentRun = activeRun || pausedRun;
 
   useEffect(() => {
     if (!activeRun) return;
@@ -151,7 +191,22 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
     setBusy(true);
     try {
       const nextRun = settings.enabled && !settings.next_run_at ? new Date().toISOString() : settings.next_run_at;
-      const { error } = await (supabase as any).from("blog_auto_agent_settings").upsert({ id: "default", ...settings, next_run_at: nextRun });
+      const legacySettings = {
+        enabled: settings.enabled,
+        interval_minutes: settings.interval_minutes,
+        posts_per_run: Math.min(3, settings.posts_per_run),
+        daily_post_cap: settings.daily_post_cap,
+        publish_status: settings.publish_status,
+        model_provider: settings.model_provider,
+        word_limit: settings.word_limit,
+        author_mode: settings.author_mode,
+        author_ids: settings.author_ids,
+        next_run_at: nextRun,
+      };
+      const settingsPayload = supportsAdvancedSettings
+        ? { ...settings, next_run_at: nextRun }
+        : legacySettings;
+      const { error } = await (supabase as any).from("blog_auto_agent_settings").upsert({ id: "default", ...settingsPayload });
       if (error) throw error;
       for (const [index, source] of sources.entries()) {
         await (supabase as any).from("blog_research_sources").upsert({ ...source, display_order: (index + 1) * 10 }, { onConflict: "url" });
@@ -187,6 +242,27 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
     }
   };
 
+  const controlRun = async (action: "pause" | "resume" | "cancel" | "abort") => {
+    if (!currentRun) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-blog-agent", {
+        body: { action, run_id: currentRun.id },
+      });
+      if (error || data?.error) throw error || new Error(data.error);
+      toast.success(
+        action === "pause" ? "Pause requested" :
+        action === "resume" ? "Agent resumed" :
+        action === "cancel" ? "Cancellation requested" : "Run aborted",
+      );
+      await load(false);
+    } catch (error: any) {
+      toast.error(await edgeErrorMessage(error), { duration: 12000 });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) return <div className="rounded-2xl border p-4 text-sm text-muted-foreground">Loading blog automation...</div>;
 
   return (
@@ -199,35 +275,52 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
             <Badge variant={settings.enabled ? "default" : "secondary"}>{settings.enabled ? "Running" : "Paused"}</Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Researches competitors plus DekhoCampus, uses Claude for original SEO/GEO/AEO articles, tags entities, generates branded DekhoCampus editorial covers, and publishes on schedule.
+            Uses Gemini by default for original, source-aware editorial drafts and OpenAI for optional branded images. Provider, model, review gate, template, and logo choices remain under your control.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={save} disabled={busy} className="gap-2 rounded-xl">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
           </Button>
-          <Button onClick={runNow} disabled={busy || !!activeRun || activeSourceCount < 2} className="gap-2 rounded-xl">
-            {busy || activeRun ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} {activeRun ? "Agent running" : "Run now"}
+          <Button onClick={runNow} disabled={busy || !!currentRun || activeSourceCount < 2} className="gap-2 rounded-xl">
+            {busy || activeRun ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} {activeRun ? "Agent running" : pausedRun ? "Resume paused run" : "Run now"}
           </Button>
         </div>
       </div>
 
-      {activeRun && (
+      {currentRun && (
         <div className="mt-4 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-background to-orange-500/10 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2 font-semibold"><Loader2 className="h-4 w-4 animate-spin text-primary" /> Blog agent is working</div>
-              <p className="mt-1 text-sm text-muted-foreground">{activeRun.current_step || "Preparing your articles"}</p>
+              <div className="flex items-center gap-2 font-semibold">
+                {pausedRun ? <CirclePause className="h-4 w-4 text-amber-600" /> : <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                {pausedRun ? "Blog agent is paused" : "Blog agent is working"}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{currentRun.current_step || "Preparing your articles"}</p>
             </div>
             <Badge variant="outline" className="gap-1 bg-background/80"><Timer className="h-3.5 w-3.5" /> {(() => {
-              const elapsed = Math.max(0, Math.round((now - new Date(activeRun.started_at).getTime()) / 1000));
-              const remaining = Math.max(0, Number(activeRun.estimated_seconds || 180) - elapsed);
+              if (pausedRun) return "Waiting to resume";
+              const elapsed = Math.max(0, Math.round((now - new Date(currentRun.started_at).getTime()) / 1000));
+              const remaining = Math.max(0, Number(currentRun.estimated_seconds || 180) - elapsed);
               return remaining > 0 ? `About ${Math.max(1, Math.ceil(remaining / 60))} min left` : "Finishing now";
             })()}</Badge>
           </div>
-          <Progress value={Math.max(2, activeRun.progress || 2)} className="mt-4 h-3" />
-          <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>{activeRun.progress || 2}% complete</span><span>You can safely switch tabs - this status will remain</span></div>
-          {!!activeRun.selected_topics?.length && <div className="mt-3 flex flex-wrap gap-2">{activeRun.selected_topics.map((topic, index) => <Badge key={`${topic.title}-${index}`} variant="secondary">{topic.title}</Badge>)}</div>}
+          <Progress value={Math.max(2, currentRun.progress || 2)} className="mt-4 h-3" />
+          <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>{currentRun.progress || 2}% complete</span><span>Controls are durable across tabs and reloads</span></div>
+          {supportsAdvancedSettings ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {pausedRun ? (
+                <Button size="sm" onClick={() => controlRun("resume")} disabled={busy} className="gap-2"><RotateCcw className="h-4 w-4" /> Resume</Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => controlRun("pause")} disabled={busy} className="gap-2"><CirclePause className="h-4 w-4" /> Pause</Button>
+              )}
+              <Button size="sm" variant="outline" onClick={() => controlRun("cancel")} disabled={busy} className="gap-2 text-destructive"><Square className="h-4 w-4" /> Cancel safely</Button>
+              <Button size="sm" variant="destructive" onClick={() => controlRun("abort")} disabled={busy} className="gap-2"><OctagonX className="h-4 w-4" /> Abort now</Button>
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-amber-700">Lifecycle controls become active after the pending Supabase migration and function deployment.</p>
+          )}
+          {!!currentRun.selected_topics?.length && <div className="mt-3 flex flex-wrap gap-2">{currentRun.selected_topics.map((topic, index) => <Badge key={`${topic.title}-${index}`} variant="secondary">{topic.title}</Badge>)}</div>}
         </div>
       )}
 
@@ -260,6 +353,12 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
           </div>
         </div>
       </div>
+
+      {!supportsAdvancedSettings && (
+        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100">
+          Advanced editorial, lifecycle, template, and logo controls are ready in this release but will remain locked until the production Supabase migration and Edge Functions are deployed.
+        </div>
+      )}
 
       <div className="mt-4 rounded-2xl border p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -297,7 +396,8 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
         </div>
         <div>
           <Label className="text-xs">Blog AI providers</Label>
-          <div className="mt-1 rounded-md border bg-muted/40 px-3 py-2 text-sm">Claude text + OpenAI image</div>
+          <div className="mt-1 rounded-md border bg-muted/40 px-3 py-2 text-sm">Gemini text (default) + OpenAI image</div>
+          <p className="mt-1 text-[10px] text-muted-foreground">Change provider/model in Admin - AI Providers.</p>
         </div>
         <div>
           <Label className="text-xs">Word limit</Label>
@@ -306,6 +406,100 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
           </div>
         </div>
       </div>
+
+      {supportsAdvancedSettings && <div className="mt-4 rounded-2xl border p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Label className="text-sm font-semibold">Answer and AI discovery quality</Label>
+            <p className="mt-1 text-xs text-muted-foreground">Configure reader intent, answer structure, factual sourcing, and the editorial review threshold.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["SEO", "AEO", "GEO", "AIO", "LLMO", "LLM"].map((goal) => {
+              const selected = settings.content_goals.includes(goal);
+              return (
+                <Button
+                  key={goal}
+                  type="button"
+                  size="sm"
+                  variant={selected ? "default" : "outline"}
+                  onClick={() => updateSetting("content_goals", selected
+                    ? settings.content_goals.filter((item) => item !== goal)
+                    : [...settings.content_goals, goal])}
+                >
+                  {goal}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div><Label>Language</Label><Input value={settings.language} onChange={(event) => updateSetting("language", event.target.value)} className="mt-1" /></div>
+          <div><Label>Audience</Label><Input value={settings.audience} onChange={(event) => updateSetting("audience", event.target.value)} className="mt-1" /></div>
+          <div><Label>Minimum independent sources</Label><Input type="number" min={1} max={10} value={settings.minimum_sources} onChange={(event) => updateSetting("minimum_sources", Math.min(10, Math.max(1, Number(event.target.value || 2))))} className="mt-1" /></div>
+          <div className="md:col-span-2 lg:col-span-3"><Label>Tone and editorial voice</Label><Input value={settings.tone} onChange={(event) => updateSetting("tone", event.target.value)} className="mt-1" /></div>
+          <div className="md:col-span-2">
+            <Label>Required sections (one per line)</Label>
+            <Textarea
+              rows={5}
+              value={settings.required_sections.join("\n")}
+              onChange={(event) => updateSetting("required_sections", event.target.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean))}
+              className="mt-1"
+            />
+          </div>
+          <div className="space-y-3 rounded-xl border p-3">
+            <div>
+              <Label>Editorial quality target</Label>
+              <Input type="number" min={0} max={100} value={settings.editorial_quality_target} onChange={(event) => updateSetting("editorial_quality_target", Math.min(100, Math.max(0, Number(event.target.value || 80))))} className="mt-1" />
+              <p className="mt-1 text-[10px] text-muted-foreground">A completeness target, not an AI-detector score.</p>
+            </div>
+            <label className="flex items-center justify-between gap-3">
+              <span><span className="block text-sm font-medium">Require human review</span><span className="block text-[10px] text-muted-foreground">Keeps generated work in Draft until an editor reviews it.</span></span>
+              <Switch checked={settings.human_review_required} onCheckedChange={(value) => updateSetting("human_review_required", value)} />
+            </label>
+          </div>
+        </div>
+      </div>}
+
+      {supportsAdvancedSettings && <div className="mt-4 rounded-2xl border p-4">
+        <div>
+          <Label className="text-sm font-semibold">Cover image workflow</Label>
+          <p className="mt-1 text-xs text-muted-foreground">Generate a new background, use your template, or skip the cover. Uploaded logos are placed without changing the source file.</p>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {([["generated", "New OpenAI image"], ["template", "Use template"], ["none", "No image"]] as const).map(([mode, label]) => (
+            <Button key={mode} type="button" size="sm" variant={settings.image_mode === mode ? "default" : "outline"} onClick={() => updateSetting("image_mode", mode)}>{label}</Button>
+          ))}
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            {settings.image_mode === "template" && (
+              <ImageUploadField label="Cover template" value={settings.image_template_url} onChange={(value) => updateSetting("image_template_url", value)} folder="blog-templates" />
+            )}
+            {settings.image_mode === "generated" && (
+              <div>
+                <Label>Image art direction</Label>
+                <Textarea rows={4} value={settings.image_prompt_style} onChange={(event) => updateSetting("image_prompt_style", event.target.value)} className="mt-1" />
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Aspect ratio</Label><select value={settings.image_aspect_ratio} onChange={(event) => updateSetting("image_aspect_ratio", event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-3"><option value="16:9">16:9</option><option value="1:1">1:1</option><option value="4:5">4:5</option></select></div>
+              <div><Label>Output</Label><select value={settings.output_resolution} onChange={(event) => updateSetting("output_resolution", event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-3"><option value="web">Web</option><option value="2k">2K</option><option value="4k">4K</option></select></div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <label className="flex items-center justify-between rounded-xl border p-3">
+              <span><span className="block text-sm font-medium">Place logo on cover</span><span className="block text-xs text-muted-foreground">Works with generated images and templates.</span></span>
+              <Switch checked={settings.include_logo} onCheckedChange={(value) => updateSetting("include_logo", value)} />
+            </label>
+            {settings.include_logo && (
+              <>
+                <ImageUploadField label="High-resolution logo (PNG, WebP or SVG)" value={settings.logo_url} onChange={(value) => updateSetting("logo_url", value)} folder="blog-brand" />
+                <div><Label>Logo position</Label><select value={settings.logo_position} onChange={(event) => updateSetting("logo_position", event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-3"><option value="top-left">Top left</option><option value="top-center">Top center</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>}
 
       <div className="mt-4">
         <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><Sparkles className="h-3.5 w-3.5" /> Research sources visible to the agent</div>

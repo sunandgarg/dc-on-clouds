@@ -20,7 +20,8 @@
     "backup:legacy-assets": "tsx scripts/backfill-legacy-asset-local-backups.ts",
     "sanitize:collegedunia": "tsx scripts/sanitize-collegedunia-watermarks.ts",
     "backfill:news-images": "tsx scripts/backfill-news-images-from-legacy.ts",
-    "backfill:news-images:linked": "tsx scripts/backfill-news-images-linked-db.ts"
+    "backfill:news-images:linked": "tsx scripts/backfill-news-images-linked-db.ts",
+    "import:upgrade-yourself": "tsx scripts/import-upgrade-yourself-catalog.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
