@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isMissingExploreSelectionColumn } from "@/lib/homepageExplore";
 
 export type ExamImportantDate = { event: string; date: string };
 export type ExamQuestionPaper = { label: string; url: string };
@@ -70,6 +71,7 @@ export type DbExam = {
 };
 
 const HOMEPAGE_EXPLORE_EXAM_SELECT = "id,slug,name,short_name,category,categories,exam_date,application_start_date,applicants,level,priority,updated_at,show_in_explore_by_category,explore_by_category_checked_at";
+const HOMEPAGE_FALLBACK_EXAM_SELECT = "id,slug,name,short_name,category,categories,exam_date,application_start_date,applicants,level,priority,updated_at";
 type HomepageExploreExam = Pick<DbExam, "id" | "slug" | "name" | "short_name" | "category" | "exam_date" | "application_start_date" | "applicants" | "level" | "show_in_explore_by_category" | "explore_by_category_checked_at" | "updated_at"> & {
   categories: string[];
   priority: number | null;
@@ -108,12 +110,16 @@ export function useHomepageCategoryExams(category: string) {
         selectedBase().ilike("category", category),
         selectedBase().contains("categories", [category]),
       ]);
-      if (selectedPrimary.error) throw selectedPrimary.error;
-      if (selectedAdditional.error) throw selectedAdditional.error;
+      const selectionUnavailable = isMissingExploreSelectionColumn(selectedPrimary.error)
+        || isMissingExploreSelectionColumn(selectedAdditional.error);
+      if (selectedPrimary.error && !selectionUnavailable) throw selectedPrimary.error;
+      if (selectedAdditional.error && !selectionUnavailable) throw selectedAdditional.error;
 
       const selected = new Map<string, HomepageExploreExam>();
-      [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
-        .forEach((row) => selected.set(row.id, row as HomepageExploreExam));
+      if (!selectionUnavailable) {
+        [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
+          .forEach((row) => selected.set(row.id, row as HomepageExploreExam));
+      }
       if (selected.size > 0) {
         return [...selected.values()]
           .sort((a, b) => Date.parse(b.explore_by_category_checked_at || "0") - Date.parse(a.explore_by_category_checked_at || "0"))
@@ -122,7 +128,7 @@ export function useHomepageCategoryExams(category: string) {
 
       const fallbackBase = () => supabase
         .from("exams")
-        .select(HOMEPAGE_EXPLORE_EXAM_SELECT)
+        .select(HOMEPAGE_FALLBACK_EXAM_SELECT)
         .eq("is_active", true)
         .order("priority", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false, nullsFirst: false })

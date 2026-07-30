@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isMissingExploreSelectionColumn } from "@/lib/homepageExplore";
 
 export type DbCollege = {
   id: string;
@@ -83,6 +84,7 @@ export type AdminCollegeListFilters = {
 const ADMIN_COLLEGE_LIST_SELECT = "id,slug,name,short_name,location,city,state,type,category,rating,reviews,courses_count,established,image,logo,status,is_active,updated_at,priority,featured_rank,affiliation_kind,is_partner";
 const PUBLIC_COLLEGE_CARD_SELECT = "id,slug,name,short_name,location,city,state,type,category,rating,reviews,courses_count,fees,image,logo,tags,established,approvals,naac_grade,is_active,status,priority,priority_updated_at,featured_rank,affiliation_kind,parent_university_slug,is_partner";
 const HOMEPAGE_EXPLORE_COLLEGE_SELECT = "id,slug,name,short_name,city,state,category,categories,rating,image,logo,priority,show_in_explore_by_category,explore_by_category_checked_at";
+const HOMEPAGE_FALLBACK_COLLEGE_SELECT = "id,slug,name,short_name,city,state,category,categories,rating,image,logo,priority";
 type HomepageExploreCollege = Pick<DbCollege, "id" | "slug" | "name" | "short_name" | "city" | "state" | "category" | "rating" | "image" | "logo" | "priority" | "show_in_explore_by_category" | "explore_by_category_checked_at"> & {
   categories: string[];
 };
@@ -189,12 +191,16 @@ export function useHomepageCategoryColleges(category: string) {
         selectedBase().ilike("category", category),
         selectedBase().contains("categories", [category]),
       ]);
-      if (selectedPrimary.error) throw selectedPrimary.error;
-      if (selectedAdditional.error) throw selectedAdditional.error;
+      const selectionUnavailable = isMissingExploreSelectionColumn(selectedPrimary.error)
+        || isMissingExploreSelectionColumn(selectedAdditional.error);
+      if (selectedPrimary.error && !selectionUnavailable) throw selectedPrimary.error;
+      if (selectedAdditional.error && !selectionUnavailable) throw selectedAdditional.error;
 
       const selected = new Map<string, HomepageExploreCollege>();
-      [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
-        .forEach((row) => selected.set(row.id, row as HomepageExploreCollege));
+      if (!selectionUnavailable) {
+        [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
+          .forEach((row) => selected.set(row.id, row as HomepageExploreCollege));
+      }
 
       if (selected.size > 0) {
         return [...selected.values()]
@@ -204,7 +210,7 @@ export function useHomepageCategoryColleges(category: string) {
 
       const fallbackBase = () => supabase
         .from("colleges")
-        .select(HOMEPAGE_EXPLORE_COLLEGE_SELECT)
+        .select(HOMEPAGE_FALLBACK_COLLEGE_SELECT)
         .eq("is_active", true)
         .order("priority", { ascending: true, nullsFirst: false })
         .order("rating", { ascending: false, nullsFirst: false })

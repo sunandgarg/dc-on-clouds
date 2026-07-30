@@ -52,7 +52,7 @@ const emptyCollege: Partial<DbCollege> = {
   slug: "", name: "", short_name: "", location: "", city: "", state: "", type: "Private", category: "Engineering",
   rating: 0, reviews: 0, courses_count: 0, fees: "", placement: "", ranking: "", image: "", logo: "",
   tags: [], established: 2000, description: "", highlights: [], facilities: [], approvals: [], naac_grade: "",
-  top_recruiters: [], is_active: true, show_in_explore_by_category: false, status: "Draft", carousel_images: [], brochure_url: "",
+  top_recruiters: [], is_active: true, status: "Draft", carousel_images: [], brochure_url: "",
   eligibility_criteria: "", admission_process: "", scholarship_details: "", hostel_life: "",
   gallery_images: [], cutoff: "", course_fee_content: "", placement_content: "", rankings_content: "",
   facilities_content: "", meta_title: "", meta_description: "", meta_keywords: "",

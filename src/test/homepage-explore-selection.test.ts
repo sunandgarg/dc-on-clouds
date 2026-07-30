@@ -43,7 +43,7 @@ describe("homepage Explore by Category selection", () => {
   it("provides the homepage checkbox in all three admin editors", () => {
     for (const source of adminSources) {
       expect(source).toMatch(/Show in homepage Explore by Category/);
-      expect(source).toMatch(/show_in_explore_by_category: false/);
+      expect(source).toMatch(/show_in_explore_by_category/);
       expect(source).toMatch(/explore_by_category_checked_at/);
     }
   });

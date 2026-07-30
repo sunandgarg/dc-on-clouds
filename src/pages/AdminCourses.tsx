@@ -45,7 +45,7 @@ const FEE_TYPES = ["Per Year", "Per Semester", "Total Course", "Per Month"];
 const emptyCourse: Partial<DbCourse> = {
   slug: "", name: "", full_name: "", category: "Engineering", duration: "", level: "Undergraduate",
   colleges_count: 0, avg_fees: "", avg_salary: "", growth: "", description: "", eligibility: "",
-  top_exams: [], careers: [], subjects: [], image: "", mode: "Full-Time", specializations: [], is_active: true, show_in_explore_by_category: false, ...({ priority: 50 } as any),
+  top_exams: [], careers: [], subjects: [], image: "", mode: "Full-Time", specializations: [], is_active: true, ...({ priority: 50 } as any),
   status: "Draft", short_description: "", domain: "", duration_type: "", study_type: "", rating: 0,
   fee_type: "", fee: 0, low_fee: 0, high_fee: 0, syllabus_pdf_url: "",
   about_content: "", scope_content: "", subjects_content: "", placements_content: "",

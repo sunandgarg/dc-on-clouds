@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isMissingExploreSelectionColumn } from "@/lib/homepageExplore";
 
 export type DbCourse = {
   id: string;
@@ -57,6 +58,7 @@ export type DbCourse = {
 };
 
 const HOMEPAGE_EXPLORE_COURSE_SELECT = "id,slug,name,category,categories,colleges_count,growth,avg_salary,priority,updated_at,show_in_explore_by_category,explore_by_category_checked_at";
+const HOMEPAGE_FALLBACK_COURSE_SELECT = "id,slug,name,category,categories,colleges_count,growth,avg_salary,priority,updated_at";
 type HomepageExploreCourse = Pick<DbCourse, "id" | "slug" | "name" | "category" | "colleges_count" | "growth" | "avg_salary" | "show_in_explore_by_category" | "explore_by_category_checked_at" | "updated_at"> & {
   categories: string[];
   priority: number | null;
@@ -95,12 +97,16 @@ export function useHomepageCategoryCourses(category: string) {
         selectedBase().ilike("category", category),
         selectedBase().contains("categories", [category]),
       ]);
-      if (selectedPrimary.error) throw selectedPrimary.error;
-      if (selectedAdditional.error) throw selectedAdditional.error;
+      const selectionUnavailable = isMissingExploreSelectionColumn(selectedPrimary.error)
+        || isMissingExploreSelectionColumn(selectedAdditional.error);
+      if (selectedPrimary.error && !selectionUnavailable) throw selectedPrimary.error;
+      if (selectedAdditional.error && !selectionUnavailable) throw selectedAdditional.error;
 
       const selected = new Map<string, HomepageExploreCourse>();
-      [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
-        .forEach((row) => selected.set(row.id, row as HomepageExploreCourse));
+      if (!selectionUnavailable) {
+        [...(selectedPrimary.data || []), ...(selectedAdditional.data || [])]
+          .forEach((row) => selected.set(row.id, row as HomepageExploreCourse));
+      }
       if (selected.size > 0) {
         return [...selected.values()]
           .sort((a, b) => Date.parse(b.explore_by_category_checked_at || "0") - Date.parse(a.explore_by_category_checked_at || "0"))
@@ -109,7 +115,7 @@ export function useHomepageCategoryCourses(category: string) {
 
       const fallbackBase = () => supabase
         .from("courses")
-        .select(HOMEPAGE_EXPLORE_COURSE_SELECT)
+        .select(HOMEPAGE_FALLBACK_COURSE_SELECT)
         .eq("is_active", true)
         .order("priority", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false, nullsFirst: false })

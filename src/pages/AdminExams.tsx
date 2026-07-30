@@ -44,7 +44,7 @@ const emptyExam: Partial<DbExam> = {
   slug: "", name: "", full_name: "", category: "Engineering", level: "National", exam_date: "",
   applicants: "", eligibility: "", mode: "Online (CBT)", description: "", important_dates: [],
   syllabus: [], top_colleges: [], image: "", registration_url: "", duration: "", exam_type: "",
-  language: "English", frequency: "Once", application_mode: "Online", status: "Upcoming", is_active: true, show_in_explore_by_category: false, ...({ priority: 50 } as any),
+  language: "English", frequency: "Once", application_mode: "Online", status: "Upcoming", is_active: true, ...({ priority: 50 } as any),
   short_name: "", logo: "", application_start_date: "", application_end_date: "", result_date: "",
   website: "", negative_marking: false, seats: "", age_limit: "", sample_paper_url: "",
   summary_content: "", application_process: "", exam_pattern: "", cutoff_content: "",
