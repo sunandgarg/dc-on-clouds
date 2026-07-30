@@ -5,8 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const fallbackCities = [
-  { id: "1", name: "Delhi-NCR", state: "Delhi", college_count: 450, image_url: "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=400&h=300&fit=crop" },
+const fallbackStates = [
+  { id: "1", name: "Delhi NCR", state: "Delhi NCR", college_count: 450, image_url: "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=400&h=300&fit=crop" },
   { id: "2", name: "Maharashtra", state: "Maharashtra", college_count: 380, image_url: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=400&h=300&fit=crop" },
   { id: "3", name: "Haryana", state: "Haryana", college_count: 310, image_url: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=400&h=300&fit=crop" },
   { id: "4", name: "Karnataka", state: "Karnataka", college_count: 420, image_url: "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?w=400&h=300&fit=crop" },
@@ -26,25 +26,25 @@ export function CitySearch() {
         .eq("is_active", true)
         .order("display_order", { ascending: true })
         .limit(12);
-      return data?.length ? data : fallbackCities;
+      return data?.length ? data : fallbackStates;
     },
     staleTime: 10 * 60 * 1000,
   });
 
-  const cities = places ?? fallbackCities;
+  const states = places ?? fallbackStates;
 
   return (
     <section className="py-10 md:py-14" aria-labelledby="city-search-heading">
       <div>
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-6">
           <h2 id="city-search-heading" className="text-headline font-bold text-foreground">
-            Top <span className="text-gradient">Study Places</span>
+            Top <span className="text-gradient">Study States</span>
           </h2>
         </motion.div>
 
         {/* Single-line horizontal scroll carousel with image cards */}
         <div className="flex gap-4 overflow-x-auto overflow-y-clip pb-3 scrollbar-hide snap-x snap-mandatory">
-          {cities.map((place, i) => (
+          {states.map((place, i) => (
             <motion.div
               key={place.id}
               initial={{ opacity: 0, y: 15 }}
@@ -66,7 +66,7 @@ export function CitySearch() {
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-3">
                   <h3 className="text-base font-bold text-card uppercase tracking-wide">
-                    {place.name}
+                    {place.state || place.name}
                   </h3>
                   <span className="text-[11px] text-card/80">{place.college_count}+ Colleges</span>
                 </div>

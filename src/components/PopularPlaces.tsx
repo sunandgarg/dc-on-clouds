@@ -26,10 +26,10 @@ export function PopularPlaces() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent text-sm font-medium mb-3">
             <MapPin className="w-4 h-4" />
-            Explore Places
+            Explore States
           </div>
-          <h2 className="text-headline font-bold text-foreground">Popular Education Cities</h2>
-          <p className="mt-2 text-muted-foreground max-w-xl mx-auto">Discover top colleges in India's most popular education hubs</p>
+          <h2 className="text-headline font-bold text-foreground">Popular Education States</h2>
+          <p className="mt-2 text-muted-foreground max-w-xl mx-auto">Discover top colleges across India's most popular education destinations</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
@@ -49,7 +49,7 @@ export function PopularPlaces() {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/30 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <h3 className="text-sm font-bold text-background">{place.name}</h3>
+                  <h3 className="text-sm font-bold text-background">{place.state || place.name}</h3>
                   <div className="flex items-center gap-1 mt-0.5">
                     <Building className="w-3 h-3 text-background/70" />
                     <span className="text-xs text-background/70">{place.college_count}+ Colleges</span>

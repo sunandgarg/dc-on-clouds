@@ -216,18 +216,24 @@ function PlacesManager() {
   const openCreate = () => { setForm(emptyPlace); setEditId(null); setShowForm(true); };
   const openEdit = (p: any) => {
     setForm({
-      name: p.name, state: p.state, image_url: p.image_url || "",
+      name: p.state || p.name, state: p.state || p.name, image_url: p.image_url || "",
       college_count: p.college_count, display_order: p.display_order, is_active: p.is_active,
     });
     setEditId(p.id); setShowForm(true);
   };
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.state.trim()) {
-      toast({ title: "Please fill name and state", variant: "destructive" });
+    const state = (form.state || form.name).trim();
+    if (!state) {
+      toast({ title: "Please fill the state name", variant: "destructive" });
       return;
     }
-    const payload = { ...form, image_url: form.image_url.trim() || null };
+    const payload = {
+      ...form,
+      name: state,
+      state,
+      image_url: form.image_url.trim() || null,
+    };
     if (editId) {
       await supabase.from("popular_places").update(payload).eq("id", editId);
       toast({ title: "✅ Place updated" });
@@ -264,15 +270,14 @@ function PlacesManager() {
             <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
           </div>
           <div className="space-y-3">
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <Label>City/Area Name</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-xl mt-1" />
-              </div>
-              <div>
-                <Label>State</Label>
-                <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className="rounded-xl mt-1" />
-              </div>
+            <div>
+              <Label>State Name</Label>
+              <Input
+                value={form.state}
+                onChange={(e) => setForm({ ...form, name: e.target.value, state: e.target.value })}
+                placeholder="e.g. Delhi NCR, Maharashtra"
+                className="rounded-xl mt-1"
+              />
             </div>
             <UploadOrUrlField
               label="Place Image"
