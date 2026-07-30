@@ -122,7 +122,7 @@ export function CollegeAffiliationCard({ college }: Props) {
           >
             <div className="flex items-center gap-2 mb-1.5">
               {c.logo ? (
-                <img src={c.logo} alt="" className="w-8 h-8 rounded-md object-contain bg-background border border-border p-1" loading="lazy" />
+                <img src={c.logo} alt="" className="entity-logo-safe w-8 h-8 rounded-md border border-border" loading="lazy" />
               ) : (
                 <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
                   <Landmark className="w-4 h-4 text-primary" />

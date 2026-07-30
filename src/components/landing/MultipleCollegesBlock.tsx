@@ -53,7 +53,7 @@ function CompactGrid({ colleges }: { colleges: CollegeLite[] }) {
           className="lp-card p-5 flex gap-4 items-start hover:-translate-y-0.5 transition"
         >
           {c.logo ? (
-            <img src={c.logo} alt={c.name} className="w-14 h-14 rounded-lg object-contain bg-white border" />
+            <img src={c.logo} alt={`${c.name} logo`} className="entity-logo-safe w-14 h-14 rounded-lg border" />
           ) : (
             <div className="w-14 h-14 rounded-lg bg-[var(--lp-accent)] flex items-center justify-center font-bold text-[var(--lp-primary)]">
               {c.name.slice(0, 2)}
@@ -92,7 +92,7 @@ function AccordionList({ colleges }: { colleges: CollegeLite[] }) {
               aria-expanded={isOpen}
             >
               {c.logo ? (
-                <img src={c.logo} alt="" className="w-10 h-10 rounded-md object-contain bg-white border" />
+                <img src={c.logo} alt="" className="entity-logo-safe w-10 h-10 rounded-md border" />
               ) : (
                 <div className="w-10 h-10 rounded-md bg-[var(--lp-accent)] flex items-center justify-center text-xs font-bold text-[var(--lp-primary)]">{c.name.slice(0, 2)}</div>
               )}
@@ -149,7 +149,7 @@ function BentoGrid({ colleges }: { colleges: CollegeLite[] }) {
             style={{ minHeight: big ? 240 : 160 }}
           >
             {c.logo ? (
-              <img src={c.logo} alt="" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition" />
+              <img src={c.logo} alt="" className="entity-logo-safe absolute inset-0 w-full h-full opacity-90" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-[var(--lp-accent)] to-white" />
             )}

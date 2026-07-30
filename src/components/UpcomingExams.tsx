@@ -61,7 +61,7 @@ export function UpcomingExams() {
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
                     {exam.logo || exam.image ? (
-                      <img src={exam.logo || exam.image} alt={`${exam.short_name || exam.name} logo`} className="w-full h-full bg-card p-1 object-contain rounded-xl" />
+                      <img src={exam.logo || exam.image} alt={`${exam.short_name || exam.name} logo`} className="entity-logo-safe w-full h-full rounded-xl" />
                     ) : (
                       <Calendar className="w-5 h-5 text-primary" />
                     )}

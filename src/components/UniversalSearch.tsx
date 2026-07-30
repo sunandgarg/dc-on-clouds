@@ -164,7 +164,7 @@ export function UniversalSearch({ onOpenChat }: UniversalSearchProps) {
                         >
                           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                             {item.logo ? (
-                              <img src={item.logo} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                              <img src={item.logo} alt="" className="entity-logo-safe w-8 h-8 rounded-lg" />
                             ) : (
                               <Icon className="w-5 h-5 text-primary" />
                             )}

@@ -91,7 +91,7 @@ export function ExamStrategiesSection() {
           >
             <Link to={exam ? `/exams/${exam.slug}` : "#"} className="flex items-center gap-3 p-4 border-b border-border hover:bg-muted/40 transition-colors">
               {exam?.logo || exam?.image ? (
-                <img src={exam.logo || exam.image} alt={`${exam.name} logo`} className="w-11 h-11 rounded-xl border border-border bg-card p-1 object-contain" />
+                <img src={exam.logo || exam.image} alt={`${exam.name} logo`} className="entity-logo-safe w-11 h-11 rounded-xl border border-border" />
               ) : (
                 <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Sparkles className="w-5 h-5" />

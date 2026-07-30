@@ -105,6 +105,22 @@
   }
 }
 
+@layer components {
+  /*
+   * Shared safe-area treatment for institutional marks.
+   * Logos must never be cropped like photography: keep the complete artwork
+   * visible with enough breathing room for shields, seals and wide wordmarks.
+   */
+  .entity-logo-safe {
+    object-fit: contain !important;
+    object-position: center !important;
+    box-sizing: border-box;
+    padding: 12% !important;
+    background: #fff;
+    transform: none !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -39,7 +39,7 @@ export default function JobDetail() {
           <div className="container">
             <div className="flex items-start gap-4 flex-wrap">
               <div className="w-20 h-20 rounded-2xl bg-card shadow-sm overflow-hidden flex items-center justify-center shrink-0">
-                {j.company_logo ? <img src={j.company_logo} alt={j.company} className="w-full h-full object-cover" /> : <Briefcase className="w-8 h-8 text-muted-foreground" />}
+                {j.company_logo ? <img src={j.company_logo} alt={`${j.company} logo`} className="entity-logo-safe w-full h-full" /> : <Briefcase className="w-8 h-8 text-muted-foreground" />}
               </div>
               <div className="flex-1 min-w-0">
                 {j.category && <Badge variant="secondary" className="mb-2">{j.category}</Badge>}

@@ -73,7 +73,7 @@ export default function CollegeProgram() {
                 >
                   <div className="flex items-start gap-3">
                     {u.logo ? (
-                      <img src={u.logo} alt={u.name} className="w-12 h-12 rounded-lg object-contain bg-muted p-1" />
+                      <img src={u.logo} alt={`${u.name} logo`} className="entity-logo-safe w-12 h-12 rounded-lg border border-border" />
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                         <Building2 className="w-6 h-6" />

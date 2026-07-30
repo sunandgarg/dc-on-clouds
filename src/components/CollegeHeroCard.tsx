@@ -43,7 +43,7 @@ export function CollegeHeroCard({ college }: Props) {
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
         {college.logo && (
           <div className="absolute left-4 -bottom-6 md:left-6 md:-bottom-8 w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-card border border-border shadow-md p-1.5 flex items-center justify-center overflow-hidden">
-            <img src={college.logo} alt={`${college.name} logo`} className="w-full h-full object-contain" />
+            <img src={college.logo} alt={`${college.name} logo`} className="entity-logo-safe w-full h-full rounded-xl" />
           </div>
         )}
       </div>

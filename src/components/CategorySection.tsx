@@ -42,7 +42,7 @@ function CollegeLogo({
         <img
           src={source}
           alt={`${name} logo`}
-          className="w-full h-full rounded-full object-contain p-1.5"
+          className="entity-logo-safe w-full h-full rounded-full"
           loading="lazy"
           decoding="async"
           onError={() => setSourceIndex((current) => current + 1)}

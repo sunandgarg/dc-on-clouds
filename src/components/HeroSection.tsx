@@ -196,10 +196,10 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   const getThumb = (item: SearchResult) => {
     if (item.type === "College" && item.logo) {
-      return <img src={item.logo} alt="" className="w-10 h-10 rounded-xl object-cover" />;
+      return <img src={item.logo} alt="" className="entity-logo-safe w-10 h-10 rounded-xl border border-border/60" />;
     }
     if (item.type === "Exam" && (item.image || item.logo)) {
-      return <img src={item.logo || item.image!} alt="" className="w-10 h-10 rounded-xl object-cover" />;
+      return <img src={item.logo || item.image!} alt="" className="entity-logo-safe w-10 h-10 rounded-xl border border-border/60" />;
     }
     const Icon = getIcon(item);
     return (

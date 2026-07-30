@@ -62,7 +62,7 @@ export default function CollegeUniversity() {
               <span className="text-foreground">{uni?.short_name || uni?.name}</span>
             </nav>
             <div className="flex items-start gap-3">
-              {uni?.logo && <img src={uni.logo} alt={uni.name} className="w-14 h-14 rounded-xl object-contain bg-card p-1 border border-border" />}
+              {uni?.logo && <img src={uni.logo} alt={`${uni.name} logo`} className="entity-logo-safe w-14 h-14 rounded-xl border border-border" />}
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                   {uni?.short_name || uni?.name} <span className="text-primary">{program?.name}</span> Study Material
