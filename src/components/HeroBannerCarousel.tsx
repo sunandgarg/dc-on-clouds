@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, GraduationCap, ArrowRight } from "lucide-react";
 import { useHeroBanners, type HeroBanner } from "@/hooks/useHeroBanners";
+import { useSiteIntegrationEnabled } from "@/hooks/useSiteIntegration";
 
 const AUTOPLAY_MS = 7_840; // 40% slower again (was 5.6s)
 
 export function HeroBannerCarousel() {
   const { data: banners } = useHeroBanners();
+  const { data: sectionEnabled = true } = useSiteIntegrationEnabled("recommended_for_you", true);
   const [current, setCurrent] = useState(0);
 
   const total = banners?.length ?? 0;
@@ -18,7 +20,7 @@ export function HeroBannerCarousel() {
     return () => clearInterval(id);
   }, [total]);
 
-  if (!banners || total === 0) return null;
+  if (!sectionEnabled || !banners || total === 0) return null;
 
   const goToLink = (url: string) => {
     if (!url || url === "#") return;

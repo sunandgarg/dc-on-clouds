@@ -6,6 +6,10 @@ import { useAllHeroBanners, useUpsertHeroBanner, useDeleteHeroBanner, type HeroB
 import { Plus, Trash2, Save, Image } from "lucide-react";
 import { toast } from "sonner";
 import { ImageHint } from "@/components/ImageHint";
+import { Switch } from "@/components/ui/switch";
+import { useSiteIntegrationEnabled } from "@/hooks/useSiteIntegration";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 import { CSVTools } from "@/components/CSVTools";
 const empty: Partial<HeroBanner> & { image_url: string } = {
@@ -21,6 +25,8 @@ export default function AdminBanners() {
   const { data: banners, isLoading } = useAllHeroBanners();
   const upsert = useUpsertHeroBanner();
   const deleteBanner = useDeleteHeroBanner();
+  const queryClient = useQueryClient();
+  const { data: sectionEnabled = true } = useSiteIntegrationEnabled("recommended_for_you", true);
   const [editing, setEditing] = useDraftState<(Partial<HeroBanner> & { image_url: string }) | null>("admin.banners.editing.v1", null);
 
   const handleSave = async () => {
@@ -47,15 +53,39 @@ export default function AdminBanners() {
     }
   };
 
+  const setSectionEnabled = async (enabled: boolean) => {
+    const { error } = await (supabase as any).from("site_integrations").upsert({
+      key: "recommended_for_you",
+      value: "Recommended for You",
+      enabled,
+    }, { onConflict: "key" });
+    if (error) {
+      toast.error("Failed to update section visibility");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["site-integrations", "all"] });
+    toast.success(enabled ? "Recommended for You is visible" : "Recommended for You is hidden");
+  };
+
   return (
-    <AdminLayout title="Hero Banners">
+    <AdminLayout title="Recommended for You">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4">
+        <div>
+          <h2 className="font-semibold text-foreground">Recommended for You</h2>
+          <p className="text-sm text-muted-foreground">Show or hide this complete homepage section.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">{sectionEnabled ? "Visible" : "Hidden"}</span>
+          <Switch checked={sectionEnabled} onCheckedChange={setSectionEnabled} aria-label="Toggle Recommended for You section" />
+        </div>
+      </div>
       <div className="mb-4">
         <CSVTools table="hero_banners" filename="hero_banners.csv" columns="*" upsertKey="slug" />
       </div>
 
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-muted-foreground">
-          Add banner images to the homepage. Users clicking the CTA will be asked for their details first.
+          Manage the images shown under the frontend heading “Recommended for You”.
         </p>
         <Button onClick={() => setEditing({ ...empty })} className="gradient-primary text-primary-foreground rounded-xl gap-2">
           <Plus className="w-4 h-4" /> Add Banner

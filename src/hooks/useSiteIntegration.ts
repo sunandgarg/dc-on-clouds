@@ -30,3 +30,16 @@ export function useSiteIntegration(key: string) {
     },
   });
 }
+
+export function useSiteIntegrationEnabled(key: string, defaultValue = true) {
+  return useQuery({
+    queryKey: ALL_KEY,
+    queryFn: fetchAll,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    select: (rows: Row[]): boolean => {
+      const row = rows.find((item) => item.key === key);
+      return row ? row.enabled : defaultValue;
+    },
+  });
+}

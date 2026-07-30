@@ -21,7 +21,6 @@ const FloatingBot = lazyRetry(() => import("@/components/FloatingBot").then((mod
 const CookieConsent = lazyRetry(() => import("@/components/CookieConsent").then((module) => ({ default: module.CookieConsent })), "CookieConsent");
 const DeploymentUpdateCoordinator = lazyRetry(() => import("@/components/DeploymentUpdateCoordinator").then((module) => ({ default: module.DeploymentUpdateCoordinator })), "DeploymentUpdateCoordinator");
 const WhatsAppButton = lazyRetry(() => import("@/components/WhatsAppButton").then((module) => ({ default: module.WhatsAppButton })), "WhatsAppButton");
-const NewsCallButton = lazyRetry(() => import("@/components/NewsCallButton").then((module) => ({ default: module.NewsCallButton })), "NewsCallButton");
 const SiteIntegrations = lazyRetry(() => import("@/components/SiteIntegrations").then((module) => ({ default: module.SiteIntegrations })), "SiteIntegrations");
 const AdsenseLoader = lazyRetry(() => import("@/components/ads/AdsenseLoader").then((module) => ({ default: module.AdsenseLoader })), "AdsenseLoader");
 const UserTrackingProvider = lazyRetry(() => import("@/hooks/useUserTracking").then((module) => ({ default: module.UserTrackingProvider })), "UserTrackingProvider");
@@ -33,17 +32,10 @@ function GlobalWhatsApp() {
   return <WhatsAppButton />;
 }
 
-function NewsOnlyCall() {
-  const { pathname } = useLocation();
-  // Show only on news listing & news article pages
-  const isNews = pathname === "/news" || pathname.startsWith("/news/") || pathname === "/articles" || pathname.startsWith("/articles/");
-  if (!isNews) return null;
-  return <NewsCallButton />;
-}
-
 function GlobalDiya() {
   const { pathname } = useLocation();
-  if (pathname.startsWith("/admin") || pathname.startsWith("/auth")) return null;
+  const isNews = pathname === "/news" || pathname.startsWith("/news/") || pathname === "/articles" || pathname.startsWith("/articles/");
+  if (pathname.startsWith("/admin") || pathname.startsWith("/auth") || isNews) return null;
   return <FloatingBot />;
 }
 
@@ -78,7 +70,6 @@ function DeferredGlobalUi() {
       <UserTrackingProvider>{null}</UserTrackingProvider>
       <IntentTrackingProvider>{null}</IntentTrackingProvider>
       <GlobalWhatsApp />
-      <NewsOnlyCall />
       <GlobalDiya />
     </Suspense>
   );

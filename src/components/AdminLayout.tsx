@@ -102,7 +102,7 @@ const groups: NavGroup[] = [
     icon: PanelTop,
     items: [
       { label: "FAQs / Places", href: "/admin/content", icon: HelpCircle, module: "content" },
-      { label: "Hero Banners & Images", href: "/admin/banners", icon: Image, module: "banners" },
+      { label: "Recommended for You", href: "/admin/banners", icon: Image, module: "banners" },
       { label: "Hero Background", href: "/admin/hero", icon: Image },
       { label: "Global Discovery Bar", href: "/admin/hero-categories", icon: PanelTop },
       { label: "Landing Pages", href: "/admin/landing-pages", icon: Megaphone },

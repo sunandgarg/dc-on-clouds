@@ -21,6 +21,10 @@ export function LockTargetFloatingPromo() {
 
   // Hide on the lock-target page itself, dashboard, auth, and admin
   if (
+    pathname === "/news" ||
+    pathname.startsWith("/news/") ||
+    pathname === "/articles" ||
+    pathname.startsWith("/articles/") ||
     pathname.startsWith("/lock-target") ||
     pathname.startsWith("/target-dashboard") ||
     pathname.startsWith("/my-targets") ||
@@ -41,7 +45,7 @@ export function LockTargetFloatingPromo() {
 
   return (
     <div
-      className="fixed z-[70] left-3 md:left-5 bottom-52 md:bottom-40 w-[min(238px,calc(100vw-7.5rem))] animate-in slide-in-from-bottom-2 fade-in"
+      className="fixed z-[70] left-3 bottom-24 w-[min(238px,calc(100vw-7.5rem))] animate-in slide-in-from-bottom-2 fade-in md:left-5 md:bottom-40"
       role="dialog"
       aria-label="Lock your dream college"
     >
