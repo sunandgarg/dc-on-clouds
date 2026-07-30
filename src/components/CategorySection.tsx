@@ -13,6 +13,52 @@ import { useStreamCategories } from "@/hooks/useStreamCategories";
 
 const DEFAULT_CATEGORY = "Engineering";
 
+function CollegeLogo({
+  name,
+  logo,
+  image,
+}: {
+  name: string;
+  logo?: string | null;
+  image?: string | null;
+}) {
+  const sources = useMemo(
+    () => [logo, image].filter((source, index, all): source is string =>
+      Boolean(source) && all.indexOf(source) === index
+    ),
+    [logo, image]
+  );
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [logo, image]);
+
+  const source = sources[sourceIndex];
+
+  return (
+    <div className="w-12 h-12 rounded-full border border-border bg-white overflow-hidden flex items-center justify-center shadow-sm">
+      {source ? (
+        <img
+          src={source}
+          alt={`${name} logo`}
+          className="w-full h-full rounded-full object-contain p-1.5"
+          loading="lazy"
+          decoding="async"
+          onError={() => setSourceIndex((current) => current + 1)}
+        />
+      ) : (
+        <span
+          className="w-full h-full rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold"
+          aria-label={`${name} logo unavailable`}
+        >
+          {name.trim().charAt(0).toUpperCase() || <GraduationCap className="w-5 h-5" />}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function CategorySection() {
   const { data: dbCategories = [] } = useStreamCategories();
   const categories = useMemo(() => dbCategories, [dbCategories]);
@@ -124,11 +170,7 @@ export function CategorySection() {
                 <Link key={college.slug} to={`/colleges/${college.slug}`} className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 transition-colors">
                   <div className="relative flex-shrink-0">
                     <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center z-10">#{i + 1}</span>
-                    {college.logo || college.image ? (
-                      <img src={college.logo || college.image} alt={`${college.name} logo`} className="w-12 h-12 rounded-lg border border-border bg-card p-1 object-contain" loading="lazy" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-primary" /></div>
-                    )}
+                    <CollegeLogo name={college.name} logo={college.logo} image={college.image} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">{college.short_name || college.name}</h4>
