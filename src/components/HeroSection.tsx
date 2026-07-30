@@ -199,16 +199,29 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   };
 
   const getThumb = (item: SearchResult) => {
-    if (item.type === "College" && item.logo) {
-      return <img src={item.logo} alt="" className="entity-logo-safe w-10 h-10 rounded-xl border border-border/60" />;
-    }
-    if (item.type === "Exam" && (item.image || item.logo)) {
-      return <img src={item.logo || item.image!} alt="" className="entity-logo-safe w-10 h-10 rounded-xl border border-border/60" />;
-    }
     const Icon = getIcon(item);
+    const imageUrl =
+      item.type === "College" ? item.logo :
+      item.type === "Exam" ? (item.logo || item.image) :
+      item.image;
+
     return (
-      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-        <Icon className="w-5 h-5 text-primary" />
+      <div
+        className="relative flex h-10 w-10 min-h-10 min-w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/10 bg-primary/10"
+        style={{ width: 40, height: 40, flexBasis: 40 }}
+      >
+        <Icon className="h-5 w-5 text-primary" />
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt=""
+            className="entity-logo-safe absolute inset-0 block h-full w-full rounded-xl"
+            style={{ width: 40, height: 40, maxWidth: 40, maxHeight: 40 }}
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+        )}
       </div>
     );
   };
@@ -379,18 +392,18 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
                 {/* Search Results Dropdown */}
                 {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 max-h-[min(68vh,720px)] overflow-y-auto overscroll-contain bg-card border border-border rounded-2xl shadow-2xl z-[620]">
-                    <div className="py-2">
+                  <div className="absolute left-0 right-0 top-full z-[620] mt-2 max-h-[min(68vh,560px)] overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card shadow-2xl">
+                    <div className="divide-y divide-border/50">
                       {dbResults.map((item) => (
                         <button
                           key={`${item.type}-${item.slug}`}
                           onMouseDown={() => handleResultClick(item)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                          className="flex min-h-[72px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
                         >
                           {getThumb(item)}
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate text-sm">{displayText(item.name, "Untitled")}</p>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <p className="truncate text-sm font-medium text-foreground md:text-base">{displayText(item.name, "Untitled")}</p>
+                            <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground md:text-sm">
                               <span>{item.type}</span>
                               {item.location && (
                                 <>
@@ -406,10 +419,10 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                       ))}
                     </div>
                     {/* Ask AI option at bottom */}
-                    <div className="border-t border-border px-4 py-2.5">
+                    <div className="sticky bottom-0 border-t border-border bg-card px-4 py-3">
                       <button
                         onMouseDown={handleAskAI as any}
-                        className="w-full flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+                        className="flex min-h-12 w-full items-center gap-3 text-left transition-opacity hover:opacity-80"
                       >
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                           <Sparkles className="w-5 h-5 text-white" />
