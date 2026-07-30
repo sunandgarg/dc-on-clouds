@@ -159,7 +159,7 @@ export default function AdminFaculty() {
           { key: "designation", label: "Designation", type: "combobox", options: DESIGNATION_OPTIONS, placeholder: "Search designation…" },
           { key: "department", label: "Department", type: "combobox", options: DEPARTMENT_OPTIONS, placeholder: "Search department…" },
           { key: "qualification", label: "Qualification", type: "combobox", options: QUALIFICATION_OPTIONS, placeholder: "Search qualification…" },
-          { key: "photo", label: "Photo URL (optional - animated avatar shown if empty)" },
+          { key: "photo", label: "Photo (optional - animated avatar shown if empty)", type: "image", folder: "faculty" },
           { key: "linkedin_url", label: "LinkedIn Profile URL (optional)", placeholder: "https://www.linkedin.com/in/…" },
           { key: "gender", label: "Gender (male/female) - used for default avatar", type: "combobox", options: ["male", "female", "other"] },
           { key: "display_order", label: "Display Order", type: "number" },

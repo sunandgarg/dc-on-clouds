@@ -187,7 +187,7 @@ export default function AdminCollegeStudy() {
                 { key: "branch", label: "Branch" },
                 { key: "marks", label: "Marks" },
                 { key: "percentage", label: "Percentage / CGPA" },
-                { key: "photo", label: "Photo URL" },
+                { key: "photo", label: "Photo", type: "image", folder: "college-toppers" },
                 { key: "quote", label: "Quote", type: "textarea" },
                 { key: "display_order", label: "Order", type: "number" },
                 { key: "is_active", label: "Active", type: "boolean" },

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useAllTrustedPartners, useUpsertTrustedPartner, useDeleteTrustedPartner, type TrustedPartner } from "@/hooks/useTrustedPartners";
 import { Plus, Trash2, Save, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
-import { ImageHint } from "@/components/ImageHint";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 
 import { CSVTools } from "@/components/CSVTools";
 import { useDraftState } from "@/hooks/useDraftState";
@@ -54,11 +54,14 @@ export default function AdminPartners() {
               <label className="text-xs text-muted-foreground mb-1 block">College/Institution Name *</label>
               <Input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder="IIT Delhi" className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Logo URL</label>
-              <Input value={editing.logo_url} onChange={e => setEditing({ ...editing, logo_url: e.target.value })} placeholder="https://..." className="rounded-xl" />
-              <ImageHint preset="partnerLogo" />
-            </div>
+            <UploadOrUrlField
+              label="Logo"
+              value={editing.logo_url || ""}
+              onChange={(logo_url) => setEditing({ ...editing, logo_url })}
+              folder="partners"
+              preset="partnerLogo"
+              maxSizeMb={5}
+            />
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">College Slug (for linking)</label>
               <Input value={editing.college_slug} onChange={e => setEditing({ ...editing, college_slug: e.target.value })} placeholder="iit-delhi" className="rounded-xl" />

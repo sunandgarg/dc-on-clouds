@@ -5,14 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Save, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { CSVTools } from "@/components/CSVTools";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 
 export interface SlugFieldDef {
   key: string;
   label: string;
-  type?: "text" | "number" | "boolean" | "select";
+  type?: "text" | "number" | "boolean" | "select" | "image";
   placeholder?: string;
   options?: string[];
   cols?: 1 | 2 | 3;
+  folder?: string;
 }
 
 interface Props {
@@ -108,7 +110,15 @@ export function SlugScopedTableEditor({
             {fields.map(f => (
               <div key={f.key} className={`${f.cols === 3 ? "sm:col-span-2" : ""}`}>
                 <label className="text-[11px] text-muted-foreground">{f.label}</label>
-                {f.type === "select" ? (
+                {f.type === "image" ? (
+                  <UploadOrUrlField
+                    label={f.label}
+                    value={draft[f.key] ?? ""}
+                    onChange={(value) => setDraft({ ...draft, [f.key]: value })}
+                    folder={f.folder || table}
+                    maxSizeMb={5}
+                  />
+                ) : f.type === "select" ? (
                   <select
                     value={draft[f.key] ?? ""}
                     onChange={e => setDraft({ ...draft, [f.key]: e.target.value })}

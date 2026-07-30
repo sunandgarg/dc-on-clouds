@@ -9,6 +9,7 @@ import { Plus, Trash2, Save, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { CSVTools } from "@/components/CSVTools";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 type Topper = {
   id?: string;
   class_num: number;
@@ -164,7 +165,15 @@ export default function AdminToppers() {
                     <Input className="md:col-span-1" placeholder="City" value={row.city} onChange={e => update(i, { city: e.target.value })} />
                     <Input className="md:col-span-1" placeholder="Marks" value={row.marks} onChange={e => update(i, { marks: e.target.value })} />
                     <Input className="md:col-span-1" type="number" step="0.01" placeholder="%" value={row.percentage} onChange={e => update(i, { percentage: Number(e.target.value) })} />
-                    <Input className="md:col-span-2" placeholder="Photo URL" value={row.photo} onChange={e => update(i, { photo: e.target.value })} />
+                    <div className="md:col-span-2">
+                      <UploadOrUrlField
+                        label="Photo"
+                        value={row.photo}
+                        onChange={(photo) => update(i, { photo })}
+                        folder="toppers"
+                        maxSizeMb={5}
+                      />
+                    </div>
                     <Button size="icon" variant="ghost" onClick={() => remove(i)} className="md:col-span-1 justify-self-end">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>

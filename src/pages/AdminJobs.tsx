@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Briefcase, Search } from "lucide-react";
 import { slugify } from "@/lib/slugify";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 
 interface Job {
   id: string;
@@ -147,7 +148,14 @@ export default function AdminJobs() {
                 <div><Label>Title *</Label><Input value={form.title || ""} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
                 <div><Label>Company *</Label><Input value={form.company || ""} onChange={e => setForm({ ...form, company: e.target.value })} /></div>
                 <div><Label>Slug</Label><Input value={form.slug || ""} onChange={e => setForm({ ...form, slug: e.target.value })} placeholder="auto from title" /></div>
-                <div><Label>Company Logo URL</Label><Input value={form.company_logo || ""} onChange={e => setForm({ ...form, company_logo: e.target.value })} /></div>
+                <UploadOrUrlField
+                  label="Company Logo"
+                  value={form.company_logo || ""}
+                  onChange={(company_logo) => setForm({ ...form, company_logo })}
+                  folder="jobs"
+                  preset="partnerLogo"
+                  maxSizeMb={5}
+                />
                 <div><Label>Location</Label><Input value={form.location || ""} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Bangalore, IN" /></div>
                 <div><Label>Job Type</Label><Input value={form.job_type || ""} onChange={e => setForm({ ...form, job_type: e.target.value })} placeholder="Full-time / Internship" /></div>
                 <div><Label>Experience</Label><Input value={form.experience || ""} onChange={e => setForm({ ...form, experience: e.target.value })} placeholder="0-2 years" /></div>

@@ -21,7 +21,7 @@ export default function AdminCompanies() {
         fields={[
           { key: "name", label: "Company Name", required: true },
           { key: "sector", label: "Sector", placeholder: "IT Services" },
-          { key: "logo", label: "Logo URL" },
+          { key: "logo", label: "Logo", type: "image", folder: "companies", preset: "partnerLogo" },
           { key: "website", label: "Website" },
         ]}
       />

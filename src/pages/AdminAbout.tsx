@@ -75,7 +75,7 @@ function PageEditor() {
 
 interface ListEditorProps {
   table: string;
-  fields: { key: string; label: string; type?: "input" | "textarea" }[];
+  fields: { key: string; label: string; type?: "input" | "textarea" | "image" }[];
   defaults?: Record<string, any>;
 }
 
@@ -119,6 +119,8 @@ function ListEditor({ table, fields, defaults = {} }: ListEditorProps) {
                 <Label>{f.label}</Label>
                 {f.type === "textarea"
                   ? <Textarea value={row[f.key] || ""} onChange={(e) => update(row.id, { [f.key]: e.target.value })} rows={3} />
+                  : f.type === "image"
+                    ? <UploadOrUrlField label={f.label} value={row[f.key] || ""} onChange={(value) => update(row.id, { [f.key]: value })} folder="about" maxSizeMb={5} />
                   : <Input value={row[f.key] || ""} onChange={(e) => update(row.id, { [f.key]: e.target.value })} />}
               </div>
             ))}
@@ -182,7 +184,7 @@ export default function AdminAbout() {
           <ListEditor table="about_founders" fields={[
             { key: "name", label: "Name" },
             { key: "title", label: "Title" },
-            { key: "photo", label: "Photo URL" },
+            { key: "photo", label: "Photo", type: "image" },
             { key: "linkedin_url", label: "LinkedIn URL" },
             { key: "twitter_url", label: "Twitter URL" },
             { key: "bio", label: "Bio", type: "textarea" },
@@ -193,7 +195,7 @@ export default function AdminAbout() {
             { key: "name", label: "Name" },
             { key: "role", label: "Role" },
             { key: "department", label: "Department" },
-            { key: "photo", label: "Photo URL" },
+            { key: "photo", label: "Photo", type: "image" },
             { key: "linkedin_url", label: "LinkedIn URL" },
           ]} />
         </TabsContent>
@@ -209,7 +211,7 @@ export default function AdminAbout() {
             { key: "outlet", label: "Outlet" },
             { key: "headline", label: "Headline" },
             { key: "url", label: "URL" },
-            { key: "logo", label: "Logo URL" },
+            { key: "logo", label: "Logo", type: "image" },
             { key: "published_on", label: "Published On" },
           ]} />
         </TabsContent>

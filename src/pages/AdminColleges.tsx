@@ -601,7 +601,7 @@ export default function AdminColleges() {
                     { key: "department", label: "Department" },
                     { key: "qualification", label: "Qualification", placeholder: "PhD" },
                     { key: "gender", label: "Gender (male/female)", type: "select", options: ["male", "female"] },
-                    { key: "photo", label: "Photo URL (optional)" },
+                    { key: "photo", label: "Photo (optional)", type: "image", folder: "faculty" },
                     { key: "display_order", label: "Display Order", type: "number" },
                     { key: "is_active", label: "Active", type: "boolean" },
                   ]}

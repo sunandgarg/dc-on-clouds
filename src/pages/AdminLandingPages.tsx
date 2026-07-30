@@ -128,7 +128,14 @@ export default function AdminLandingPages() {
           <TabsContent value="basics" className="space-y-3 mt-4">
             <Field label="Slug (URL: /slug)" value={editing.slug} onChange={(v) => setEditing({ ...editing, slug: v.replace(/[^a-z0-9-]/gi, "-").toLowerCase() })} />
             <Field label="Brand Name" value={editing.brand_name} onChange={(v) => setEditing({ ...editing, brand_name: v })} />
-            <Field label="Logo URL" value={editing.logo_url} onChange={(v) => setEditing({ ...editing, logo_url: v })} />
+            <UploadOrUrlField
+              label="Brand Logo"
+              value={editing.logo_url}
+              onChange={(logo_url) => setEditing({ ...editing, logo_url })}
+              folder="landing-pages"
+              preset="partnerLogo"
+              maxSizeMb={5}
+            />
             <Field label="Header CTA Label" value={editing.cta_label} onChange={(v) => setEditing({ ...editing, cta_label: v })} />
             <Field label="Header CTA Href" value={editing.cta_href} onChange={(v) => setEditing({ ...editing, cta_href: v })} />
             <JsonField label='Nav Links - [{"label","href"}]' value={j("nav_links")} onChange={(v) => setJson("nav_links", v)} />
