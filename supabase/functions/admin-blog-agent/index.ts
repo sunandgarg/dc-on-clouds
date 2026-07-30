@@ -280,6 +280,13 @@ Deno.serve(async (req) => {
       ...(body.override || {}),
     };
     const blogAi = await loadBlogAiConfig(admin, service);
+    // The provider selected in the blog-agent form is authoritative for this
+    // workflow. Runtime Control Centre is applied afterwards as the deliberate
+    // operational override/failover layer.
+    if (settings.model_provider === "gemini") blogAi.textModel = "gemini-3.5-flash";
+    else if (settings.model_provider === "openai") blogAi.textModel = "gpt-5";
+    else if (settings.model_provider === "anthropic" || settings.model_provider === "claude") blogAi.textModel = "auto-sonnet";
+    else throw new Error(`Unsupported blog text provider: ${settings.model_provider}. Choose Gemini, Claude or OpenAI.`);
     await applyBlogTextRuntimeControl(admin, "blog-agent", blogAi);
     const selectedAuthorIds = Array.isArray(settings.author_ids) ? settings.author_ids.filter(Boolean) : [];
     const { data: selectedAuthorRows } = selectedAuthorIds.length

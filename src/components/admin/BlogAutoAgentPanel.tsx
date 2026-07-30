@@ -396,8 +396,26 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
         </div>
         <div>
           <Label className="text-xs">Blog AI providers</Label>
-          <div className="mt-1 rounded-md border bg-muted/40 px-3 py-2 text-sm">Gemini text (default) + OpenAI image</div>
-          <p className="mt-1 text-[10px] text-muted-foreground">Change provider/model in Admin - AI Providers.</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {([
+              ["gemini", "Gemini"],
+              ["anthropic", "Claude"],
+              ["openai", "OpenAI"],
+            ] as const).map(([provider, label]) => (
+              <Button
+                key={provider}
+                type="button"
+                size="sm"
+                variant={settings.model_provider === provider ? "default" : "outline"}
+                onClick={() => updateSetting("model_provider", provider)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Gemini is the default. Runtime Control Centre can override this choice for emergency routing.
+          </p>
         </div>
         <div>
           <Label className="text-xs">Word limit</Label>
