@@ -109,10 +109,16 @@ Deno.serve(async (req) => {
       const sig = await hmac(`${mobile}:${code}:${expires}`);
       const tok = `${expires}.${sig}`;
       const { sent, devOtp } = await sendViaProvider(mobile, code, channel);
+      if (!sent) {
+        return new Response(JSON.stringify({
+          error: "OTP delivery failed. Please try again.",
+          sent: false,
+        }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       return new Response(JSON.stringify({
         success: true,
         token: tok,
-        otp: devOtp, // only present when no provider configured (dev mode)
+        otp: devOtp,
         sent,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json", "x-otp-token": tok } });
     }

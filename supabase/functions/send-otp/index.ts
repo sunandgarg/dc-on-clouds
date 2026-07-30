@@ -907,9 +907,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // OTPs are generated only inside this trusted edge function. Browsers never
-    // receive or choose the expected code.
-    if (action === "send" && !otp) otp = generateOtp(6);
+    // OTPs are generated only inside this trusted edge function. A resend is a
+    // fresh OTP delivery as well: provider-specific "resend last OTP" APIs have
+    // short windows and made the same form behave differently after 10 minutes.
+    // Generating a new code here keeps login and every lead form on one reliable
+    // production path and lets local verification work for both actions.
+    if ((action === "send" || action === "resend") && !otp) otp = generateOtp(6);
 
     if (action === "verify") {
       const stored = await verifyStoredOtp(supabase, phone, otp);
@@ -999,10 +1002,6 @@ Deno.serve(async (req) => {
             if (name === "fast2sms") res = await verifyViaFast2SMS(provider, phone, otp);
             else if (name === "msg91") res = await verifyViaMSG91(provider, phone, otp);
             else res = { ok: false, detail: `${provider.provider_name} verification endpoint is not implemented.` };
-          } else if (action === "resend") {
-            if (name === "fast2sms") res = await resendViaFast2SMS(provider, phone);
-            else if (name === "msg91") res = await resendViaMSG91(provider, phone);
-            else res = { ok: false, detail: `${provider.provider_name} resend endpoint is not implemented.` };
           } else if (action === "whatsapp-details" || action === "phone-numbers") {
             await plog.warn("runProvider", "WhatsApp-related action blocked (whatsapp disabled)");
             res = { ok: false, detail: "WhatsApp is temporarily disabled." };
