@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useHeroSettings } from "@/hooks/useHeroSettings";
+import { useSiteIntegration, useSiteIntegrationEnabled } from "@/hooks/useSiteIntegration";
 import dcLogo from "@/assets/dc-logo-small.webp";
 import catCollege from "@/assets/hero-colleges-attached.png";
 import catCourse from "@/assets/hero-courses-attached.png";
@@ -64,6 +65,9 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
   const [bgIndex, setBgIndex] = useState(0);
   const { data: heroSettings } = useHeroSettings();
+  const { data: textGradientEnabled = true } = useSiteIntegrationEnabled("hero_text_gradient", true);
+  const { data: textGradientValue = "0.72" } = useSiteIntegration("hero_text_gradient_strength");
+  const textGradientStrength = Math.min(1, Math.max(0.1, Number(textGradientValue) || 0.72));
   const bgImages = useMemo(() => {
     return (heroSettings?.is_active && heroSettings.image_urls?.filter(Boolean)) || [];
   }, [heroSettings]);
@@ -272,7 +276,16 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
       </div>
 
       <div className="container relative z-10 px-4 py-8 md:py-14 lg:py-16">
-        <div className="max-w-7xl mx-auto">
+        {bgImages.length > 0 && textGradientEnabled && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-3 left-0 w-full md:w-[76%] lg:w-[68%]"
+            style={{
+              background: `radial-gradient(ellipse at 31% 38%, rgba(255,255,255,${textGradientStrength}) 0%, rgba(255,255,255,${textGradientStrength * 0.78}) 43%, rgba(255,255,255,0) 78%)`,
+            }}
+          />
+        )}
+        <div className="relative max-w-7xl mx-auto">
           <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] lg:gap-12">
             <div className="space-y-5 text-left md:space-y-6">
               {/* AI Badge + Built by IIT Delhi Alumni hero statement */}

@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Trash2, Save } from "lucide-react";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 
 import { CSVTools } from "@/components/CSVTools";
 const s: any = supabase;
@@ -45,11 +46,24 @@ function PageEditor() {
       {F("hero_eyebrow", "Hero Eyebrow")}
       {F("hero_title", "Hero Title")}
       {F("hero_subtitle", "Hero Subtitle", "textarea")}
-      {F("hero_image", "Hero Image URL")}
+      <UploadOrUrlField
+        label="Hero Image"
+        value={page.hero_image || ""}
+        onChange={(hero_image) => setPage({ ...page, hero_image })}
+        folder="about"
+        preset="heroBanner"
+        maxSizeMb={5}
+      />
       {F("mission", "Mission", "textarea")}
       {F("vision", "Vision", "textarea")}
       {F("story", "Our Story", "textarea")}
-      {F("story_image", "Story Image URL")}
+      <UploadOrUrlField
+        label="Story Image"
+        value={page.story_image || ""}
+        onChange={(story_image) => setPage({ ...page, story_image })}
+        folder="about"
+        maxSizeMb={5}
+      />
       {F("cta_title", "CTA Title")}
       {F("cta_subtitle", "CTA Subtitle", "textarea")}
       {F("meta_title", "SEO Meta Title")}

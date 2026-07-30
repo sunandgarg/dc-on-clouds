@@ -1,24 +1,42 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, GraduationCap, ArrowRight } from "lucide-react";
 import { useHeroBanners, type HeroBanner } from "@/hooks/useHeroBanners";
-import { useSiteIntegrationEnabled } from "@/hooks/useSiteIntegration";
-
-const AUTOPLAY_MS = 7_840; // 40% slower again (was 5.6s)
+import { useSiteIntegration, useSiteIntegrationEnabled } from "@/hooks/useSiteIntegration";
 
 export function HeroBannerCarousel() {
   const { data: banners } = useHeroBanners();
   const { data: sectionEnabled = true } = useSiteIntegrationEnabled("recommended_for_you", true);
+  const { data: speedValue = "7.5" } = useSiteIntegration("recommended_for_you_speed_seconds");
   const [current, setCurrent] = useState(0);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   const total = banners?.length ?? 0;
+  const autoplayMs = Math.max(1, Number(speedValue) || 7.5) * 1000;
 
-  // Auto-rotate every 15s
+  const goTo = (index: number, behavior: ScrollBehavior = "smooth") => {
+    const normalized = (index + total) % total;
+    const scroller = scrollerRef.current;
+    const slide = scroller?.children.item(normalized) as HTMLElement | null;
+    if (scroller && slide) {
+      scroller.scrollTo({ left: slide.offsetLeft, behavior });
+    }
+    setCurrent(normalized);
+  };
+
   useEffect(() => {
     if (total <= 1) return;
-    const id = setInterval(() => setCurrent((c) => (c + 1) % total), AUTOPLAY_MS);
+    const id = setInterval(() => {
+      setCurrent((active) => {
+        const next = (active + 1) % total;
+        const scroller = scrollerRef.current;
+        const slide = scroller?.children.item(next) as HTMLElement | null;
+        if (scroller && slide) scroller.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
+        return next;
+      });
+    }, autoplayMs);
     return () => clearInterval(id);
-  }, [total]);
+  }, [total, autoplayMs]);
 
   if (!sectionEnabled || !banners || total === 0) return null;
 
@@ -49,15 +67,23 @@ export function HeroBannerCarousel() {
         </div>
 
         <div className="relative max-w-5xl mx-auto">
-          <AnimatePresence mode="wait">
-            {banners.map((banner, i) =>
-              i === current ? (
+          <div
+            ref={scrollerRef}
+            className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onScroll={(event) => {
+              const scroller = event.currentTarget;
+              const width = scroller.clientWidth || 1;
+              setCurrent(Math.min(total - 1, Math.max(0, Math.round(scroller.scrollLeft / width))));
+            }}
+            aria-label="Recommended for You carousel"
+          >
+            {banners.map((banner, i) => (
                 <motion.div
                   key={banner.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.56 }}
+                  className="min-w-full snap-center"
+                  initial={{ opacity: 0.7 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.35 }}
                 >
                   <button
                     type="button"
@@ -92,21 +118,20 @@ export function HeroBannerCarousel() {
                     )}
                   </div>
                 </motion.div>
-              ) : null
-            )}
-          </AnimatePresence>
+            ))}
+          </div>
 
           {total > 1 && (
             <>
               <button
-                onClick={() => setCurrent((c) => (c - 1 + total) % total)}
+                onClick={() => goTo(current - 1)}
                 aria-label="Previous"
                 className="absolute left-2 top-32 md:top-40 -translate-y-1/2 w-9 h-9 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-background shadow-md"
               >
                 <ChevronLeft className="w-5 h-5 text-foreground" />
               </button>
               <button
-                onClick={() => setCurrent((c) => (c + 1) % total)}
+                onClick={() => goTo(current + 1)}
                 aria-label="Next"
                 className="absolute right-2 top-32 md:top-40 -translate-y-1/2 w-9 h-9 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-background shadow-md"
               >
@@ -116,7 +141,7 @@ export function HeroBannerCarousel() {
                 {banners.map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => setCurrent(i)}
+                    onClick={() => goTo(i)}
                     aria-label={`Go to slide ${i + 1}`}
                     className={`h-2 rounded-full transition-all ${i === current ? "bg-primary w-6" : "bg-muted-foreground/30 w-2 hover:bg-muted-foreground/50"}`}
                   />

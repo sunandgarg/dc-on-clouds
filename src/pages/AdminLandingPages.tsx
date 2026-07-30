@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 import { CSVTools } from "@/components/CSVTools";
 import { useDraftState } from "@/hooks/useDraftState";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 const empty = {
   slug: "", is_active: true, lp_type: "general",
   multiple_layout: "compact", multiple_colleges: [],
@@ -282,7 +283,13 @@ export default function AdminLandingPages() {
             <Field label="Meta Title (≤60 chars)" value={editing.meta_title} onChange={(v) => setEditing({ ...editing, meta_title: v })} />
             <Field label="Meta Description (≤160 chars)" value={editing.meta_description} onChange={(v) => setEditing({ ...editing, meta_description: v })} textarea />
             <Field label="Meta Keywords" value={editing.meta_keywords} onChange={(v) => setEditing({ ...editing, meta_keywords: v })} />
-            <Field label="OG Image URL" value={editing.og_image} onChange={(v) => setEditing({ ...editing, og_image: v })} />
+            <UploadOrUrlField
+              label="OG Image"
+              value={editing.og_image}
+              onChange={(og_image) => setEditing({ ...editing, og_image })}
+              folder="landing-pages"
+              maxSizeMb={5}
+            />
           </TabsContent>
 
           <TabsContent value="theme" className="space-y-3 mt-4">

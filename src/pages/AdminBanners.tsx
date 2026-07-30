@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { useAllHeroBanners, useUpsertHeroBanner, useDeleteHeroBanner, type HeroBanner } from "@/hooks/useHeroBanners";
 import { Plus, Trash2, Save, Image } from "lucide-react";
 import { toast } from "sonner";
-import { ImageHint } from "@/components/ImageHint";
 import { Switch } from "@/components/ui/switch";
-import { useSiteIntegrationEnabled } from "@/hooks/useSiteIntegration";
+import { useSiteIntegration, useSiteIntegrationEnabled } from "@/hooks/useSiteIntegration";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { UploadOrUrlField } from "@/components/UploadOrUrlField";
 
 import { CSVTools } from "@/components/CSVTools";
 const empty: Partial<HeroBanner> & { image_url: string } = {
@@ -27,6 +27,8 @@ export default function AdminBanners() {
   const deleteBanner = useDeleteHeroBanner();
   const queryClient = useQueryClient();
   const { data: sectionEnabled = true } = useSiteIntegrationEnabled("recommended_for_you", true);
+  const { data: speedValue = "7.5" } = useSiteIntegration("recommended_for_you_speed_seconds");
+  const carouselSpeed = Number(speedValue) || 7.5;
   const [editing, setEditing] = useDraftState<(Partial<HeroBanner> & { image_url: string }) | null>("admin.banners.editing.v1", null);
 
   const handleSave = async () => {
@@ -53,18 +55,30 @@ export default function AdminBanners() {
     }
   };
 
-  const setSectionEnabled = async (enabled: boolean) => {
+  const updateSectionSetting = async (key: string, label: string, value: string, enabled = true) => {
     const { error } = await (supabase as any).from("site_integrations").upsert({
-      key: "recommended_for_you",
-      value: "Recommended for You",
+      key,
+      label,
+      category: "website",
+      value,
       enabled,
+      notes: `Controls homepage ${label}`,
     }, { onConflict: "key" });
     if (error) {
-      toast.error("Failed to update section visibility");
+      toast.error(`Failed to update ${label}`);
       return;
     }
     await queryClient.invalidateQueries({ queryKey: ["site-integrations", "all"] });
+  };
+
+  const setSectionEnabled = async (enabled: boolean) => {
+    await updateSectionSetting("recommended_for_you", "Recommended for You", "Recommended for You", enabled);
     toast.success(enabled ? "Recommended for You is visible" : "Recommended for You is hidden");
+  };
+
+  const setCarouselSpeed = async (seconds: number) => {
+    await updateSectionSetting("recommended_for_you_speed_seconds", "Recommended for You speed", String(seconds));
+    toast.success(`Images will change every ${seconds} seconds`);
   };
 
   return (
@@ -75,6 +89,17 @@ export default function AdminBanners() {
           <p className="text-sm text-muted-foreground">Show or hide this complete homepage section.</p>
         </div>
         <div className="flex items-center gap-3">
+          <label className="text-sm font-medium" htmlFor="recommended-speed">Image speed</label>
+          <select
+            id="recommended-speed"
+            value={carouselSpeed}
+            onChange={(event) => void setCarouselSpeed(Number(event.target.value))}
+            className="h-9 rounded-lg border border-border bg-background px-3 text-sm"
+          >
+            {Array.from({ length: 29 }, (_, index) => 1 + index * 0.5).map((seconds) => (
+              <option key={seconds} value={seconds}>{seconds}s</option>
+            ))}
+          </select>
           <span className="text-sm font-medium">{sectionEnabled ? "Visible" : "Hidden"}</span>
           <Switch checked={sectionEnabled} onCheckedChange={setSectionEnabled} aria-label="Toggle Recommended for You section" />
         </div>
@@ -106,9 +131,15 @@ export default function AdminBanners() {
               <Input value={editing.subtitle ?? ""} onChange={(e) => setEditing({ ...editing, subtitle: e.target.value })} placeholder="e.g., Admissions open for 2026 - apply now" className="rounded-xl" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Image URL *</label>
-              <Input value={editing.image_url} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} placeholder="https://..." className="rounded-xl" />
-              <ImageHint preset="heroBanner" />
+              <UploadOrUrlField
+                label="Banner Image *"
+                value={editing.image_url}
+                onChange={(image_url) => setEditing({ ...editing, image_url })}
+                folder="recommended-for-you"
+                preset="heroBanner"
+                maxSizeMb={5}
+                placeholder="Paste image address or upload"
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">CTA Button Text</label>
