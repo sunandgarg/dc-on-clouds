@@ -440,7 +440,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
               ))}
               </div>
 
-          <div className="-mx-4 mt-5 flex max-w-[calc(100vw-2rem)] snap-x gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:mx-0 sm:grid sm:max-w-4xl sm:grid-cols-6 sm:gap-2 sm:overflow-visible sm:px-0 sm:pb-0 sm:[scrollbar-width:auto] md:gap-3">
+          <div className="mt-5 flex w-full min-w-0 max-w-full snap-x gap-3 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:max-w-4xl sm:grid-cols-6 sm:gap-2 sm:overflow-visible sm:pb-0 sm:[scrollbar-width:auto] md:gap-3">
             {heroTiles.map((item) => (
               <Link
                 key={item.label}
