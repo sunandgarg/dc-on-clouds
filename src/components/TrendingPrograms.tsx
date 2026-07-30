@@ -213,9 +213,12 @@ export function TrendingPrograms() {
 }
 
 export function ProgramCard({ prog, onLead }: { prog: any; onLead: () => void }) {
-  const discountedPrice = prog.original_price * (1 - prog.discount_percent / 100);
-  const months = parseInt(String(prog.duration).match(/\d+/)?.[0] || "12") || 12;
-  const emi = prog.emi_starts_at && prog.emi_starts_at > 0 ? prog.emi_starts_at : Math.max(1, Math.round(discountedPrice / months));
+  const originalPrice = Number(prog.original_price) || 0;
+  const discountPercent = Math.max(0, Number(prog.discount_percent) || 0);
+  const hasPrice = originalPrice > 0;
+  const hasDiscount = hasPrice && discountPercent > 0;
+  const discountedPrice = originalPrice * (1 - discountPercent / 100);
+  const emi = Number(prog.emi_starts_at) > 0 ? Number(prog.emi_starts_at) : 0;
   const href = prog.slug ? `/premium-programs/${prog.slug}` : null;
   const fallbackIcon = getProgramCategoryIcon(prog.category_slug);
   return (
@@ -277,14 +280,18 @@ export function ProgramCard({ prog, onLead }: { prog: any; onLead: () => void })
         </div>
         <div className="mb-3 pt-2 border-t border-dashed border-border">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-lg font-extrabold text-foreground">{formatPrice(discountedPrice)}</span>
-            <span className="text-xs line-through text-muted-foreground">{formatPrice(prog.original_price)}</span>
-            <Badge variant="outline" className="text-[10px] border-success/30 text-success font-bold ml-auto">{prog.discount_percent}% OFF</Badge>
+            <span className="text-lg font-extrabold text-foreground">
+              {hasPrice ? formatPrice(discountedPrice) : "Fee on request"}
+            </span>
+            {hasDiscount && <span className="text-xs line-through text-muted-foreground">{formatPrice(originalPrice)}</span>}
+            {hasDiscount && <Badge variant="outline" className="text-[10px] border-success/30 text-success font-bold ml-auto">{discountPercent}% OFF</Badge>}
           </div>
           <p className="text-[10.5px] text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap">
             only on <span className="text-primary font-bold">DekhoCampus</span>
           </p>
-          <p className="text-[11px] text-primary font-semibold mt-1">EMI starts at {formatPrice(emi)}/mo</p>
+          {emi > 0 && (
+            <p className="text-[11px] text-primary font-semibold mt-1">EMI starts at {formatPrice(emi)}/mo</p>
+          )}
         </div>
         <div className="flex gap-2 mt-auto">
           {href ? (

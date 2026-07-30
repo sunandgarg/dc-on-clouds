@@ -113,9 +113,12 @@ export default function PremiumProgramDetail() {
     </div>
   );
 
-  const discountedPrice = program.original_price * (1 - program.discount_percent / 100);
-  const months = parseInt(String(program.duration).match(/\d+/)?.[0] || "12") || 12;
-  const emi = program.emi_starts_at && program.emi_starts_at > 0 ? program.emi_starts_at : Math.max(1, Math.round(discountedPrice / months));
+  const originalPrice = Number(program.original_price) || 0;
+  const discountPercent = Math.max(0, Number(program.discount_percent) || 0);
+  const hasPrice = originalPrice > 0;
+  const hasDiscount = hasPrice && discountPercent > 0;
+  const discountedPrice = originalPrice * (1 - discountPercent / 100);
+  const emi = Number(program.emi_starts_at) > 0 ? Number(program.emi_starts_at) : 0;
 
   const highlights: string[] = Array.isArray(program.highlights) ? program.highlights : [];
   const outcomes: string[] = Array.isArray(program.learning_outcomes) ? program.learning_outcomes : [];
@@ -219,14 +222,16 @@ export default function PremiumProgramDetail() {
               {/* PRICE - anchor + savings + countdown (psychology: anchoring, loss aversion, urgency) */}
               <div className="mt-4 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border-2 border-primary/30 p-4 shadow-sm">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">{formatPrice(discountedPrice)}</span>
-                  <span className="text-base line-through text-muted-foreground">{formatPrice(program.original_price)}</span>
-                  <Badge className="bg-primary text-primary-foreground border-0 font-bold">{program.discount_percent}% OFF</Badge>
+                  <span className="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">
+                    {hasPrice ? formatPrice(discountedPrice) : "Fee on request"}
+                  </span>
+                  {hasDiscount && <span className="text-base line-through text-muted-foreground">{formatPrice(originalPrice)}</span>}
+                  {hasDiscount && <Badge className="bg-primary text-primary-foreground border-0 font-bold">{discountPercent}% OFF</Badge>}
                 </div>
                 <div className="mt-1.5 flex items-center gap-2 flex-wrap text-xs">
-                  <span className="inline-flex items-center gap-1 text-success font-bold"><CheckCircle2 className="w-3.5 h-3.5" /> You save {formatPrice(program.original_price - discountedPrice)}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-primary font-semibold">EMI {formatPrice(emi)}/mo · 0% interest</span>
+                  {hasDiscount && <span className="inline-flex items-center gap-1 text-success font-bold"><CheckCircle2 className="w-3.5 h-3.5" /> You save {formatPrice(originalPrice - discountedPrice)}</span>}
+                  {hasDiscount && <span className="text-muted-foreground">·</span>}
+                  {emi > 0 && <span className="text-primary font-semibold">EMI {formatPrice(emi)}/mo</span>}
                 </div>
                 <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-primary/10 rounded-md px-2 py-1">
                   <Flame className="w-3 h-3 animate-pulse" /> Offer ends in {String(countdown.h).padStart(2,"0")}:{String(countdown.m).padStart(2,"0")}:{String(countdown.s).padStart(2,"0")}
@@ -272,7 +277,7 @@ export default function PremiumProgramDetail() {
 
         {/* 2026 - Trust Bento at-a-glance */}
         <div className="mb-5">
-          <PremiumTrustBento program={program} emiLabel={`${formatPrice(emi)}/mo`} />
+          <PremiumTrustBento program={program} emiLabel={emi > 0 ? `${formatPrice(emi)}/mo` : "Check available plans"} />
         </div>
 
         {/* 2026 - Conversational AI Insight */}
