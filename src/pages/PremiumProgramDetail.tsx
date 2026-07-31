@@ -19,6 +19,7 @@ import { PremiumTrustBento } from "@/components/detail/PremiumTrustBento";
 import { PremiumAIInsight } from "@/components/detail/PremiumAIInsight";
 import { PremiumDecisionRail } from "@/components/detail/PremiumDecisionRail";
 import { trackEvent } from "@/lib/analytics";
+import { FLOATING_CONTACT_BUTTON_CLASS } from "@/components/WhatsAppButton";
 
 function formatPrice(price: number) {
   if (price >= 100000) return `₹${(price / 100000).toFixed(price % 100000 === 0 ? 0 : 1)}L`;
@@ -661,14 +662,10 @@ export default function PremiumProgramDetail() {
         return (
           <a
             href={`tel:${phone}`}
-            className="fixed bottom-5 left-20 lg:bottom-20 lg:left-20 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 bg-[hsl(214_95%_50%)] text-white"
+            className={`${FLOATING_CONTACT_BUTTON_CLASS} left-20 bg-[hsl(214_95%_50%)] text-white`}
             aria-label="Call counsellor"
           >
-            <Phone className="w-7 h-7 fill-white" />
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-background" />
-            </span>
+            <Phone className="h-8 w-8 fill-white" />
           </a>
         );
       })()}

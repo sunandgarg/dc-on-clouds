@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Bot, User, Loader2 } from "lucide-react";
 import diyaAiLogo from "@/assets/diya-ai-logo-small.webp";
@@ -29,6 +29,7 @@ const DEFAULT_SUGGESTIONS = [
 
 export function FloatingBot() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -192,6 +193,10 @@ export function FloatingBot() {
         "How to get scholarships?",
       ]
     : DEFAULT_SUGGESTIONS;
+
+  // Keep this guard inside the widget as well as App.tsx. It guarantees the
+  // bot unmounts after client-side navigation into Upgrade Yourself pages.
+  if (pathname === "/premium-programs" || pathname.startsWith("/premium-programs/")) return null;
 
   return (
     <>

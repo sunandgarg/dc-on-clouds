@@ -1,5 +1,8 @@
 import { useSiteIntegration } from "@/hooks/useSiteIntegration";
 
+export const FLOATING_CONTACT_BUTTON_CLASS =
+  "fixed bottom-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95 lg:bottom-20";
+
 export function WhatsAppButton() {
   const { data: phone } = useSiteIntegration("whatsapp_phone");
   const { data: message } = useSiteIntegration("whatsapp_message");
@@ -11,7 +14,7 @@ export function WhatsAppButton() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-5 left-4 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 lg:bottom-20"
+      className={`${FLOATING_CONTACT_BUTTON_CLASS} left-4`}
       aria-label="Chat on WhatsApp"
       style={{ backgroundColor: "#25D366" }}
     >
