@@ -661,7 +661,7 @@ export default function PremiumProgramDetail() {
         return (
           <a
             href={`tel:${phone}`}
-            className="fixed bottom-20 lg:bottom-6 right-4 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 bg-[hsl(214_95%_50%)] text-white"
+            className="fixed bottom-5 left-20 lg:bottom-20 lg:left-20 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 bg-[hsl(214_95%_50%)] text-white"
             aria-label="Call counsellor"
           >
             <Phone className="w-7 h-7 fill-white" />

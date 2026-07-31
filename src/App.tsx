@@ -35,7 +35,8 @@ function GlobalWhatsApp() {
 function GlobalDiya() {
   const { pathname } = useLocation();
   const isNews = pathname === "/news" || pathname.startsWith("/news/") || pathname === "/articles" || pathname.startsWith("/articles/");
-  if (pathname.startsWith("/admin") || pathname.startsWith("/auth") || isNews) return null;
+  const isUpgradeYourself = pathname === "/premium-programs" || pathname.startsWith("/premium-programs/");
+  if (pathname.startsWith("/admin") || pathname.startsWith("/auth") || isNews || isUpgradeYourself) return null;
   return <FloatingBot />;
 }
 
