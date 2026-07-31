@@ -1,20 +1,23 @@
 import { useSiteIntegration } from "@/hooks/useSiteIntegration";
+import { useLocation } from "react-router-dom";
 
 export const FLOATING_CONTACT_BUTTON_CLASS =
-  "fixed bottom-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95 lg:bottom-20";
+  "fixed z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95";
 
 export function WhatsAppButton() {
+  const { pathname } = useLocation();
   const { data: phone } = useSiteIntegration("whatsapp_phone");
   const { data: message } = useSiteIntegration("whatsapp_message");
   const number = (phone || "919990109797").replace(/\D/g, "");
   const text = encodeURIComponent(message || "Hi DekhoCampus, I need help with college admissions");
   const href = `https://api.whatsapp.com/send/?phone=${number}&text=${text}&type=phone_number&app_absent=0`;
+  const isPremiumDetail = pathname.startsWith("/premium-programs/");
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${FLOATING_CONTACT_BUTTON_CLASS} left-4`}
+      className={`${FLOATING_CONTACT_BUTTON_CLASS} left-4 ${isPremiumDetail ? "bottom-28 lg:bottom-20" : "bottom-5 lg:bottom-20"}`}
       aria-label="Chat on WhatsApp"
       style={{ backgroundColor: "#25D366" }}
     >

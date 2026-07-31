@@ -662,7 +662,7 @@ export default function PremiumProgramDetail() {
         return (
           <a
             href={`tel:${phone}`}
-            className={`${FLOATING_CONTACT_BUTTON_CLASS} left-20 bg-[hsl(214_95%_50%)] text-white`}
+            className={`${FLOATING_CONTACT_BUTTON_CLASS} bottom-28 right-4 bg-[hsl(214_95%_50%)] text-white lg:bottom-20`}
             aria-label="Call counsellor"
           >
             <Phone className="h-8 w-8 fill-white" />
