@@ -328,7 +328,7 @@ export default function AdminPromotedPrograms() {
                   <Field label="EMI starts at (₹/mo, optional)"><Input type="number" value={editing.emi_starts_at} onChange={(e) => update("emi_starts_at", parseFloat(e.target.value) || 0)} /></Field>
                   <Field label="Display Order"><Input type="number" value={editing.display_order} onChange={(e) => update("display_order", parseInt(e.target.value) || 0)} /></Field>
                 </div>
-                <ImageUploadField label="Card Image (recommended 600×400)" value={editing.image_url || ""} onChange={(v) => update("image_url", v)} folder="promoted-programs" />
+                <ImageUploadField label="Legacy campus/card image (detail use only; homepage uses Institute Logo)" value={editing.image_url || ""} onChange={(v) => update("image_url", v)} folder="promoted-programs" />
                 <div className="flex items-center gap-2">
                   <input type="checkbox" checked={editing.is_active !== false} onChange={(e) => update("is_active", e.target.checked)} />
                   <label className="text-sm">Active</label>
@@ -370,7 +370,7 @@ export default function AdminPromotedPrograms() {
 
               <Section title="About the Institute (logo + legacy points)">
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <ImageUploadField label="Institute Logo (transparent PNG works best)" value={editing.institute_logo || ""} onChange={(v) => update("institute_logo", v)} folder="promoted-programs" />
+                  <ImageUploadField label="Institute Brand Logo / Wordmark (shown on homepage; transparent HD PNG/SVG works best)" value={editing.institute_logo || ""} onChange={(v) => update("institute_logo", v)} folder="promoted-programs" />
                   <Field label="Section Headline (optional - defaults to 'College : Legacy That Nurtures Excellence')">
                     <Input value={editing.institute_legacy_title} onChange={(e) => update("institute_legacy_title", e.target.value)} placeholder="IIM Kozhikode : Legacy That Nurtures Excellence" />
                   </Field>

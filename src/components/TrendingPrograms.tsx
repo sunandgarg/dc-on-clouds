@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 
-import { GraduationCap, Calendar, Download, Globe, MapPin, ArrowRight } from "lucide-react";
+import { GraduationCap, Calendar, Download, MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
@@ -218,29 +218,33 @@ export function ProgramCard({ prog, onLead }: { prog: any; onLead: () => void })
   const emi = Number(prog.emi_starts_at) > 0 ? Number(prog.emi_starts_at) : 0;
   const href = prog.slug ? `/premium-programs/${prog.slug}` : null;
   const fallbackIcon = getProgramCategoryIcon(prog.category_slug);
+  const instituteLogo = prog.institute_logo || "";
   return (
     <article className="group bg-card rounded-2xl border border-border overflow-hidden flex flex-col hover:shadow-xl hover:border-primary/40 transition-all">
-      <div className="relative h-36 w-full bg-gradient-to-br from-primary/15 to-accent/15 overflow-hidden">
+      <div className="relative h-40 w-full bg-white border-b border-border/70 overflow-hidden">
         {href ? (
           <Link to={href} aria-label={prog.title} className="absolute inset-0 z-10" />
         ) : (
           <button type="button" aria-label={prog.title} onClick={onLead} className="absolute inset-0 z-10" />
         )}
-        {prog.image_url ? (
-          <img src={prog.image_url} alt={prog.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        {instituteLogo ? (
+          <div className="w-full h-full flex items-center justify-center px-10 py-7">
+            <img src={instituteLogo} alt={`${prog.college_name || prog.title} logo`} loading="lazy" className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300" />
+          </div>
         ) : fallbackIcon ? (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white via-orange-50 to-slate-50">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-8 bg-white">
             <img
               src={fallbackIcon}
-              alt=""
-              aria-hidden
+              alt={`${prog.college_name || prog.title} category icon`}
               loading="lazy"
-              className="w-20 h-20 object-contain group-hover:scale-105 transition-transform duration-500"
+              className="w-14 h-14 object-contain"
             />
+            <span className="max-w-full text-center text-sm font-bold text-foreground line-clamp-2">{prog.college_name}</span>
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-primary/40">
-            <GraduationCap className="w-12 h-12" />
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-8 text-primary">
+            <GraduationCap className="w-10 h-10" />
+            <span className="max-w-full text-center text-sm font-bold text-foreground line-clamp-2">{prog.college_name}</span>
           </div>
         )}
         <div className="absolute top-2 left-2 flex items-center gap-1.5 z-20 pointer-events-none">
@@ -250,18 +254,6 @@ export function ProgramCard({ prog, onLead }: { prog: any; onLead: () => void })
         </div>
         <div className="absolute top-2 right-2 z-20 pointer-events-none">
           <Badge variant={prog.badge_variant as any} className="text-[10px] font-bold px-2">{prog.badge}</Badge>
-        </div>
-        <div className="absolute bottom-2 left-2 flex flex-wrap gap-1.5 z-20 pointer-events-none">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-background/90 backdrop-blur text-foreground text-[10px] font-bold border border-border">
-            <Globe className="w-3 h-3" /> {prog.country || "India"}
-          </span>
-          {prog.delivery_mode && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur ${
-              prog.delivery_mode === "Online" ? "bg-emerald-500/90 text-white" :
-              prog.delivery_mode === "Hybrid" ? "bg-amber-500/90 text-white" :
-              "bg-blue-500/90 text-white"
-            }`}>{prog.delivery_mode}</span>
-          )}
         </div>
       </div>
       <div className="p-4 flex flex-col flex-1">

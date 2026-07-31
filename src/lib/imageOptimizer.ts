@@ -97,3 +97,20 @@ export async function optimizeRemoteImage(
     return null;
   }
 }
+
+/** Fetch a remote image without resizing or re-encoding it. */
+export async function fetchRemoteImageFile(url: string): Promise<File | null> {
+  try {
+    if (!url || !/^https?:\/\//i.test(url)) return null;
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (!blob.type.startsWith("image/")) return null;
+    const rawName = (url.split("/").pop() || "remote-image").split("?")[0] || "remote-image";
+    const extension = blob.type.split("/")[1]?.replace("jpeg", "jpg") || "img";
+    const name = /\.[a-z0-9]+$/i.test(rawName) ? rawName : `${rawName}.${extension}`;
+    return new File([blob], name, { type: blob.type, lastModified: Date.now() });
+  } catch {
+    return null;
+  }
+}

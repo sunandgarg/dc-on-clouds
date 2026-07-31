@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Link as LinkIcon, X, Images, Loader2 } from "lucide-react";
+import { Upload, Link as LinkIcon, X, Images, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageHint, type ImagePresetKey } from "@/components/ImageHint";
-import { optimizeImageFile } from "@/lib/imageOptimizer";
+import { fetchRemoteImageFile, optimizeImageFile, optimizeRemoteImage } from "@/lib/imageOptimizer";
 import { ImageQualityControls, useImageQuality } from "@/components/admin/ImageQualityControls";
 
 interface Props {
@@ -74,6 +74,39 @@ export function ImageUploadField({ value, onChange, label, preset, bucket = "adm
     }
   };
 
+  const saveLinkedImage = async () => {
+    if (!/^https?:\/\//i.test(value || "")) return;
+    setUploading(true);
+    try {
+      const file = quality.hd
+        ? await fetchRemoteImageFile(value)
+        : await optimizeRemoteImage(value, { maxDim: quality.maxDim });
+      if (!file) {
+        toast.error("This website blocks image downloads. Upload the original file instead.");
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error("Linked image is over 8 MB");
+        return;
+      }
+      const ext = file.name.split(".").pop() || (quality.hd ? "jpg" : "webp");
+      const path = `${folder}/${Date.now()}-linked-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from(bucket).upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+        cacheControl: "31536000",
+      });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+      onChange(pub.publicUrl);
+      toast.success(quality.hd ? "HD original saved to your storage" : "Linked image optimized and saved");
+    } catch (e: any) {
+      toast.error(e.message || "Could not save linked image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const filtered = libQuery
     ? libItems.filter((i) => i.name.toLowerCase().includes(libQuery.toLowerCase()))
     : libItems;
@@ -93,7 +126,26 @@ export function ImageUploadField({ value, onChange, label, preset, bucket = "adm
         </Button>
       </div>
       {mode === "url" && (
-        <Input value={value || ""} onChange={(e) => onChange(e.target.value)} placeholder="https://..." className="rounded-xl" />
+        <div className="space-y-1.5">
+          <ImageQualityControls value={quality} onChange={setQuality} />
+          <div className="flex gap-2">
+            <Input value={value || ""} onChange={(e) => onChange(e.target.value)} placeholder="https://..." className="rounded-xl min-w-0" />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={saveLinkedImage}
+              disabled={uploading || !/^https?:\/\//i.test(value || "") || value.includes("/storage/v1/object/public/")}
+              className="rounded-xl gap-1.5 shrink-0"
+              title={quality.hd ? "Copy the original linked image to your storage without reducing quality" : "Optimize the linked image and save it to your storage"}
+            >
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : quality.hd ? <Sparkles className="w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
+              <span className="hidden sm:inline">{quality.hd ? "Save HD copy" : "Optimize & save"}</span>
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {quality.hd ? "HD keeps the source image at its original resolution and format." : "Copies the external image to your storage and optimizes it for faster loading."}
+          </p>
+        </div>
       )}
       {mode === "upload" && (
         <div>
@@ -130,7 +182,7 @@ export function ImageUploadField({ value, onChange, label, preset, bucket = "adm
       )}
       {value && (
         <div className="mt-2 flex items-center gap-2 p-2 bg-muted/40 rounded-lg">
-          <img src={value} alt="" className="w-10 h-10 rounded object-cover" />
+          <img src={value} alt="" className="w-10 h-10 rounded bg-white object-contain p-0.5" />
           <span className="text-xs text-muted-foreground truncate flex-1">{value}</span>
           <Button type="button" size="sm" variant="ghost" onClick={() => onChange("")} className="h-6 w-6 p-0">
             <X className="w-3 h-3" />
