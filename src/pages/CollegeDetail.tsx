@@ -73,6 +73,7 @@ export default function CollegeDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: college, isLoading } = useDbCollege(slug);
+  const coursesOfficiallyVerified = Boolean((college as any)?.official_courses_verified);
   // Relational tables store the base database slug, while canonical public
   // URLs append the numeric short ID (for example, iit-delhi-10001).
   const collegeRelationSlug = college?.slug || parseSlugWithId(slug).slug;
@@ -107,7 +108,7 @@ export default function CollegeDetail() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!collegeRelationSlug,
+    enabled: !!collegeRelationSlug && coursesOfficiallyVerified,
     staleTime: 30 * 60 * 1000,
   });
 
@@ -127,25 +128,6 @@ export default function CollegeDetail() {
       return data || [];
     },
     enabled: visibleFeeCourseSlugs.length > 0,
-    staleTime: 30 * 60 * 1000,
-  });
-
-  const { data: popularCourses = [] } = useQuery({
-    queryKey: ["college-popular-courses", college?.category],
-    queryFn: async () => {
-      const categories = Array.from(new Set([college?.category, "Engineering"].filter(Boolean)));
-      const { data, error } = await (supabase as any)
-        .from("courses")
-        .select("slug,name,duration,avg_fees,category")
-        .eq("is_active", true)
-        .in("category", categories)
-        .order("priority", { ascending: true, nullsFirst: false })
-        .order("name")
-        .limit(6);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!college,
     staleTime: 30 * 60 * 1000,
   });
 
@@ -219,7 +201,7 @@ export default function CollegeDetail() {
 
     return COLLEGE_SECTIONS.filter((section) => has[section.id] ?? true);
   })();
-  const courseRowCount = collegeFees.length || popularCourses.length;
+  const courseRowCount = coursesOfficiallyVerified ? collegeFees.length : 0;
   const nextCourseBatchSize = Math.min(5, Math.max(0, courseRowCount - visibleCourseCount));
 
   return (
@@ -390,7 +372,7 @@ export default function CollegeDetail() {
               title={<>Courses & Fees</>}
               defaultOpen
             >
-              {college.course_fee_content && (
+              {coursesOfficiallyVerified && college.course_fee_content && (
                 <div className="mb-4"><RichText html={college.course_fee_content} /></div>
               )}
               <div className="dc-scroll-table">
@@ -404,7 +386,7 @@ export default function CollegeDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {collegeFees.length > 0 ? (
+                    {coursesOfficiallyVerified && collegeFees.length > 0 ? (
                       collegeFees.slice(0, visibleCourseCount).map((f) => {
                         const linked = feeCourseMetadata.find((c: any) => c.slug === f.course_slug);
                         return (
@@ -434,18 +416,11 @@ export default function CollegeDetail() {
                         );
                       })
                     ) : (
-                      popularCourses.slice(0, visibleCourseCount).map((c: any) => (
-                        <tr key={c.slug} className="border-b border-border last:border-0">
-                          <td className="py-3">
-                            <Link to={`/courses/${c.slug}`} className="text-primary font-medium hover:underline">{c.name}</Link>
-                          </td>
-                          <td className="py-3 text-muted-foreground">{c.duration}</td>
-                          <td className="py-3 text-foreground font-medium">{c.avg_fees}</td>
-                          <td className="py-3 text-right">
-                            <Link to={`/courses/${c.slug}`}><Button size="sm" variant="ghost" className="text-xs"><ExternalLink className="w-3 h-3" /></Button></Link>
-                          </td>
-                        </tr>
-                      ))
+                      <tr>
+                        <td colSpan={4} className="py-4 text-sm text-muted-foreground">
+                          Check the official college website for current courses and fees.
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -753,7 +728,7 @@ export default function CollegeDetail() {
               city={college.city}
               category={college.category}
               sections={COLLEGE_SECTIONS}
-              topCourses={popularCourses.map((c) => ({ name: c.name, slug: c.slug }))}
+              topCourses={coursesOfficiallyVerified ? feeCourseMetadata.map((c: any) => ({ name: c.name, slug: c.slug })) : []}
             />
           </div>
 
@@ -778,14 +753,16 @@ export default function CollegeDetail() {
               </div>
 
               {/* Top Courses */}
-              <div className="bg-card rounded-2xl border border-border p-4">
-                <h3 data-h className="text-sm font-bold text-foreground mb-3">📚 Top Courses</h3>
-                <div className="space-y-2">
-                  {popularCourses.slice(0, 5).map((c) => (
-                    <Link key={c.slug} to={`/courses/${c.slug}`} className="block text-xs text-primary hover:underline py-1 border-b border-border last:border-0">{c.name}</Link>
-                  ))}
+              {coursesOfficiallyVerified && feeCourseMetadata.length > 0 && (
+                <div className="bg-card rounded-2xl border border-border p-4">
+                  <h3 data-h className="text-sm font-bold text-foreground mb-3">📚 Top Courses</h3>
+                  <div className="space-y-2">
+                    {feeCourseMetadata.slice(0, 5).map((c: any) => (
+                      <Link key={c.slug} to={`/courses/${c.slug}`} className="block text-xs text-primary hover:underline py-1 border-b border-border last:border-0">{c.name}</Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Similar Colleges */}
               {(similarColleges ?? []).length > 0 && (
