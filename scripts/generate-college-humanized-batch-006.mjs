@@ -5,8 +5,8 @@ import { readFile, writeFile } from "node:fs/promises";
 const input = process.argv[2] || "/private/tmp/college_next_100_full_wrapped.json";
 const migration = process.argv[3] || "supabase/migrations/20260801171500_college_humanized_content_batch_006.sql";
 const report = process.argv[4] || "reports/college-humanized-content-batch-006.md";
-const researchedAt = "2026-08-01";
-const batch = "college-humanized-content-batch-006";
+const researchedAt = process.argv[5] || "2026-08-01";
+const batch = process.argv[6] || "college-humanized-content-batch-006";
 
 const raw = await readFile(input, "utf8");
 const wrapped = JSON.parse(raw.slice(raw.indexOf("{")));
@@ -105,7 +105,7 @@ records.forEach((record, index) => {
     ? record.facilities.map(cleanText).filter(Boolean).slice(0, 8)
     : ["Library", "Classrooms", "Student support", "Department facilities", "Campus assistance"];
   const courses = extractCourses(record);
-  const courseLine = courses.length ? courses.join(", ") : "the programmes currently listed on its admission profile";
+  const courseLine = courses.length ? courses.join(", ") : "no official course catalogue verified for this batch";
   const sourceUrls = allSources(record);
   const approvalLine = approvals.length ? ` Current approval or affiliation signals available for review include ${approvals.join(", ")}.` : " Approval, affiliation and intake details should be confirmed from the latest notice before payment.";
   const establishmentLine = record.established ? ` The institution record carries an establishment year of ${record.established}.` : " The establishment year is not asserted here unless a reviewed source clearly supports it.";
@@ -114,7 +114,7 @@ records.forEach((record, index) => {
   const pageSummary = `${name} in ${location || "India"}: source-reviewed overview for admissions, courses, facilities, placements, scholarships and 2026 decision checks.`;
   const admission = `${name} admissions should be approached in four steps: choose the programme, confirm eligibility, check whether admission is through merit, counselling or an entrance route, and submit documents only through the official or recognised admission channel. Students should re-check the 2026 dates, seat intake, reservation rules, refund policy and required certificates before making a payment.`;
   const eligibility = `Eligibility at ${name} depends on the selected programme and the relevant university, council or state admission rules. Undergraduate applicants generally need Class 12 or an equivalent qualification in the required stream, while postgraduate applicants need a relevant bachelor degree. Professional programmes may also require entrance scores, practical training rules or council norms.`;
-  const courseFee = `${name} course information has been cleaned for AIO, AEO, SEO, GEO and LLMO visibility by using direct programme language and source context. Reviewed course signals include ${courseLine}. Programme-wise fees are left blank until a current fee notice maps amount, year, quota, category and hostel or exam charges clearly.`;
+  const courseFee = `${name} course information has been cleaned for AIO, AEO, SEO, GEO and LLMO visibility by using direct programme language and source context. Reviewed course signals include ${courseLine}. Course rows stay blank unless the catalogue is confirmed from an official institution page, statutory disclosure or official admission notice. Programme-wise fees stay blank until a current fee notice maps amount, year, quota, category and hostel or exam charges clearly.`;
   const placement = `${name} placement information is kept conservative and student-first. Applicants should ask for the latest recruiter list, internship support, placement percentage, highest and median package, and department-wise outcomes. Where a formal placement report is not available, this page avoids inflated salary promises and focuses on questions that help families verify outcomes.`;
   const facilityText = `${name} facilities currently highlighted for student checks include ${facilities.join(", ")}. Availability can differ by department, batch and campus rules, so students should confirm lab access, library hours, hostel capacity, transport, clinical or workshop exposure, and safety arrangements directly with the institution.`;
   const hostel = `Hostel and local accommodation details for ${name} should be verified before booking. Ask the campus about room type, mess charges, refund terms, curfew, security, distance from classrooms and whether accommodation is compulsory or optional for the selected programme.`;
@@ -138,7 +138,7 @@ records.forEach((record, index) => {
     fee_policy: "fees_blank_until_programme_year_category_and_quota_are_verified"
   };
   const courseRows = courses.length
-    ? `\nDELETE FROM public.course_fees WHERE college_slug = ${sql(record.slug)};\n\nINSERT INTO public.course_fees (college_slug, course_slug, course_name, fee_amount, fee_type, year)\nVALUES\n${courses.map((course) => `  (${sql(record.slug)}, ${sql(slugify(course))}, ${sql(course)}, NULL, NULL, '2026')`).join(",\n")};\n`
+    ? ""
     : "";
 
   blocks.push(`
@@ -160,6 +160,8 @@ SET
   admission_process = ${sql(admission)},
   eligibility_criteria = ${sql(eligibility)},
   course_fee_content = ${sql(courseFee)},
+  related_courses = ARRAY[]::text[],
+  courses_count = 0,
   placement_content = ${sql(placement)},
   facilities_content = ${sql(facilityText)},
   facilities = CASE WHEN array_length(${arraySql(facilities)}, 1) IS NULL THEN facilities ELSE ${arraySql(facilities)} END,
@@ -171,7 +173,7 @@ SET
   data_source_urls = COALESCE(data_source_urls, '[]'::jsonb) || jsonb_build_array(${jsonSql(sourcePayload)}),
   data_clean_method = 'source_review_humanized',
   data_clean_state = 'humanized_source_backed',
-  data_clean_audit_note = ${sql(`${batch}; humanized answer-first content; sources preserved in data_source_urls; no course-fee rows were replaced in this batch; fees kept blank pending official programme-wise mapping.`)},
+  data_clean_audit_note = ${sql(`${batch}; humanized answer-first content; sources preserved in data_source_urls; course surfaces cleared unless official catalogue is verified; fees kept blank pending official programme-wise mapping.`)},
   data_quality_score = GREATEST(COALESCE(data_quality_score, 0), 82),
   data_verified_at = ${sql(`${researchedAt}T00:00:00+05:30`)}::timestamptz,
   data_last_checked_at = ${sql(`${researchedAt}T00:00:00+05:30`)}::timestamptz,
@@ -183,9 +185,11 @@ SET
   requires_official_source_refresh = true,
   updated_at = now()
 WHERE id = ${sql(record.id)} AND slug = ${sql(record.slug)};
+
+DELETE FROM public.course_fees WHERE college_slug = ${sql(record.slug)};
 ${courseRows}`);
 
-  reportRows.push(`| ${index + 1} | ${name.replace(/\|/g, "/")} | ${record.slug} | ${courses.length ? courses.length : "kept existing"} | ${sourcePayload.source_status} |`);
+  reportRows.push(`| ${index + 1} | ${name.replace(/\|/g, "/")} | ${record.slug} | blanked pending official catalogue | ${sourcePayload.source_status} |`);
 });
 
 if (records.length !== 100) errors.push(`Expected 100 records, got ${records.length}`);
