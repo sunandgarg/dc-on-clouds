@@ -60,10 +60,55 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
     const timer = window.setTimeout(async () => {
       try {
         const orFor = (column: string) => buildIlikeOr(column, variants);
+        const rpc = await (supabase as any).rpc("search_directory_fuzzy", {
+          p_terms: variants,
+          p_limit: 10,
+        });
+
+        if (!rpc.error && rpc.data?.length) {
+          const rows = (rpc.data || []) as Array<{
+            entity_type: string;
+            name: string;
+            slug: string;
+            subtitle?: string;
+            image_url?: string;
+            logo_url?: string;
+            score?: number;
+          }>;
+          const mapped = rows
+            .filter((row) => ["College", "Course", "Exam", "Career"].includes(row.entity_type))
+            .map((row) => ({
+              entity_type: row.entity_type as DirectoryResult["entity_type"],
+              name: compactDisplayText(row.name, `Untitled ${row.entity_type.toLowerCase()}`, 90),
+              slug: row.slug,
+              subtitle: compactDisplayText(row.subtitle || "", "", 60),
+              image_url: row.logo_url || row.image_url || "",
+              logo_url: row.logo_url || "",
+              score: row.score,
+            }));
+          if (requestId.current === currentRequest) setResults(mapped);
+          return;
+        }
+
         const [colleges, courses, exams] = await Promise.all([
-          supabase.from("colleges").select("name,slug,city,logo").eq("is_active", true).or(orFor("name")).limit(4),
-          supabase.from("courses").select("name,slug,level,category,image").eq("is_active", true).or(orFor("name")).limit(4),
-          supabase.from("exams").select("name,slug,logo,image,exam_type,category").eq("is_active", true).or(orFor("name")).limit(3),
+          supabase
+            .from("colleges")
+            .select("name,slug,city,state,logo,image")
+            .eq("is_active", true)
+            .or([orFor("name"), orFor("slug"), orFor("city"), orFor("state")].filter(Boolean).join(","))
+            .limit(4),
+          supabase
+            .from("courses")
+            .select("name,slug,level,category,image")
+            .eq("is_active", true)
+            .or(orFor("name"))
+            .limit(4),
+          supabase
+            .from("exams")
+            .select("name,slug,logo,image,exam_type,category")
+            .eq("is_active", true)
+            .or(orFor("name"))
+            .limit(3),
         ]);
         const fallback: DirectoryResult[] = [
           ...(colleges.data || []).map((row) => ({ entity_type: "College" as const, name: compactDisplayText(row.name, "Untitled college", 90), slug: row.slug, subtitle: compactDisplayText(row.city || "", "", 60), image_url: row.logo || "" })),

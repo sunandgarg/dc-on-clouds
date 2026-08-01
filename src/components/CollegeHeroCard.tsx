@@ -20,7 +20,12 @@ interface Props {
  */
 export function CollegeHeroCard({ college }: Props) {
   const hasImage = !!college.image;
-  const tags: string[] = (college.tags || []).slice(0, 3);
+  const tags: string[] = (college.tags || [])
+    .filter((tag: string) => {
+      const normalized = String(tag || "").toLowerCase();
+      return normalized && !normalized.includes("legacy") && !normalized.includes("csv") && !normalized.includes("import");
+    })
+    .slice(0, 3);
 
   return (
     <motion.div
