@@ -95,7 +95,9 @@ const titleCase = (value) => cleanText(value).replace(/\b\w/g, (letter) => lette
 
 const verifiedRankingFor = (name) => {
   const lower = cleanText(name).toLowerCase();
-  if (/\baiims delhi\b/.test(lower) || /all india institute of medical sciences/.test(lower)) {
+  const isAiimsDelhi = /\baiims(?:\s*[-,()]*)?\s*(?:new\s+)?delhi\b/.test(lower)
+    || (/all india institute of medical sciences/.test(lower) && /\bnew delhi\b/.test(lower));
+  if (isAiimsDelhi) {
     return {
       text: "AIIMS Delhi is a nationally recognised medical institution. For ranking tags, DekhoCampus maps it to the official NIRF 2025 ranking where AIIMS Delhi is listed at rank 1 in Medical, rank 8 in Overall and rank 11 in Research Institutions. Students should still verify the latest ranking year and category on the official NIRF website before using rankings for final decisions.",
       tags: ["NIRF 2025 Medical #1", "NIRF 2025 Overall #8", "NIRF 2025 Research #11", "Medical", "Institute of National Importance"],

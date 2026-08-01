@@ -718,6 +718,35 @@ export default function CollegeDetail() {
 
             <LatestNewsSection entityType="college" entitySlug={college.slug} entityName={college.short_name || college.name} />
 
+            {(() => {
+              const sourceLinks = Array.from(new Set([
+                (college as any).official_website,
+                (college as any).official_source_url,
+              ].filter((value): value is string => typeof value === "string" && /^https?:\/\//i.test(value))));
+              if (!sourceLinks.length) return null;
+              return (
+                <section id="official-sources" className="scroll-mt-32 rounded-2xl border border-border bg-card p-5 md:p-6">
+                  <h2 className="text-xl font-extrabold tracking-tight text-foreground">Official sources</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Verify programmes, fees, admission dates and notices directly with the institution before applying or paying.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {sourceLinks.map((url, index) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="nofollow noopener noreferrer"
+                        className="inline-flex min-h-10 items-center rounded-full border border-border px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                      >
+                        {index === 0 ? "Institution website" : "Official reference"}
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
+
             {/* Useful Links */}
             <UsefulLinks
               type="college"
