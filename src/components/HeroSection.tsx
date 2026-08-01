@@ -60,6 +60,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [dbResults, setDbResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const requestId = useRef(0);
   const navigate = useNavigate();
@@ -93,14 +94,15 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     const currentRequest = ++requestId.current;
     if (!q || q.length < 2) {
       setDbResults([]);
+      setIsSearching(false);
       return;
     }
 
+    setIsSearching(true);
     const timeout = setTimeout(async () => {
       try {
-        const variants = buildSearchVariants(q.toLowerCase()).slice(0, q.length <= 2 ? 6 : 10);
-        const rpc = await (supabase as any).rpc("search_directory_fuzzy", {
-          p_terms: variants,
+        const rpc = await (supabase as any).rpc("search_directory_fast", {
+          p_query: q,
           p_limit: 10,
         });
         if (requestId.current !== currentRequest) return;
@@ -122,6 +124,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
           return;
         }
 
+        const variants = buildSearchVariants(q.toLowerCase()).slice(0, 3);
         const orFor = (column: string) => buildIlikeOr(column, variants);
         const [colleges, courses, exams] = await Promise.all([
           supabase
@@ -180,8 +183,10 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
         setDbResults(results);
       } catch {
         /* skip */
+      } finally {
+        if (requestId.current === currentRequest) setIsSearching(false);
       }
-    }, q.length <= 2 ? 220 : 160);
+    }, q.length <= 2 ? 140 : 90);
 
     return () => clearTimeout(timeout);
   }, [searchQuery]);
@@ -445,7 +450,10 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                           <ArrowRight className="w-4 h-4 text-muted-foreground" />
                         </button>
                       ))}
-                      {!dbResults.length && (
+                      {isSearching && !dbResults.length && (
+                        <div className="flex min-h-[72px] items-center px-4 py-3 text-sm text-muted-foreground">Searching...</div>
+                      )}
+                      {!isSearching && !dbResults.length && (
                         <button
                           type="button"
                           onMouseDown={handleAskAI as any}
@@ -463,7 +471,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                       )}
                     </div>
                     {/* Ask AI option at bottom */}
-                    <div className="sticky bottom-0 border-t border-border bg-card px-4 py-3">
+                    {dbResults.length > 0 && <div className="sticky bottom-0 border-t border-border bg-card px-4 py-3">
                       <button
                         onMouseDown={handleAskAI as any}
                         className="flex min-h-12 w-full items-center gap-3 text-left transition-opacity hover:opacity-80"
@@ -476,7 +484,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                           <p className="text-xs text-muted-foreground">Get personalized guidance for "{searchQuery}"</p>
                         </div>
                       </button>
-                    </div>
+                    </div>}
                   </div>
                 )}
               </div>

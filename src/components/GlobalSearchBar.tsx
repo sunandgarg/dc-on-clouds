@@ -59,9 +59,8 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
     setLoading(true);
     const timer = window.setTimeout(async () => {
       try {
-        const orFor = (column: string) => buildIlikeOr(column, variants);
-        const rpc = await (supabase as any).rpc("search_directory_fuzzy", {
-          p_terms: variants,
+        const rpc = await (supabase as any).rpc("search_directory_fast", {
+          p_query: normalizedQuery,
           p_limit: 10,
         });
 
@@ -91,6 +90,8 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
           return;
         }
 
+        const fallbackVariants = variants.slice(0, 3);
+        const orFor = (column: string) => buildIlikeOr(column, fallbackVariants);
         const [colleges, courses, exams] = await Promise.all([
           supabase
             .from("colleges")
@@ -122,7 +123,7 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
       } finally {
         if (requestId.current === currentRequest) setLoading(false);
       }
-    }, normalizedQuery.length <= 2 ? 240 : 150);
+    }, normalizedQuery.length <= 2 ? 140 : 90);
 
     return () => window.clearTimeout(timer);
   }, [normalizedQuery, variants]);
