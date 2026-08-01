@@ -7,6 +7,7 @@ const migration = process.argv[3] || "supabase/migrations/20260801171500_college
 const report = process.argv[4] || "reports/college-humanized-content-batch-006.md";
 const researchedAt = process.argv[5] || "2026-08-01";
 const batch = process.argv[6] || "college-humanized-content-batch-006";
+const expectedCount = Number(process.argv[7] || 100);
 
 const raw = await readFile(input, "utf8");
 const wrapped = JSON.parse(raw.slice(raw.indexOf("{")));
@@ -78,7 +79,7 @@ const sourceStatus = (record) => {
     return "public_source_reviewed_official_refresh_pending";
   }
   if (site) return "institution_site_present_with_public_source_review";
-  return "public_source_reviewed_official_refresh_pending";
+  return "official_source_not_found_courses_and_fees_withheld";
 };
 
 const openers = [
@@ -88,6 +89,9 @@ const openers = [
   "At a decision level",
   "For admissions research"
 ];
+
+const pick = (values, index, salt = 0) => values[(index + salt) % values.length];
+const titleCase = (value) => cleanText(value).replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const verifiedRankingFor = (name) => {
   const lower = cleanText(name).toLowerCase();
@@ -119,44 +123,85 @@ records.forEach((record, index) => {
   const approvals = Array.isArray(record.approvals) ? record.approvals.map(cleanText).filter(Boolean) : [];
   const facilities = Array.isArray(record.facilities) && record.facilities.length
     ? record.facilities.map(cleanText).filter(Boolean).slice(0, 8)
-    : ["Library", "Classrooms", "Student support", "Department facilities", "Campus assistance"];
+    : [];
   const courses = extractCourses(record);
-  const courseLine = courses.length ? courses.join(", ") : "no official course catalogue verified for this batch";
   const sourceUrls = allSources(record);
+  const hasReviewedSource = sourceUrls.length > 0;
   const verifiedRanking = verifiedRankingFor(name);
   if (verifiedRanking) verifiedRanking.sources.forEach((url) => sourceUrls.push(url));
-  const approvalLine = approvals.length ? ` Current approval or affiliation signals available for review include ${approvals.join(", ")}.` : " Approval, affiliation and intake details should be confirmed from the latest notice before payment.";
-  const establishmentLine = record.established ? ` The institution record carries an establishment year of ${record.established}.` : " The establishment year is not asserted here unless a reviewed source clearly supports it.";
+  const approvalLine = approvals.length ? ` The current record mentions ${approvals.join(", ")}, but students should verify these claims from the regulator or institution before relying on them.` : " Approval, affiliation and intake details should be confirmed from the latest notice before payment.";
+  const establishmentLine = record.established ? ` The current record lists ${record.established} as the establishment year; this should be cross-checked against an institutional disclosure.` : " The establishment year is not asserted here without a reviewed institutional source.";
 
-  const description = `${openers[index % openers.length]}, ${name} is a ${domain} option in ${location || "India"} for students comparing admissions, course fit, campus support and career outcomes for 2026. This profile is written answer-first: check the course list, confirm eligibility, review facilities, then verify the latest admission notice from the source links before applying.${establishmentLine}${approvalLine} DekhoCampus keeps unverified fee claims out of the page so students are not misled by old or category-specific numbers.`;
-  const pageSummary = `${name} in ${location || "India"}: source-reviewed overview for admissions, courses, facilities, placements, scholarships and 2026 decision checks.`;
-  const admission = `${name} admissions should be approached in four steps: choose the programme, confirm eligibility, check whether admission is through merit, counselling or an entrance route, and submit documents only through the official or recognised admission channel. Students should re-check the 2026 dates, seat intake, reservation rules, refund policy and required certificates before making a payment.`;
-  const eligibility = `Eligibility at ${name} depends on the selected programme and the relevant university, council or state admission rules. Undergraduate applicants generally need Class 12 or an equivalent qualification in the required stream, while postgraduate applicants need a relevant bachelor degree. Professional programmes may also require entrance scores, practical training rules or council norms.`;
-  const courseFee = `${name} course information has been cleaned for AIO, AEO, SEO, GEO and LLMO visibility by using direct programme language and source context. Reviewed course signals include ${courseLine}. Course rows stay blank unless the catalogue is confirmed from an official institution page, statutory disclosure or official admission notice. Programme-wise fees stay blank until a current fee notice maps amount, year, quota, category and hostel or exam charges clearly.`;
-  const placement = `${name} placement information is kept conservative and student-first. Applicants should ask for the latest recruiter list, internship support, placement percentage, highest and median package, and department-wise outcomes. Where a formal placement report is not available, this page avoids inflated salary promises and focuses on questions that help families verify outcomes.`;
-  const facilityText = `${name} facilities currently highlighted for student checks include ${facilities.join(", ")}. Availability can differ by department, batch and campus rules, so students should confirm lab access, library hours, hostel capacity, transport, clinical or workshop exposure, and safety arrangements directly with the institution.`;
-  const hostel = `Hostel and local accommodation details for ${name} should be verified before booking. Ask the campus about room type, mess charges, refund terms, curfew, security, distance from classrooms and whether accommodation is compulsory or optional for the selected programme.`;
-  const scholarship = `Scholarships for ${name} may depend on government portals, category rules, merit, income criteria, minority schemes, state domicile and institution-level concessions. Students should keep income, caste or category, domicile, mark sheets, entrance score and bank documents ready and check deadlines from the official portal.`;
+  const description = `${openers[index % openers.length]}, ${name} is a ${domain} option in ${location || "India"} for students comparing admissions, programme fit, campus support and career outcomes for 2026. ${pick([
+    "Start with the exact programme and admission route, then compare eligibility, learning resources and likely outcomes.",
+    "A useful shortlist should begin with programme availability, eligibility and the latest admission calendar.",
+    "Before applying, verify the campus, programme, awarding university and current admission notice.",
+    "Students should first confirm what is taught at this campus and how admission is conducted for their chosen programme.",
+    "The safest decision path is to confirm the programme, entry requirements, campus facilities and written fee notice."
+  ], index)}${establishmentLine}${approvalLine} Unverified course and fee claims are withheld so an old or category-level figure is not presented as a campus fact.`;
+  const pageSummary = hasReviewedSource
+    ? `${name} in ${location || "India"}: reviewed overview for admissions, courses, facilities, placements, scholarships and 2026 decision checks.`
+    : `${name} in ${location || "India"}: a practical admissions overview with institution-specific courses and fees withheld until an official source is verified.`;
+  const admission = pick([
+    `${name} applicants should first identify the exact programme and admission authority. Confirm whether selection uses merit, counselling or an entrance score, then check the 2026 schedule, seat category, document list, refund terms and payment channel before submitting an application.`,
+    `For ${name} admission, begin with the current prospectus or admission notice. Match the programme to its eligibility rule, note the application and counselling dates, keep original certificates ready and use only the institution or authorised counselling payment route.`,
+    `Admission planning for ${name} should cover the programme name, entry route, deadline, reservation rule and document verification process. Students should retain receipts and confirm refund conditions before paying any application, tuition or seat-confirmation amount.`,
+    `${name} may use programme-specific admission routes. Applicants should verify the correct campus, academic session, eligibility, selection method, seat intake and reporting date instead of relying on an older general admission summary.`,
+    `A careful ${name} application starts with the latest official notice. Check eligibility, accepted examination or merit criteria, application steps, counselling requirements, document formats and payment instructions for the exact programme and 2026 intake.`
+  ], index, 1);
+  const eligibility = pick([
+    `Eligibility at ${name} is programme-specific. Undergraduate study normally requires Class 12 or an equivalent qualification in the relevant stream, while postgraduate study usually requires a suitable bachelor degree. Professional programmes may also apply entrance, age, practical or council conditions.`,
+    `${name} eligibility should be checked against the precise programme and affiliating or regulating authority. Subject combinations, minimum marks, entrance scores, category relaxation and document requirements can differ, so applicants should use the current official notice.`,
+    `The right eligibility test for ${name} is not a single college-wide rule. Confirm the qualifying examination, required subjects, minimum score, entrance route and any professional-council conditions for the programme being considered.`,
+    `Students considering ${name} should match their qualification to the latest programme notice. Class 12 stream requirements, graduation discipline, entrance score, domicile, reservation and age provisions may apply differently across courses.`,
+    `For ${name}, eligibility must be verified programme by programme. Applicants should confirm academic prerequisites, subject requirements, minimum marks, accepted entrance tests and any mandatory registration or practical-training rules.`
+  ], index, 2);
+  const courseFee = `Check the official college website for current courses and fees.`;
+  const placement = pick([
+    `${name} placement claims should be checked through a recent institutional report. Ask for programme-wise eligible students, offers, median outcome, internship support and recruiter names, and distinguish final placements from training, pooled drives or informal opportunities.`,
+    `For career outcomes at ${name}, students should request the latest department-level placement evidence. Useful checks include internship access, number of participating students, confirmed offers, median package, job roles and whether recruiter names relate to this campus.`,
+    `${name} career support is best assessed through current evidence rather than a single highest-package figure. Compare internships, placement participation, role quality, recruiter continuity, alumni pathways and outcomes for the exact programme.`,
+    `Before judging ${name} on placements, ask for a dated report covering eligible students, placed students, multiple offers, median salary, common job roles and higher-study outcomes. Unverified recruiter or salary claims are not repeated here.`,
+    `Placement research for ${name} should focus on comparable programme-level outcomes. Students can ask about training, internships, recruiter visits, selection ratios, median compensation and the share of graduates choosing entrepreneurship or further study.`
+  ], index, 3);
+  const facilityText = facilities.length
+    ? `${name} facility records currently mention ${facilities.join(", ")}. Availability can differ by department, batch and campus rules, so students should confirm access, timings, capacity and safety arrangements directly with the institution.`
+    : `${name} facility details have not been verified from an official institutional source in this batch. Students should confirm laboratories, library access, hostel capacity, transport, accessibility and safety arrangements directly before admission.`;
+  const hostel = pick([
+    `Hostel and nearby accommodation for ${name} should be confirmed before payment. Check availability, room sharing, mess plan, total annual charge, deposit and refund terms, security, curfew, transport and the distance between accommodation and teaching facilities.`,
+    `${name} hostel information can change by gender, programme and academic year. Students should ask for the current room inventory, mess and utility charges, rules, safety arrangements, refund policy and whether first-year accommodation is guaranteed.`,
+    `Accommodation decisions for ${name} need a written cost and facility breakdown. Confirm room type, occupancy, food, laundry, transport, medical support, entry rules, deposit conditions and the process used when hostel capacity is full.`,
+    `Students planning to stay near ${name} should compare campus housing with local options. Verify hostel eligibility, allotment timing, room and mess fees, supervision, travel time, safety provisions and the rules for cancellation or early exit.`,
+    `Before booking accommodation for ${name}, request the latest hostel notice and visit if possible. Check capacity, room condition, washrooms, mess, internet, security, study space, curfew and all refundable and non-refundable charges.`
+  ], index, 4);
+  const scholarship = pick([
+    `Scholarship options connected with ${name} may include central or state schemes, category support, merit awards, income-based assistance and institutional concessions. Students should verify eligibility, renewal marks, document requirements and deadlines on the relevant official portal.`,
+    `${name} applicants should check scholarships separately from admission. Compare government portals, domicile and category schemes, merit or sports support, income limits, required certificates, disbursement method and whether benefits can be combined.`,
+    `Financial aid for ${name} may vary by programme and student profile. Keep academic records, income and category certificates, domicile, bank details and entrance documents ready, and submit applications only through a recognised scheme or institution portal.`,
+    `Students should not assume that admission to ${name} automatically includes a scholarship. Confirm scheme name, eligibility, application window, verification authority, benefit amount, renewal conditions and the treatment of tuition, hostel and examination charges.`,
+    `For scholarship planning at ${name}, review central, state, minority, category, merit and disability schemes relevant to the student. Dates and documentary rules can change, so use the current official scheme notice.`
+  ], index, 5);
   const ranking = verifiedRanking?.text || (approvals.length
     ? `${name} is mapped with reviewed approval or affiliation signals such as ${approvals.join(", ")}. Ranking text is intentionally limited unless a recognised ranking body, accreditation disclosure or official report is available.`
     : `${name} has no independently verified current ranking claim in this batch. DekhoCampus keeps the ranking section factual until an official accreditation, recognised ranking or institutional disclosure is available.`);
   const tags = [
-    ...(Array.isArray(record.tags) ? record.tags : []),
-    ...approvals,
     cleanText(record.category || ""),
     cleanText(record.type || ""),
+    titleCase(domain),
+    city,
+    state,
     ...(verifiedRanking?.tags || []),
-  ];
+  ].filter((tag) => tag && !/legacy|csv|draft|unknown|undefined|null|nan/i.test(tag));
 
   [description, pageSummary, admission, eligibility, courseFee, placement, facilityText, hostel, scholarship, ranking].forEach((field, fIndex) => {
     if (/<\/?[a-z][\s\S]*>/i.test(field)) errors.push(`${record.slug}: field ${fIndex} contains HTML`);
     if (/[–—]/.test(field)) errors.push(`${record.slug}: field ${fIndex} contains big dash`);
-    if (fIndex !== 1 && field.split(/\s+/).length < 22) errors.push(`${record.slug}: field ${fIndex} is too short`);
+    if (![1, 4].includes(fIndex) && field.split(/\s+/).length < 22) errors.push(`${record.slug}: field ${fIndex} is too short`);
   });
 
   const sourcePayload = {
     batch,
-    researched_at: "2026-08-01",
+    researched_at: researchedAt,
     source_status: sourceStatus(record),
     source_links_for_nofollow_rendering: sourceUrls,
     content_policy: "answer_first_humanized_aio_aeo_seo_geo_llmo_no_big_dash",
@@ -198,13 +243,13 @@ SET
   fees = '',
   data_source_urls = COALESCE(data_source_urls, '[]'::jsonb) || jsonb_build_array(${jsonSql(sourcePayload)}),
   data_clean_method = 'source_review_humanized',
-  data_clean_state = 'humanized_source_backed',
-  data_clean_audit_note = ${sql(`${batch}; humanized answer-first content; sources preserved in data_source_urls; course surfaces cleared unless official catalogue is verified; fees kept blank pending official programme-wise mapping.`)},
-  data_quality_score = GREATEST(COALESCE(data_quality_score, 0), 82),
-  data_verified_at = ${sql(`${researchedAt}T00:00:00+05:30`)}::timestamptz,
+  data_clean_state = ${sql(hasReviewedSource ? "humanized_source_backed" : "humanized_official_refresh_pending")},
+  data_clean_audit_note = ${sql(`${batch}; humanized answer-first content; ${hasReviewedSource ? "available source links preserved" : "no official source located in this batch"}; course surfaces cleared unless an official catalogue is verified; fees kept blank pending official programme-wise mapping.`)},
+  data_quality_score = GREATEST(COALESCE(data_quality_score, 0), ${hasReviewedSource ? 82 : 68}),
+  data_verified_at = ${hasReviewedSource ? `${sql(`${researchedAt}T00:00:00+05:30`)}::timestamptz` : "data_verified_at"},
   data_last_checked_at = ${sql(`${researchedAt}T00:00:00+05:30`)}::timestamptz,
-  official_source_cleaned_at = ${sql(`${researchedAt}T00:00:00+05:30`)}::timestamptz,
-  official_source_clean_pass_count = COALESCE(official_source_clean_pass_count, 0) + 1,
+  official_source_cleaned_at = ${hasReviewedSource ? `${sql(`${researchedAt}T00:00:00+05:30`)}::timestamptz` : "official_source_cleaned_at"},
+  official_source_clean_pass_count = COALESCE(official_source_clean_pass_count, 0) + ${hasReviewedSource ? 1 : 0},
   ai_clean_pass_count = COALESCE(ai_clean_pass_count, 0) + 1,
   official_courses_verified = false,
   official_fees_verified = false,
@@ -218,7 +263,7 @@ ${courseRows}`);
   reportRows.push(`| ${index + 1} | ${name.replace(/\|/g, "/")} | ${record.slug} | blanked pending official catalogue | ${sourcePayload.source_status} |`);
 });
 
-if (records.length !== 100) errors.push(`Expected 100 records, got ${records.length}`);
+if (records.length !== expectedCount) errors.push(`Expected ${expectedCount} records, got ${records.length}`);
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
