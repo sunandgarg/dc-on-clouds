@@ -15,7 +15,7 @@ The audited set is not complete against the requested publication standard. All 
 - Official fee verification pending in the queue: 935
 - Fewer than three internal entity links: 879
 
-After this pass, 5 queue records have verified official course mappings and verified source links. No fee record was marked verified because no current programme-level official fee schedule was applied.
+After this pass, 7 queue records have verified official course mappings and verified source links. No fee record was marked verified because no current programme-level official fee schedule was applied.
 
 The live college records using the current source-review methods contain 799 rows. Their core editorial fields average 446 words, with a minimum of 362 and a maximum of 548 words. The queue is broader because it contains every profile previously placed into the editorial completion programme.
 
@@ -24,7 +24,8 @@ The live college records using the current source-review methods contain 799 row
 - Matched 16 colleges to official Government of India NIRF 2025 category tables.
 - Added category-specific NIRF 2025 ranking text and tags only for unambiguous institution and city matches.
 - Withheld ranking tags from 919 colleges where a safe official match was not available.
-- Mapped official course families for Anand Agricultural University, Andhra University, AIIMS Patna, AIIMS Raipur and Army Institute of Law.
+- Mapped official course families for Anand Agricultural University, Andhra University, AIIMS Patna, AIIMS Raipur, Army Institute of Law, Acharya Deshabhushan Ayurvedic Medical College and Adhiparasakthi Agricultural College.
+- Removed course verification from Adhisankarar Institute of Hotel Management because its saved source was a third-party page rather than an official catalogue.
 - Kept all unverified programme fees blank.
 - Preserved existing images and logos.
 - Removed no existing content solely because an official source was unavailable.
