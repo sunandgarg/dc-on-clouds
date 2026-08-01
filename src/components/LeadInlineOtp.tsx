@@ -182,7 +182,7 @@ export function useInlineOtp(phone: string, formKey: string) {
       type="button"
       onClick={() => sendOtp()}
       disabled={sending || !phoneOk || verified || cooldown > 0}
-      className="flex-shrink-0 h-10 rounded-xl px-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
+      className="h-10 shrink-0 whitespace-nowrap rounded-xl bg-primary px-2.5 text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground min-[390px]:px-4"
     >
       {sending ? (
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -191,7 +191,7 @@ export function useInlineOtp(phone: string, formKey: string) {
       ) : (
         <Send className="w-4 h-4" />
       )}
-      <span className="text-sm font-medium">
+      <span className="whitespace-nowrap text-[13px] font-medium min-[390px]:text-sm">
         {verified ? "Verified" : sending ? "Sending" : cooldown > 0 ? `${cooldown}s` : requested ? "Resend OTP" : "Get OTP"}
       </span>
     </Button>
@@ -221,7 +221,7 @@ export function useInlineOtp(phone: string, formKey: string) {
           size="sm"
           onClick={verify}
           disabled={sending || code.length !== OTP_LENGTH}
-          className="h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+          className="h-9 shrink-0 whitespace-nowrap rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
         >
           Verify
         </Button>
@@ -244,7 +244,7 @@ export function useInlineOtp(phone: string, formKey: string) {
               variant="outline"
               onClick={() => sendOtp()}
               disabled={sending}
-              className="h-7 px-2.5 text-[11px] rounded-md border-primary/40 text-primary hover:bg-primary/10"
+              className="h-7 whitespace-nowrap rounded-md border-primary/40 px-2.5 text-[11px] text-primary hover:bg-primary/10"
             >
               Resend SMS
             </Button>

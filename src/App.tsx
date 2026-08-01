@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CompareProvider } from "@/contexts/CompareContext";
+import { HomeMobileBottomNav } from "@/components/HomeMobileBottomNav";
 
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { ScrollLockGuard } from "@/components/ScrollLockGuard";
@@ -38,6 +39,12 @@ function GlobalDiya() {
   const isUpgradeYourself = pathname === "/premium-programs" || pathname.startsWith("/premium-programs/");
   if (pathname.startsWith("/admin") || pathname.startsWith("/auth") || isNews || isUpgradeYourself) return null;
   return <FloatingBot />;
+}
+
+function GlobalMobileNavigation() {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/admin") || pathname.startsWith("/lp") || pathname.startsWith("/landing/")) return null;
+  return <HomeMobileBottomNav />;
 }
 
 function DeferredGlobalUi() {
@@ -420,6 +427,7 @@ const App = () => (
             </Routes>
            </Suspense>
            </ChunkErrorBoundary>
+           <GlobalMobileNavigation />
            <DeferredGlobalUi />
          </BrowserRouter>
         </TooltipProvider>

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type State = { text_model: string; image_model: string; image_quality: "low" | "medium" | "high"; claude_key_set: boolean; openai_key_set: boolean };
-const defaults: State = { text_model: "gemini-3.5-flash", image_model: "gpt-image-1", image_quality: "medium", claude_key_set: false, openai_key_set: false };
+const defaults: State = { text_model: "gemini-3.5-flash-lite", image_model: "gpt-image-1", image_quality: "medium", claude_key_set: false, openai_key_set: false };
 
 const TEXT_MODELS = {
   anthropic: [
@@ -19,13 +19,17 @@ const TEXT_MODELS = {
     { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
   ],
   gemini: [
+    { value: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite - lowest cost" },
+    { value: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
     { value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
     { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
     { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
     { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   ],
   openai: [
-    { value: "gpt-5", label: "GPT-5" },
+    { value: "gpt-5.6-luna", label: "GPT-5.6 Luna - high-volume" },
+    { value: "gpt-5.6-terra", label: "GPT-5.6 Terra - balanced" },
+    { value: "gpt-5.6-sol", label: "GPT-5.6 Sol - flagship" },
     { value: "gpt-4.1", label: "GPT-4.1" },
     { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
     { value: "gpt-4o-mini", label: "GPT-4o mini" },

@@ -5,7 +5,12 @@ const encoder = new TextEncoder();
 export type BlogAiConfig = {
   claudeKey: string;
   openaiKey: string;
+  compatibleApiKey?: string;
+  compatibleBaseUrl?: string;
   textModel: string;
+  imageProvider?: "openai" | "gemini" | "xai";
+  imageApiKey?: string;
+  imageBaseUrl?: string;
   imageModel: string;
   imageQuality: "low" | "medium" | "high";
 };
@@ -38,9 +43,10 @@ function normalizeClaudeTextModel(value: string | null | undefined) {
 
 const resolvedClaudeModels = new Map<string, string>();
 
-function inferTextProvider(model: string | null | undefined): "anthropic" | "gemini" | "openai" {
+function inferTextProvider(model: string | null | undefined): "anthropic" | "gemini" | "openai" | "xai" {
   const value = String(model || "").trim().toLowerCase();
   if (value.startsWith("gemini")) return "gemini";
+  if (value.startsWith("grok")) return "xai";
   if (value.startsWith("gpt") || value.startsWith("o")) return "openai";
   return "anthropic";
 }
@@ -104,6 +110,8 @@ export async function loadBlogAiConfig(admin: any, serviceRoleKey: string): Prom
   return {
     claudeKey: await decryptBlogSecret(data?.claude_api_key_ciphertext || "", serviceRoleKey),
     openaiKey: await decryptBlogSecret(data?.openai_api_key_ciphertext || "", serviceRoleKey),
+    compatibleApiKey: "",
+    compatibleBaseUrl: "",
     textModel: inferTextProvider(data?.text_model) === "anthropic" ? normalizeClaudeTextModel(data?.text_model) : String(data?.text_model || GEMINI_MODEL),
     imageModel: ["gpt-image-2", ""].includes(String(data?.image_model || "")) ? DEFAULT_OPENAI_IMAGE_MODEL : String(data?.image_model || DEFAULT_OPENAI_IMAGE_MODEL),
     imageQuality: data?.image_quality || "medium",
@@ -125,12 +133,14 @@ export async function generateBlogJson(config: BlogAiConfig, prompt: string, tel
     return text || "{}";
   }
 
-  if (provider === "openai") {
-    if (!config.openaiKey) throw new Error("OpenAI API key is not configured in Admin - AI Providers");
-    const model = config.textModel || "gpt-5";
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  if (provider === "openai" || provider === "xai") {
+    const key = provider === "openai" ? config.openaiKey : config.compatibleApiKey;
+    if (!key) throw new Error(`${provider === "xai" ? "Grok / xAI" : "OpenAI"} API key is not configured in Admin - AI Providers`);
+    const model = config.textModel || (provider === "xai" ? "grok-4.5" : "gpt-5.6-luna");
+    const base = provider === "xai" ? (config.compatibleBaseUrl || "https://api.x.ai/v1") : "https://api.openai.com/v1";
+    const response = await fetch(`${base.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${config.openaiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         response_format: { type: "json_object" },
@@ -140,9 +150,9 @@ export async function generateBlogJson(config: BlogAiConfig, prompt: string, tel
         ],
       }),
     });
-    if (!response.ok) throw new Error(`OpenAI blog generation failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
+    if (!response.ok) throw new Error(`${provider === "xai" ? "Grok" : "OpenAI"} blog generation failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
     const data = await response.json();
-    if (telemetry?.admin) await logAiUsage(telemetry.admin, { provider: "openai", model, feature: telemetry.feature, operation: telemetry.operation || "text-generation", inputTokens: data.usage?.prompt_tokens, outputTokens: data.usage?.completion_tokens, userId: telemetry.userId });
+    if (telemetry?.admin) await logAiUsage(telemetry.admin, { provider, model, feature: telemetry.feature, operation: telemetry.operation || "text-generation", inputTokens: data.usage?.prompt_tokens, outputTokens: data.usage?.completion_tokens, userId: telemetry.userId });
     return data.choices?.[0]?.message?.content || "{}";
   }
 
@@ -212,28 +222,45 @@ function wrapCoverTitle(hook: string) {
 }
 
 async function maybeGenerateBackdrop(config: BlogAiConfig, hook: string, promptStyle = "") {
-  if (!config.openaiKey) return null;
+  const provider = config.imageProvider || "openai";
+  const prompt = `Create a premium abstract editorial background for an Indian education-news cover. Use a calm bright centre with enough negative space for a headline. No text, no logos, no watermarks. Art direction: ${normalizeHook(promptStyle || "clean, credible, student-focused editorial design")}. Topic: "${normalizeHook(hook)}".`;
 
-  const response = await fetch("https://api.openai.com/v1/images/generations", {
+  if (provider === "gemini") {
+    const key = config.imageApiKey || Deno.env.get("GEMINI_API_KEY") || "";
+    if (!key) throw new Error("Gemini image API key is not configured");
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.imageModel)}:generateContent?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ["IMAGE"] } }),
+    });
+    if (!response.ok) throw new Error(`Gemini image generation failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
+    const payload = await response.json();
+    const part = payload.candidates?.[0]?.content?.parts?.find((item: any) => item.inlineData?.data);
+    return part?.inlineData?.data ? `data:${part.inlineData.mimeType || "image/png"};base64,${part.inlineData.data}` : null;
+  }
+
+  const key = provider === "xai" ? config.imageApiKey : config.openaiKey;
+  if (!key) return null;
+  const base = provider === "xai" ? (config.imageBaseUrl || "https://api.x.ai/v1") : "https://api.openai.com/v1";
+
+  const response = await fetch(`${base.replace(/\/$/, "")}/images/generations`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${config.openaiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: config.imageModel,
-      prompt: `Create a premium abstract editorial background for an Indian education-news cover. Use a calm bright centre with enough negative space for a headline. No text, no logos, no watermarks. Art direction: ${normalizeHook(promptStyle || "clean, credible, student-focused editorial design")}. Topic: "${normalizeHook(hook)}".`,
-      size: "1536x1024",
-      quality: config.imageQuality,
-      output_format: "webp",
+      prompt,
+      ...(provider === "openai" ? { size: "1536x1024", quality: config.imageQuality, output_format: "webp" } : {}),
       n: 1,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI backdrop generation failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
+    throw new Error(`${provider === "xai" ? "Grok" : "OpenAI"} backdrop generation failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
   }
 
   const data = await response.json();
   const image = data.data?.[0]?.b64_json;
-  return image ? `data:image/webp;base64,${image}` : null;
+  return image ? `data:image/webp;base64,${image}` : (data.data?.[0]?.url || null);
 }
 
 function outputDimensions(aspectRatio: BlogCoverOptions["aspectRatio"], resolution: BlogCoverOptions["resolution"]) {
@@ -268,6 +295,29 @@ function logoMarkup(options: BlogCoverOptions) {
         <text x="449" y="142" font-family="Plus Jakarta Sans, Inter, Arial, sans-serif" font-size="94" font-weight="800" letter-spacing="-2.4" fill="#f28b43">Campus</text>
       </g>
     </g>`;
+}
+
+function encodeBytes(bytes: Uint8Array) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function embedExactLogo(options: BlogCoverOptions) {
+  if (options.includeLogo === false || !options.logoUrl || options.logoUrl.startsWith("data:")) return options;
+  try {
+    const response = await fetch(options.logoUrl);
+    if (!response.ok) return options;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!bytes.length) return options;
+    const mime = response.headers.get("content-type")?.split(";")[0] || "image/png";
+    return { ...options, logoUrl: `data:${mime};base64,${encodeBytes(bytes)}` };
+  } catch {
+    return options;
+  }
 }
 
 function buildBlogCoverSvg(hook: string, backdropHref: string | null, options: BlogCoverOptions = {}) {
@@ -339,16 +389,19 @@ export async function generateAndUploadBlogCover(admin: any, config: BlogAiConfi
   const safeHook = normalizeHook(hook);
   let backdropHref: string | null = options.mode === "template" && options.templateUrl ? options.templateUrl : null;
 
-  if (options.mode !== "template" && config.openaiKey) {
+  if (options.mode !== "template") {
     try {
       backdropHref = await maybeGenerateBackdrop(config, safeHook, options.promptStyle);
-      if (backdropHref) await logAiUsage(admin, { provider: "openai", model: config.imageModel, feature: "blog-cover", operation: "image-generation", imageCount: 1, estimatedCostUsd: config.imageQuality === "high" ? 0.12 : config.imageQuality === "medium" ? 0.06 : 0.03, metadata: { quality: config.imageQuality, slug } });
+      if (backdropHref) await logAiUsage(admin, { provider: config.imageProvider || "openai", model: config.imageModel, feature: "blog-cover", operation: "image-generation", imageCount: 1, metadata: { quality: config.imageQuality, slug } });
     } catch (error) {
       console.warn("Blog cover backdrop generation failed, using deterministic brand template instead.", error);
     }
   }
 
-  const svg = buildBlogCoverSvg(safeHook, backdropHref, options);
+  // Embed the supplied logo bytes after backdrop generation. This preserves
+  // the approved brand asset exactly and avoids asking an image model to draw it.
+  const coverOptions = await embedExactLogo({ ...options, logoPosition: "top-center" });
+  const svg = buildBlogCoverSvg(safeHook, backdropHref, coverOptions);
   const path = `blog-covers/${slug}-${Date.now()}.svg`;
   const { error } = await admin.storage.from("admin-uploads").upload(path, encoder.encode(svg), { contentType: "image/svg+xml", cacheControl: "31536000", upsert: false });
   if (error) throw error;

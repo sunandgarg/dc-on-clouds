@@ -38,7 +38,10 @@ export function Navbar() {
   const { user, isAdmin, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  // Sticky on every page (homepage too) per latest UX requirement.
+  const isHome = pathname === "/";
+  const [homeSearchVisible, setHomeSearchVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const upwardSteps = useRef(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -51,6 +54,32 @@ export function Navbar() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // On the homepage the compact mobile search gets out of the way while the
+  // visitor scrolls down. Two deliberate upward movements bring it back.
+  useEffect(() => {
+    if (!isHome) return;
+    lastScrollY.current = window.scrollY;
+    const onScroll = () => {
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        setHomeSearchVisible(true);
+        return;
+      }
+      const nextY = window.scrollY;
+      const delta = nextY - lastScrollY.current;
+      lastScrollY.current = nextY;
+      if (delta > 7) {
+        upwardSteps.current = 0;
+        setHomeSearchVisible(false);
+      } else if (delta < -7) {
+        upwardSteps.current += 1;
+        if (upwardSteps.current >= 2) setHomeSearchVisible(true);
+      }
+      if (nextY < 24) setHomeSearchVisible(true);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
   const initial = displayName.charAt(0).toUpperCase();
@@ -177,8 +206,12 @@ export function Navbar() {
           </div>
         </div>
 
-        {pathname !== "/" && !pathname.startsWith("/admin") && !pathname.startsWith("/auth") && (
-          <div className="border-t border-border/70 bg-white/95 px-3 py-2 backdrop-blur-xl">
+        {!pathname.startsWith("/admin") && !pathname.startsWith("/auth") && (
+          <div className={`border-t border-border/70 bg-white/95 px-3 backdrop-blur-xl transition-[max-height,opacity,padding] duration-200 md:py-2 ${
+            isHome && !homeSearchVisible
+              ? "max-h-0 overflow-hidden py-0 opacity-0 md:max-h-24 md:opacity-100"
+              : "max-h-24 py-2 opacity-100"
+          }`}>
             <div className="container px-0">
               <GlobalSearchBar variant="header" />
             </div>

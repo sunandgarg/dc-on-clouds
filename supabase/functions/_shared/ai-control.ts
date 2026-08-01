@@ -33,7 +33,8 @@ export async function applyBlogTextRuntimeControl(admin: any, feature: string, c
     if (control.model) config.textModel = control.model;
     else if (control.provider === "anthropic") config.textModel = "auto-sonnet";
     else if (control.provider === "gemini") config.textModel = "gemini-3.5-flash";
-    else if (control.provider === "openai") config.textModel = "gpt-5";
+    else if (control.provider === "openai") config.textModel = "gpt-5.6-luna";
+    else if (control.provider === "xai") config.textModel = "grok-4.5";
   } else if (control.model) {
     config.textModel = control.model;
   }
@@ -42,7 +43,6 @@ export async function applyBlogTextRuntimeControl(admin: any, feature: string, c
 
 export async function applyImageRuntimeControl(admin: any, config: { imageModel: string }) {
   const control = await getAiRuntimeControl(admin, "blog-image");
-  if (control.provider && control.provider !== "openai") throw new Error("Blog cover generation currently supports OpenAI image models only");
   if (control.model) config.imageModel = control.model;
   return control;
 }

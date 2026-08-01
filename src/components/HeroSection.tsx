@@ -183,7 +183,9 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     if (onOpenChat) onOpenChat(prompt);
   };
 
-  const showDropdown = isFocused && searchQuery.trim().length >= 2 && dbResults.length > 0;
+  // Keep the menu open for a valid query even when the directory has no
+  // matching record. That empty state is the hand-off to Ask Diya.
+  const showDropdown = isFocused && searchQuery.trim().length >= 2;
   const rotatingWords = [
     { label: "Path", className: "text-primary" },
     { label: "College", className: "text-accent" },
@@ -417,6 +419,22 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
                           <ArrowRight className="w-4 h-4 text-muted-foreground" />
                         </button>
                       ))}
+                      {!dbResults.length && (
+                        <button
+                          type="button"
+                          onMouseDown={handleAskAI as any}
+                          className="flex min-h-[72px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <Sparkles className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground md:text-base">Ask Diya about “{searchQuery.trim()}”</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">No exact match found</p>
+                          </div>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </button>
+                      )}
                     </div>
                     {/* Ask AI option at bottom */}
                     <div className="sticky bottom-0 border-t border-border bg-card px-4 py-3">

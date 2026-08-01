@@ -40,6 +40,17 @@ function cleanControlNote(value: unknown) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 300);
 }
 
+function normalizeArticleLinks(html: unknown) {
+  return String(html || "")
+    .replace(/<a\s+([^>]*href=["']https?:\/\/([^"']+)["'][^>]*)>/gi, (match, attrs, host) => {
+      const internal = /(^|\.)dekhocampus\.(in|com)(\/|$)/i.test(String(host));
+      if (internal) return match.replace(/\srel=["'][^"']*["']/i, "");
+      if (/\srel=["']/i.test(attrs)) return `<a ${attrs.replace(/\srel=["'][^"']*["']/i, ' rel="nofollow noopener noreferrer"')}>`;
+      return `<a ${attrs} rel="nofollow noopener noreferrer">`;
+    })
+    .replace(/[\u2013\u2014]/g, "-");
+}
+
 function slugify(value: string) {
   return String(value || "")
     .toLowerCase()
@@ -90,6 +101,35 @@ async function fetchSignals(sources: any[]) {
     return { ...source, ok: true, signal };
   }));
   return results.map((result, index) => result.status === "fulfilled" ? result.value : { ...sources[index], ok: false, signal: "Fetch failed" });
+}
+
+async function loadInternalLinkContext(admin: any, topic: any) {
+  const words = String(`${topic?.primary_keyword || ""} ${topic?.title || ""}`)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length >= 4 && !["admission", "latest", "update", "india", "students", "college", "course", "exam"].includes(word))
+    .slice(0, 4);
+  if (!words.length) return [];
+  const or = (column: string) => words.map((word) => `${column}.ilike.%${word}%`).join(",");
+  const requests = [
+    { table: "colleges", column: "name", path: "colleges", type: "college" },
+    { table: "courses", column: "name", path: "courses", type: "course" },
+    { table: "exams", column: "name", path: "exams", type: "exam" },
+    { table: "careers", column: "title", path: "careers", type: "career" },
+    { table: "jobs", column: "title", path: "jobs", type: "job" },
+    { table: "scholarships", column: "name", path: "scholarships", type: "scholarship" },
+  ];
+  const settled = await Promise.allSettled(requests.map(async (request) => {
+    const { data, error } = await admin.from(request.table).select(`${request.column},slug`).or(or(request.column)).limit(4);
+    if (error) return [];
+    return (data || []).map((row: any) => ({
+      label: row[request.column],
+      type: request.type,
+      url: `https://dekhocampus.in/${request.path}/${row.slug}`,
+    }));
+  }));
+  return settled.flatMap((result) => result.status === "fulfilled" ? result.value : []).slice(0, 16);
 }
 
 async function chooseProvider(admin: any, providerName: string) {
@@ -256,6 +296,7 @@ Deno.serve(async (req) => {
       daily_post_cap: 12,
       publish_status: "Published",
       model_provider: "gemini",
+      text_model: "gemini-3.5-flash-lite",
       word_limit: 1200,
       author_mode: "none",
       author_ids: [],
@@ -269,10 +310,12 @@ Deno.serve(async (req) => {
       editorial_quality_target: 80,
       human_review_required: true,
       image_mode: "generated",
+      image_provider: "gemini",
+      image_model: "gemini-3.1-flash-lite-image",
       image_template_url: "",
       image_prompt_style: "Premium editorial, clean, credible, student-focused",
       include_logo: true,
-      logo_url: "",
+      logo_url: "https://dekhocampus.in/brand/dekhocampus-blog-logo.png",
       logo_position: "top-center",
       image_aspect_ratio: "16:9",
       output_resolution: "4k",
@@ -283,11 +326,26 @@ Deno.serve(async (req) => {
     // The provider selected in the blog-agent form is authoritative for this
     // workflow. Runtime Control Centre is applied afterwards as the deliberate
     // operational override/failover layer.
-    if (settings.model_provider === "gemini") blogAi.textModel = "gemini-3.5-flash";
-    else if (settings.model_provider === "openai") blogAi.textModel = "gpt-5";
-    else if (settings.model_provider === "anthropic" || settings.model_provider === "claude") blogAi.textModel = "auto-sonnet";
-    else throw new Error(`Unsupported blog text provider: ${settings.model_provider}. Choose Gemini, Claude or OpenAI.`);
+    if (settings.model_provider === "gemini") blogAi.textModel = settings.text_model || "gemini-3.5-flash-lite";
+    else if (settings.model_provider === "openai") blogAi.textModel = settings.text_model || "gpt-5.6-luna";
+    else if (settings.model_provider === "anthropic" || settings.model_provider === "claude") blogAi.textModel = settings.text_model || "auto-haiku";
+    else if (settings.model_provider === "xai") blogAi.textModel = settings.text_model || "grok-4.5";
+    else throw new Error(`Unsupported blog text provider: ${settings.model_provider}. Choose Gemini, Claude, OpenAI or Grok.`);
     await applyBlogTextRuntimeControl(admin, "blog-agent", blogAi);
+    if (String(blogAi.textModel).startsWith("grok")) {
+      const xai = await chooseProvider(admin, "xai");
+      if (!xai) throw new Error("Grok / xAI API key is not configured in Admin - AI Providers");
+      blogAi.compatibleApiKey = xai.api_key_encrypted;
+      blogAi.compatibleBaseUrl = xai.base_url || "https://api.x.ai/v1";
+    }
+    blogAi.imageProvider = settings.image_provider || "gemini";
+    blogAi.imageModel = settings.image_model || (blogAi.imageProvider === "gemini" ? "gemini-3.1-flash-lite-image" : blogAi.imageProvider === "xai" ? "grok-imagine-image" : "gpt-image-1");
+    if (blogAi.imageProvider === "xai") {
+      const xai = await chooseProvider(admin, "xai");
+      if (!xai) throw new Error("Grok / xAI API key is not configured in Admin - AI Providers");
+      blogAi.imageApiKey = xai.api_key_encrypted;
+      blogAi.imageBaseUrl = xai.base_url || "https://api.x.ai/v1";
+    }
     const selectedAuthorIds = Array.isArray(settings.author_ids) ? settings.author_ids.filter(Boolean) : [];
     const { data: selectedAuthorRows } = selectedAuthorIds.length
       ? await admin.from("authors").select("id,name").eq("is_active", true).in("id", selectedAuthorIds)
@@ -360,7 +418,8 @@ Deno.serve(async (req) => {
       await assertRunActive(admin, runId);
       const baseProgress = 30 + Math.round((topicIndex / Math.max(topics.length, 1)) * 65);
       await updateRun(admin, runId, { progress: baseProgress, current_step: `Writing article ${topicIndex + 1} of ${topics.length}`, completed_steps: 2 + topicIndex * 3 });
-      const articlePrompt = `Create a complete original DekhoCampus article from this approved topic:\n${JSON.stringify(topic)}\n\nResearch context:\n${JSON.stringify(signals)}\n\nEditorial configuration:\n${JSON.stringify({
+      const internalLinkContext = await loadInternalLinkContext(admin, topic);
+      const articlePrompt = `Create a complete original DekhoCampus article from this approved topic:\n${JSON.stringify(topic)}\n\nResearch context:\n${JSON.stringify(signals)}\n\nVerified internal-link candidates (use only when genuinely useful):\n${JSON.stringify(internalLinkContext)}\n\nEditorial configuration:\n${JSON.stringify({
         language: settings.language,
         audience: settings.audience,
         tone: settings.tone,
@@ -368,7 +427,7 @@ Deno.serve(async (req) => {
         required_sections: settings.required_sections,
         minimum_sources: settings.minimum_sources,
         editorial_quality_target: settings.editorial_quality_target,
-      })}\n\nTarget length: ${settings.word_limit} words.\n\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker}.\n\nRules: optimise for the configured search, answer-engine, geographic and AI-discovery goals while prioritising student usefulness. Open with a concise direct answer, use descriptive headings, short paragraphs, comparison-ready facts, FAQs, named entities, and small hyphen '-' only. Never copy source wording or structure. Avoid fake certainty on dates, fees, cutoffs or rules. Cite at least ${settings.minimum_sources} independent sources and prefer current official sources. Add a final Sources section.`;
+      })}\n\nTarget length: ${settings.word_limit} words.\n\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker}.\n\nRules: optimise for the configured search, answer-engine, geographic and AI-discovery goals while prioritising student usefulness. Open with a concise direct answer, use descriptive headings, short paragraphs, comparison-ready facts, FAQs, named entities, and small hyphen '-' only. Write naturally with varied sentence length and concrete student-facing explanations; do not claim a human or detector score. Never copy source wording or structure. Avoid fake certainty on dates, fees, cutoffs or rules. Cite at least ${settings.minimum_sources} independent sources and prefer current official sources. Add useful internal links only when a matching DekhoCampus college, course, exam, job profile, scholarship, tool or news page is present in the supplied context. Add a final Sources section. External citations are automatically published as nofollow.`;
       const articleRaw = await generateBlogJson(blogAi, articlePrompt + "\nThis is AI-assisted content that requires editorial review. Never claim human authorship, undetectability, a detector score or 0 AI.", { admin, feature: "blog-agent", operation: "article-generation" });
       await assertRunActive(admin, runId);
       const draft = await parseOrRepairJson(blogAi, articleRaw, admin);
@@ -377,7 +436,18 @@ Deno.serve(async (req) => {
       await updateRun(admin, runId, { progress: Math.min(90, baseProgress + 12), current_step: `Generating cover ${topicIndex + 1} of ${topics.length}`, completed_steps: 3 + topicIndex * 3 });
       let featured_image = "";
       if (settings.image_mode !== "none") {
-        await applyImageRuntimeControl(admin, blogAi);
+        const configuredImageProvider = blogAi.imageProvider;
+        const imageControl = await applyImageRuntimeControl(admin, blogAi);
+        if (imageControl.provider && ["gemini", "openai", "xai"].includes(imageControl.provider)) blogAi.imageProvider = imageControl.provider as any;
+        if (blogAi.imageProvider !== configuredImageProvider && !imageControl.model) {
+          blogAi.imageModel = blogAi.imageProvider === "gemini" ? "gemini-3.1-flash-lite-image" : blogAi.imageProvider === "xai" ? "grok-imagine-image" : "gpt-image-1";
+        }
+        if (blogAi.imageProvider === "xai" && !blogAi.imageApiKey) {
+          const xai = await chooseProvider(admin, "xai");
+          if (!xai) throw new Error("Grok / xAI image API key is not configured in Admin - AI Providers");
+          blogAi.imageApiKey = xai.api_key_encrypted;
+          blogAi.imageBaseUrl = xai.base_url || "https://api.x.ai/v1";
+        }
         featured_image = await generateAndUploadBlogCover(admin, blogAi, slug, draft.hero_hook || draft.title || topic.title, {
           mode: settings.image_mode,
           templateUrl: settings.image_template_url,
@@ -401,7 +471,7 @@ Deno.serve(async (req) => {
         title: draft.title || topic.title,
         slug,
         description: draft.description || topic.angle || "",
-        content: draft.content_html || "",
+        content: normalizeArticleLinks(draft.content_html || ""),
         meta_title: draft.meta_title || draft.title || topic.title,
         meta_description: draft.meta_description || draft.description || topic.angle || "",
         meta_keywords: draft.meta_keywords || topic.primary_keyword || "",
@@ -439,7 +509,7 @@ Deno.serve(async (req) => {
       sources: signals.map(({ signal, ...rest }) => rest),
       selected_topics: topics,
       created_article_ids: createdIds,
-      message: `Created ${createdIds.length} article(s) using ${blogTextProviderLabel(blogAi.textModel)}:${blogAi.textModel} and openai:${blogAi.imageModel}`,
+      message: `Created ${createdIds.length} article(s) using ${blogTextProviderLabel(blogAi.textModel)}:${blogAi.textModel} and ${blogAi.imageProvider || "openai"}:${blogAi.imageModel}`,
     }).eq("id", runId);
 
     return json({ success: true, created_article_ids: createdIds, topics, next_run_at: nextRun });

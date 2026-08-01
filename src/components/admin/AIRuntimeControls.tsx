@@ -22,9 +22,9 @@ const PROVIDERS: Record<string, string[]> = {
   counselor: ["gemini"],
   "data-cleaner": ["anthropic", "gemini", "openai"],
   "blog-studio": ["anthropic", "gemini", "openai"],
-  "blog-agent": ["anthropic", "gemini", "openai"],
+  "blog-agent": ["anthropic", "gemini", "openai", "xai"],
   "admin-ai-generate": ["anthropic", "gemini", "openai"],
-  "blog-image": ["openai"],
+  "blog-image": ["gemini", "openai", "xai"],
 };
 
 const MODELS: Record<string, Array<{ value: string; label: string }>> = {
@@ -35,18 +35,30 @@ const MODELS: Record<string, Array<{ value: string; label: string }>> = {
     { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
   ],
   gemini: [
+    { value: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
     { value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+    { value: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite - lowest cost" },
     { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
     { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
     { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { value: "gemini-3.1-flash-lite-image", label: "Gemini 3.1 Flash Lite Image" },
+    { value: "gemini-3.1-flash-image", label: "Gemini 3.1 Flash Image" },
+    { value: "gemini-3-pro-image", label: "Gemini 3 Pro Image" },
   ],
   openai: [
     { value: "gpt-4o-mini", label: "GPT-4o mini - low cost" },
-    { value: "gpt-5", label: "GPT-5" },
+    { value: "gpt-5.6-luna", label: "GPT-5.6 Luna - high-volume" },
+    { value: "gpt-5.6-terra", label: "GPT-5.6 Terra - balanced" },
+    { value: "gpt-5.6-sol", label: "GPT-5.6 Sol - flagship" },
     { value: "gpt-4.1", label: "GPT-4.1" },
     { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
     { value: "gpt-image-1", label: "GPT Image 1" },
   ],
+  xai: [
+    { value: "grok-4.5", label: "Grok 4.5" },
+    { value: "grok-imagine-image", label: "Grok Imagine Image" },
+  ],
+  "gemini-image": [],
 };
 
 export function AIRuntimeControls() {
@@ -117,7 +129,7 @@ export function AIRuntimeControls() {
               <div><p className="text-sm font-medium">{control.display_name}</p><p className="text-[11px] text-muted-foreground">{control.feature}</p></div>
               <Select value={provider} onValueChange={(next) => update.mutate({ feature: control.feature, values: { provider: next, model: MODELS[next]?.[0]?.value || null } })}>
                 <SelectTrigger className="h-9 rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>{providers.map((item) => <SelectItem key={item} value={item}>{item === "anthropic" ? "Claude" : item === "gemini" ? "Google Gemini" : "OpenAI"}</SelectItem>)}</SelectContent>
+                <SelectContent>{providers.map((item) => <SelectItem key={item} value={item}>{item === "anthropic" ? "Claude" : item === "gemini" ? "Google Gemini" : item === "xai" ? "Grok / xAI" : "OpenAI"}</SelectItem>)}</SelectContent>
               </Select>
               <Select value={control.model || models[0]?.value} onValueChange={(model) => update.mutate({ feature: control.feature, values: { model } })}>
                 <SelectTrigger className="h-9 rounded-xl"><SelectValue placeholder="Use provider default" /></SelectTrigger>

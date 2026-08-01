@@ -18,6 +18,7 @@ type Settings = {
   daily_post_cap: number;
   publish_status: "Draft" | "Published";
   model_provider: string;
+  text_model: string;
   word_limit: number;
   author_mode: "none" | "single" | "round_robin";
   author_ids: string[];
@@ -30,6 +31,8 @@ type Settings = {
   editorial_quality_target: number;
   human_review_required: boolean;
   image_mode: "generated" | "template" | "none";
+  image_provider: "openai" | "gemini" | "xai";
+  image_model: string;
   image_template_url: string;
   image_prompt_style: string;
   include_logo: boolean;
@@ -59,6 +62,17 @@ type GeneratedArticle = { id: string; title: string; slug: string; featured_imag
 type Author = { id: string; name: string; designation?: string; photo?: string };
 
 const DRAFT_KEY = "dc:admin:blog-agent:draft:v1";
+const TEXT_MODEL_DEFAULTS: Record<string, string> = {
+  gemini: "gemini-3.5-flash-lite",
+  anthropic: "auto-haiku",
+  openai: "gpt-5.6-luna",
+  xai: "grok-4.5",
+};
+const IMAGE_MODEL_DEFAULTS: Record<string, string> = {
+  gemini: "gemini-3.1-flash-lite-image",
+  openai: "gpt-image-1",
+  xai: "grok-imagine-image",
+};
 
 const DEFAULT_SETTINGS: Settings = {
   enabled: false,
@@ -67,6 +81,7 @@ const DEFAULT_SETTINGS: Settings = {
   daily_post_cap: 12,
   publish_status: "Published",
   model_provider: "gemini",
+  text_model: "gemini-3.5-flash-lite",
   word_limit: 1200,
   author_mode: "none",
   author_ids: [],
@@ -79,10 +94,12 @@ const DEFAULT_SETTINGS: Settings = {
   editorial_quality_target: 80,
   human_review_required: true,
   image_mode: "generated",
+  image_provider: "gemini",
+  image_model: "gemini-3.1-flash-lite-image",
   image_template_url: "",
   image_prompt_style: "Premium editorial, clean, credible, student-focused",
   include_logo: true,
-  logo_url: "",
+  logo_url: "https://dekhocampus.in/brand/dekhocampus-blog-logo.png",
   logo_position: "top-center",
   image_aspect_ratio: "16:9",
   output_resolution: "4k",
@@ -275,7 +292,7 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
             <Badge variant={settings.enabled ? "default" : "secondary"}>{settings.enabled ? "Running" : "Paused"}</Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Uses Gemini by default for original, source-aware editorial drafts and OpenAI for optional branded images. Provider, model, review gate, template, and logo choices remain under your control.
+            Uses low-cost Gemini by default for source-aware editorial drafts and branded images. Gemini, OpenAI, Claude and Grok models, review gates, templates and image providers remain under your control.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -401,13 +418,14 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
               ["gemini", "Gemini"],
               ["anthropic", "Claude"],
               ["openai", "OpenAI"],
+              ["xai", "Grok / xAI"],
             ] as const).map(([provider, label]) => (
               <Button
                 key={provider}
                 type="button"
                 size="sm"
                 variant={settings.model_provider === provider ? "default" : "outline"}
-                onClick={() => updateSetting("model_provider", provider)}
+                onClick={() => setSettings((current) => ({ ...current, model_provider: provider, text_model: TEXT_MODEL_DEFAULTS[provider] }))}
               >
                 {label}
               </Button>
@@ -416,6 +434,32 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
           <p className="mt-1 text-[10px] text-muted-foreground">
             Gemini is the default. Runtime Control Centre can override this choice for emergency routing.
           </p>
+          {supportsAdvancedSettings && (
+            <select
+              aria-label="Blog text model"
+              value={settings.text_model}
+              onChange={(event) => updateSetting("text_model", event.target.value)}
+              className="mt-2 h-9 w-full rounded-md border bg-background px-2 text-xs"
+            >
+              {settings.model_provider === "gemini" && <>
+                <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite - lowest cost</option>
+                <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
+              </>}
+              {settings.model_provider === "openai" && <>
+                <option value="gpt-5.6-luna">GPT-5.6 Luna - high-volume</option>
+                <option value="gpt-5.6-terra">GPT-5.6 Terra - balanced</option>
+                <option value="gpt-5.6-sol">GPT-5.6 Sol - flagship</option>
+                <option value="gpt-4o-mini">GPT-4o mini - legacy low-cost</option>
+              </>}
+              {settings.model_provider === "anthropic" && <>
+                <option value="auto-haiku">Claude Haiku - lowest cost available</option>
+                <option value="auto-sonnet">Claude Sonnet - latest available</option>
+              </>}
+              {settings.model_provider === "xai" && <option value="grok-4.5">Grok 4.5</option>}
+            </select>
+          )}
         </div>
         <div>
           <Label className="text-xs">Word limit</Label>
@@ -484,7 +528,7 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
           <p className="mt-1 text-xs text-muted-foreground">Generate a new background, use your template, or skip the cover. Uploaded logos are placed without changing the source file.</p>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {([["generated", "New OpenAI image"], ["template", "Use template"], ["none", "No image"]] as const).map(([mode, label]) => (
+          {([["generated", "Generate new"], ["template", "Use saved template"], ["none", "No image"]] as const).map(([mode, label]) => (
             <Button key={mode} type="button" size="sm" variant={settings.image_mode === mode ? "default" : "outline"} onClick={() => updateSetting("image_mode", mode)}>{label}</Button>
           ))}
         </div>
@@ -494,9 +538,12 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
               <ImageUploadField label="Cover template" value={settings.image_template_url} onChange={(value) => updateSetting("image_template_url", value)} folder="blog-templates" />
             )}
             {settings.image_mode === "generated" && (
-              <div>
-                <Label>Image art direction</Label>
-                <Textarea rows={4} value={settings.image_prompt_style} onChange={(event) => updateSetting("image_prompt_style", event.target.value)} className="mt-1" />
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Image provider</Label><select value={settings.image_provider} onChange={(event) => setSettings((current) => ({ ...current, image_provider: event.target.value as Settings["image_provider"], image_model: IMAGE_MODEL_DEFAULTS[event.target.value] }))} className="mt-1 h-10 w-full rounded-md border bg-background px-3"><option value="gemini">Gemini</option><option value="openai">OpenAI</option><option value="xai">Grok / xAI</option></select></div>
+                  <div><Label>Image model</Label><select value={settings.image_model} onChange={(event) => updateSetting("image_model", event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-3">{settings.image_provider === "gemini" && <><option value="gemini-3.1-flash-lite-image">Gemini 3.1 Flash Lite Image</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash Image</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></>}{settings.image_provider === "openai" && <option value="gpt-image-1">GPT Image 1</option>}{settings.image_provider === "xai" && <option value="grok-imagine-image">Grok Imagine Image</option>}</select></div>
+                </div>
+                <div><Label>Image art direction</Label><Textarea rows={4} value={settings.image_prompt_style} onChange={(event) => updateSetting("image_prompt_style", event.target.value)} className="mt-1" /></div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
@@ -512,7 +559,7 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
             {settings.include_logo && (
               <>
                 <ImageUploadField label="High-resolution logo (PNG, WebP or SVG)" value={settings.logo_url} onChange={(value) => updateSetting("logo_url", value)} folder="blog-brand" />
-                <div><Label>Logo position</Label><select value={settings.logo_position} onChange={(event) => updateSetting("logo_position", event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-3"><option value="top-left">Top left</option><option value="top-center">Top center</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div>
+                <div><Label>Logo position</Label><select value="top-center" disabled className="mt-1 h-10 w-full rounded-md border bg-muted px-3"><option value="top-center">Top center (locked)</option></select></div>
               </>
             )}
           </div>
