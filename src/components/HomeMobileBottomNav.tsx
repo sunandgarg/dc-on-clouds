@@ -52,6 +52,11 @@ export function HomeMobileBottomNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [location.pathname]);
 
+  useEffect(() => {
+    document.body.classList.toggle("dc-mobile-bottom-nav-visible", visible);
+    return () => document.body.classList.remove("dc-mobile-bottom-nav-visible");
+  }, [visible]);
+
   return (
     <>
       <nav
@@ -80,7 +85,7 @@ export function HomeMobileBottomNav() {
           </Link>
         </div>
       </nav>
-      <div className={`transition-[height] duration-200 lg:hidden ${visible ? "h-20" : "h-0"}`} aria-hidden="true" />
+      <div className={`dc-bottom-nav-spacer transition-[height] duration-200 lg:hidden ${visible ? "" : "!h-0"}`} aria-hidden="true" />
     </>
   );
 }

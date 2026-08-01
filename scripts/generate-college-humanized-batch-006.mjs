@@ -14,16 +14,16 @@ const records = wrapped.rows || [];
 
 const cleanText = (value) =>
   String(value || "")
-    .replaceAll("&amp;", "&")
-    .replaceAll("&#039;", "'")
-    .replaceAll("&quot;", '"')
-    .replaceAll("&nbsp;", " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#039;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&nbsp;/g, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/[–—]/g, "-")
     .replace(/\s+/g, " ")
     .trim();
 
-const sql = (value) => `'${String(value ?? "").replace(/[–—]/g, "-").replaceAll("'", "''")}'`;
+const sql = (value) => `'${String(value ?? "").replace(/[–—]/g, "-").replace(/'/g, "''")}'`;
 const arraySql = (values = []) => `ARRAY[${[...new Set(values.map(cleanText).filter(Boolean))].map(sql).join(", ")}]::text[]`;
 const jsonSql = (value) => `${sql(JSON.stringify(value).replace(/[–—]/g, "-"))}::jsonb`;
 const slugify = (value) =>
@@ -89,6 +89,22 @@ const openers = [
   "For admissions research"
 ];
 
+const verifiedRankingFor = (name) => {
+  const lower = cleanText(name).toLowerCase();
+  if (/\baiims delhi\b/.test(lower) || /all india institute of medical sciences/.test(lower)) {
+    return {
+      text: "AIIMS Delhi is a nationally recognised medical institution. For ranking tags, DekhoCampus maps it to the official NIRF 2025 ranking where AIIMS Delhi is listed at rank 1 in Medical, rank 8 in Overall and rank 11 in Research Institutions. Students should still verify the latest ranking year and category on the official NIRF website before using rankings for final decisions.",
+      tags: ["NIRF 2025 Medical #1", "NIRF 2025 Overall #8", "NIRF 2025 Research #11", "Medical", "Institute of National Importance"],
+      sources: [
+        "https://www.nirfindia.org/Rankings/2025/MedicalRanking.html",
+        "https://www.nirfindia.org/Rankings/2025/OverallRanking.html",
+        "https://www.nirfindia.org/Rankings/2025/ResearchRanking.html"
+      ]
+    };
+  }
+  return null;
+};
+
 const blocks = [];
 const reportRows = [];
 const errors = [];
@@ -107,6 +123,8 @@ records.forEach((record, index) => {
   const courses = extractCourses(record);
   const courseLine = courses.length ? courses.join(", ") : "no official course catalogue verified for this batch";
   const sourceUrls = allSources(record);
+  const verifiedRanking = verifiedRankingFor(name);
+  if (verifiedRanking) verifiedRanking.sources.forEach((url) => sourceUrls.push(url));
   const approvalLine = approvals.length ? ` Current approval or affiliation signals available for review include ${approvals.join(", ")}.` : " Approval, affiliation and intake details should be confirmed from the latest notice before payment.";
   const establishmentLine = record.established ? ` The institution record carries an establishment year of ${record.established}.` : " The establishment year is not asserted here unless a reviewed source clearly supports it.";
 
@@ -119,9 +137,16 @@ records.forEach((record, index) => {
   const facilityText = `${name} facilities currently highlighted for student checks include ${facilities.join(", ")}. Availability can differ by department, batch and campus rules, so students should confirm lab access, library hours, hostel capacity, transport, clinical or workshop exposure, and safety arrangements directly with the institution.`;
   const hostel = `Hostel and local accommodation details for ${name} should be verified before booking. Ask the campus about room type, mess charges, refund terms, curfew, security, distance from classrooms and whether accommodation is compulsory or optional for the selected programme.`;
   const scholarship = `Scholarships for ${name} may depend on government portals, category rules, merit, income criteria, minority schemes, state domicile and institution-level concessions. Students should keep income, caste or category, domicile, mark sheets, entrance score and bank documents ready and check deadlines from the official portal.`;
-  const ranking = approvals.length
+  const ranking = verifiedRanking?.text || (approvals.length
     ? `${name} is mapped with reviewed approval or affiliation signals such as ${approvals.join(", ")}. Ranking text is intentionally limited unless a recognised ranking body, accreditation disclosure or official report is available.`
-    : `${name} has no independently verified current ranking claim in this batch. DekhoCampus keeps the ranking section factual until an official accreditation, recognised ranking or institutional disclosure is available.`;
+    : `${name} has no independently verified current ranking claim in this batch. DekhoCampus keeps the ranking section factual until an official accreditation, recognised ranking or institutional disclosure is available.`);
+  const tags = [
+    ...(Array.isArray(record.tags) ? record.tags : []),
+    ...approvals,
+    cleanText(record.category || ""),
+    cleanText(record.type || ""),
+    ...(verifiedRanking?.tags || []),
+  ];
 
   [description, pageSummary, admission, eligibility, courseFee, placement, facilityText, hostel, scholarship, ranking].forEach((field, fIndex) => {
     if (/<\/?[a-z][\s\S]*>/i.test(field)) errors.push(`${record.slug}: field ${fIndex} contains HTML`);
@@ -169,6 +194,7 @@ SET
   scholarship_available = 'Check official schemes',
   scholarship_details = ${sql(scholarship)},
   rankings_content = ${sql(ranking)},
+  tags = ${arraySql(tags)},
   fees = '',
   data_source_urls = COALESCE(data_source_urls, '[]'::jsonb) || jsonb_build_array(${jsonSql(sourcePayload)}),
   data_clean_method = 'source_review_humanized',

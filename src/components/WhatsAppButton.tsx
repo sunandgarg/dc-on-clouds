@@ -17,7 +17,7 @@ export function WhatsAppButton() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${FLOATING_CONTACT_BUTTON_CLASS} left-4 ${isPremiumDetail ? "bottom-28 lg:bottom-20" : "bottom-5 lg:bottom-20"}`}
+      className={`${FLOATING_CONTACT_BUTTON_CLASS} left-4 ${isPremiumDetail ? "bottom-28 lg:bottom-20" : "dc-bottom-nav-aware"}`}
       aria-label="Chat on WhatsApp"
       style={{ backgroundColor: "#25D366" }}
     >

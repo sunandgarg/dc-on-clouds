@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, BriefcaseBusiness, FileText, GraduationCap, Search, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { buildIlikeOr, buildSearchVariants } from "@/lib/fuzzySearch";
+import { buildIlikeOr, buildSearchVariants, rankDirectoryResult } from "@/lib/fuzzySearch";
 import { compactDisplayText, displayText } from "@/lib/displayText";
 
 type DirectoryResult = {
@@ -85,7 +85,8 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
               image_url: row.logo_url || row.image_url || "",
               logo_url: row.logo_url || "",
               score: row.score,
-            }));
+            }))
+            .sort((a, b) => rankDirectoryResult(query, b.name, b.subtitle) - rankDirectoryResult(query, a.name, a.subtitle));
           if (requestId.current === currentRequest) setResults(mapped);
           return;
         }
@@ -114,14 +115,14 @@ export function GlobalSearchBar({ variant = "header", onAskAI }: GlobalSearchBar
           ...(colleges.data || []).map((row) => ({ entity_type: "College" as const, name: compactDisplayText(row.name, "Untitled college", 90), slug: row.slug, subtitle: compactDisplayText(row.city || "", "", 60), image_url: row.logo || "" })),
           ...(courses.data || []).map((row) => ({ entity_type: "Course" as const, name: compactDisplayText(row.name, "Untitled course", 90), slug: row.slug, subtitle: compactDisplayText(row.level || row.category || "Course", "", 60), image_url: row.image || "" })),
           ...(exams.data || []).map((row) => ({ entity_type: "Exam" as const, name: compactDisplayText(row.name, "Untitled exam", 90), slug: row.slug, subtitle: compactDisplayText(row.exam_type || row.category || "Exam", "", 60), image_url: row.logo || row.image || "" })),
-        ];
+        ].sort((a, b) => rankDirectoryResult(query, b.name, b.subtitle) - rankDirectoryResult(query, a.name, a.subtitle));
         if (requestId.current === currentRequest) setResults(fallback);
       } catch {
         if (requestId.current === currentRequest) setResults([]);
       } finally {
         if (requestId.current === currentRequest) setLoading(false);
       }
-    }, normalizedQuery.length <= 2 ? 360 : 240);
+    }, normalizedQuery.length <= 2 ? 240 : 150);
 
     return () => window.clearTimeout(timer);
   }, [normalizedQuery, variants]);

@@ -25,12 +25,58 @@ export function buildSearchVariants(s: string): string[] {
     mca: ["m.c.a", "master of computer"],
   };
   const extras = synonyms[compact.toLowerCase()] || [];
+  const locationAliases: Record<string, string[]> = {
+    trivandrum: ["thiruvananthapuram"],
+    thiruvananthapuram: ["trivandrum"],
+    bangalore: ["bengaluru"],
+    bengaluru: ["bangalore"],
+    bombay: ["mumbai"],
+    madras: ["chennai"],
+    calcutta: ["kolkata"],
+    gurgaon: ["gurugram"],
+    gurugram: ["gurgaon"],
+  };
+  const aliasVariants = Object.entries(locationAliases).flatMap(([from, to]) => {
+    const source = noPunct.toLowerCase();
+    if (!source.includes(from)) return [];
+    return to.map((alias) => source.replaceAll(from, alias));
+  });
+  const tokens = noPunct
+    .split(" ")
+    .filter((token) => token.length >= 3 && !["college", "colleges", "university", "institute", "school", "the", "and", "for"].includes(token));
   return Array.from(
-    new Set([norm, noDot, noPunct, compact, spaced, dotted, ...extras].filter((v) => v && v.length >= 2))
+    new Set([norm, noDot, noPunct, compact, spaced, dotted, ...extras, ...aliasVariants, ...tokens].filter((v) => v && v.length >= 2))
   );
 }
 
 /** Build a PostgREST `or=` clause across one column for all variants. */
 export function buildIlikeOr(column: string, variants: string[]): string {
   return variants.map((v) => `${column}.ilike.%${v.replace(/[%,()]/g, "")}%`).join(",");
+}
+
+export function rankDirectoryResult(query: string, name: string, subtitle = ""): number {
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  const q = normalize(query);
+  const haystack = normalize(`${name} ${subtitle}`);
+  if (!q || !haystack) return 0;
+
+  const importantTokens = q
+    .split(" ")
+    .filter((token) => token.length >= 2 && !["of", "the", "and", "in", "at", "for"].includes(token));
+  const matchedTokens = importantTokens.filter((token) => haystack.includes(token)).length;
+  const coverage = importantTokens.length ? matchedTokens / importantTokens.length : 0;
+
+  let score = coverage * 100;
+  if (haystack === q) score += 80;
+  if (haystack.startsWith(q)) score += 55;
+  if (haystack.includes(q)) score += 45;
+  if (normalize(name) === q) score += 40;
+  if (normalize(name).startsWith(q)) score += 30;
+  return score;
 }

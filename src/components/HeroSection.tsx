@@ -24,6 +24,7 @@ import catReviews from "@/assets/hero-reviews-attached.png";
 import catNews from "@/assets/hero-news-attached.png";
 import { HeroCounsellingCard } from "@/components/HeroCounsellingCard";
 import { compactDisplayText, displayText } from "@/lib/displayText";
+import { buildIlikeOr, buildSearchVariants, rankDirectoryResult } from "@/lib/fuzzySearch";
 
 const YEAR = new Date().getFullYear();
 const suggestedPrompts = [
@@ -43,7 +44,7 @@ const heroTiles = [
 ] as const;
 
 interface SearchResult {
-  type: "College" | "Course" | "Exam";
+  type: "College" | "Course" | "Exam" | "Career";
   name: string;
   location: string;
   slug: string;
@@ -97,25 +98,49 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
 
     const timeout = setTimeout(async () => {
       try {
-        const searchPattern = `%${q.replace(/[%_]/g, "")}%`;
+        const variants = buildSearchVariants(q.toLowerCase()).slice(0, q.length <= 2 ? 6 : 10);
+        const rpc = await (supabase as any).rpc("search_directory_fuzzy", {
+          p_terms: variants,
+          p_limit: 10,
+        });
+        if (requestId.current !== currentRequest) return;
+
+        if (!rpc.error && rpc.data?.length) {
+          setDbResults(
+            (rpc.data || [])
+              .filter((row: any) => ["College", "Course", "Exam", "Career"].includes(row.entity_type))
+              .map((row: any) => ({
+                type: row.entity_type,
+                name: compactDisplayText(row.name, `Untitled ${String(row.entity_type || "result").toLowerCase()}`, 90),
+                slug: row.slug,
+                location: compactDisplayText(row.subtitle || row.entity_type || "", "", 60),
+                image: row.image_url || "",
+                logo: row.logo_url || "",
+              }))
+              .sort((a: SearchResult, b: SearchResult) => rankDirectoryResult(q, b.name, b.location) - rankDirectoryResult(q, a.name, a.location)),
+          );
+          return;
+        }
+
+        const orFor = (column: string) => buildIlikeOr(column, variants);
         const [colleges, courses, exams] = await Promise.all([
           supabase
             .from("colleges")
             .select("name, slug, city, logo")
             .eq("is_active", true)
-            .ilike("name", searchPattern)
+            .or([orFor("name"), orFor("slug"), orFor("city"), orFor("state")].filter(Boolean).join(","))
             .limit(5),
           supabase
             .from("courses")
             .select("name, slug, level, category, image")
             .eq("is_active", true)
-            .ilike("name", searchPattern)
+            .or([orFor("name"), orFor("slug"), orFor("category")].filter(Boolean).join(","))
             .limit(5),
           supabase
             .from("exams")
             .select("name, slug, image, logo, exam_type, category")
             .eq("is_active", true)
-            .ilike("name", searchPattern)
+            .or([orFor("name"), orFor("slug"), orFor("category")].filter(Boolean).join(","))
             .limit(5),
         ]);
         if (requestId.current !== currentRequest) return;
@@ -151,7 +176,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             image: e.image || "",
             logo: e.logo || "",
           })),
-        ].sort((a, b) => rank(a.name) - rank(b.name));
+        ].sort((a, b) => (rank(a.name) - rank(b.name)) || (rankDirectoryResult(q, b.name, b.location) - rankDirectoryResult(q, a.name, a.location)));
         setDbResults(results);
       } catch {
         /* skip */
@@ -175,7 +200,8 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     const route =
       item.type === "College" ? `/colleges/${item.slug}` :
       item.type === "Course"  ? `/courses/${item.slug}`  :
-      `/exams/${item.slug}`;
+      item.type === "Exam" ? `/exams/${item.slug}` :
+      `/careers/${item.slug}`;
     navigate(route);
   };
 

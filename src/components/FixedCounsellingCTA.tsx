@@ -45,7 +45,7 @@ export function FixedCounsellingCTA() {
   if (dismissed || submitted) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 md:bottom-4 md:left-4 md:right-auto md:w-[360px]">
+    <div className="fixed left-0 right-0 z-40 md:left-4 md:right-auto md:w-[360px] dc-bottom-nav-aware-tight">
       <AnimatePresence>
         {expanded ? (
           <motion.div

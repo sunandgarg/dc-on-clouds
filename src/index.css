@@ -62,6 +62,7 @@
     --mint: 165 70% 50%;
     --golden: 40 95% 55%;
     --pink: 330 70% 60%;
+    --dc-mobile-bottom-nav-offset: 0px;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
@@ -148,6 +149,12 @@
     overflow-x: hidden;
   }
 
+  @media (max-width: 1023px) {
+    body.dc-mobile-bottom-nav-visible {
+      --dc-mobile-bottom-nav-offset: calc(4rem + env(safe-area-inset-bottom));
+    }
+  }
+
   #root {
     width: 100%;
     max-width: 100%;
@@ -172,6 +179,28 @@
 }
 
 @layer components {
+  .dc-bottom-nav-aware {
+    bottom: calc(var(--dc-mobile-bottom-nav-offset, 0px) + 1.25rem);
+  }
+
+  .dc-bottom-nav-aware-tight {
+    bottom: calc(var(--dc-mobile-bottom-nav-offset, 0px) + 0.75rem);
+  }
+
+  .dc-bottom-nav-spacer {
+    height: var(--dc-mobile-bottom-nav-offset, 0px);
+  }
+
+  @media (min-width: 1024px) {
+    .dc-bottom-nav-aware {
+      bottom: 5rem;
+    }
+
+    .dc-bottom-nav-aware-tight {
+      bottom: 1rem;
+    }
+  }
+
   /* Solid color backgrounds */
   .gradient-primary {
     background: hsl(224 64% 51%);
