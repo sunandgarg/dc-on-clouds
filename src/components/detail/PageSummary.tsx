@@ -16,11 +16,11 @@ interface PageSummaryProps {
 }
 
 const HEADINGS: Record<NonNullable<PageSummaryProps["kind"]>, string[]> = {
-  college: ["Quick Summary - Everything You Need to Know", "TL;DR - All About This College", "Quick Take on This Campus"],
-  course:  ["Quick Summary - What This Course is Really About", "TL;DR - The Course in 60 Seconds", "Course at a Glance"],
-  exam:    ["Quick Summary - The Exam, Decoded", "TL;DR - Everything About This Exam", "Exam in a Nutshell"],
-  career:  ["Quick Summary - The Career Path, Simplified", "TL;DR - This Career in 60 Seconds", "Career at a Glance"],
-  scholarship: ["Quick Summary - The Scholarship, Made Simple", "TL;DR - Scholarship in 60 Seconds", "Scholarship at a Glance"],
+  college: ["College at a Glance"],
+  course: ["Course at a Glance"],
+  exam: ["Exam at a Glance"],
+  career: ["Career at a Glance"],
+  scholarship: ["Scholarship at a Glance"],
 };
 
 function pickHeading(kind: PageSummaryProps["kind"], seedKey: string): string {
@@ -58,8 +58,8 @@ export function PageSummary({ html, entityName, kind = "college", className, def
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-bold tracking-[0.14em] uppercase text-primary">Quick Summary</p>
-          <h2 className="text-[17px] md:text-xl font-extrabold text-foreground leading-snug tracking-tight mt-0.5">
-            {heading}{entityName ? <span className="text-primary"> · {entityName}</span> : null}
+          <h2 className="text-base md:text-lg font-extrabold text-foreground leading-snug tracking-tight mt-0.5 break-words">
+            {heading}
           </h2>
         </div>
         <span
