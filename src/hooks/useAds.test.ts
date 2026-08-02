@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Ad, selectBestAd } from "./useAds";
+import { encodeAdLocation, type Ad, selectBestAd } from "./useAds";
 
 function ad(overrides: Partial<Ad>): Ad {
   return {
@@ -24,9 +24,14 @@ function ad(overrides: Partial<Ad>): Ad {
 }
 
 describe("internal ad selection", () => {
-  it("shows a universal top ad on any public page even when its shape differs from the slot preference", () => {
+  it("does not force an incompatible creative shape into a slot", () => {
     const universal = ad({ id: "universal", variant: "leaderboard", position: "top" });
-    expect(selectBestAd([universal], { page: "articles", position: "top", variant: "horizontal" })?.id).toBe("universal");
+    expect(selectBestAd([universal], { page: "articles", position: "top", variant: "horizontal" })).toBeNull();
+  });
+
+  it("matches any selected city independently of state", () => {
+    const cityAd = ad({ id: "cities", target_type: "city", target_city: encodeAdLocation("", ["Mumbai", "Chennai"]) });
+    expect(selectBestAd([cityAd], { city: "Chennai", position: "top" })?.id).toBe("cities");
   });
 
   it("prefers an item ad and does not leak a same-slug ad from another entity type", () => {

@@ -427,7 +427,6 @@ export default function ExamDetail() {
               )}
             </RichSection>
 
-            <DynamicAdBanner variant="horizontal" position="mid-page" page="exams" itemSlug={slug} />
             <LeadCaptureForm variant="inline" title={`📞 Get ${exam.name} preparation guidance`} source={`exam_inline_${exam.slug}`} interestedExamSlug={exam.slug} />
 
             {/* Eligibility */}

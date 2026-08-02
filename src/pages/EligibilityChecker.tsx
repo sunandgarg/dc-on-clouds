@@ -225,6 +225,8 @@ export default function EligibilityChecker() {
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         <PageBreadcrumb items={[{ label: "Home", href: "/" }, { label: "Eligibility Checker", href: "/eligibility-checker" }, ...(slug ? [{ label: slug }] : [])]} />
 
+        <AlsoCheckSection variant="strip" className="mb-5" />
+
         {/* Hero + form */}
         <section className="mt-3 rounded-3xl bg-gradient-to-br from-emerald-100 via-teal-50 to-cyan-100 border border-emerald-200/60 p-5 md:p-7 relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-44 h-44 bg-emerald-300/30 rounded-full blur-3xl" />
@@ -299,9 +301,6 @@ export default function EligibilityChecker() {
             </form>
           </div>
         </section>
-
-        {/* Mid-page discovery strip */}
-        <AlsoCheckSection variant="strip" />
 
         {/* LOW-SCORE RESULTS - no AI, friendly + city colleges */}
         {phase === "low" && (

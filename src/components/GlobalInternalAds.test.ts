@@ -23,4 +23,11 @@ describe("global internal ad route targeting", () => {
     expect(getInternalAdContext("/vacancies/example-role")).toMatchObject({ page: "careers", itemSlug: "example-role" });
     expect(getInternalAdContext("/study-material/class-12/cbse")).toMatchObject({ page: "study_material", itemSlug: "class-12" });
   });
+
+  it("maps every standalone AI tool route to the tools audience", () => {
+    expect(getInternalAdContext("/college-predictor")).toMatchObject({ page: "tools", itemSlug: "college-predictor" });
+    expect(getInternalAdContext("/eligibility-checker/engineering-80-percent")).toMatchObject({ page: "tools", itemSlug: "engineering-80-percent" });
+    expect(getInternalAdContext("/exam-calendar-2026")).toMatchObject({ page: "tools", itemSlug: "exam-calendar-2026" });
+    expect(getInternalAdContext("/lock-target/iit-delhi-cse")).toMatchObject({ page: "tools", itemSlug: "iit-delhi-cse" });
+  });
 });

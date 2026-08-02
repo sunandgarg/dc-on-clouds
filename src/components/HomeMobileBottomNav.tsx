@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Home, GraduationCap, FileText, Instagram, Youtube, User } from "lucide-react";
+import { Home, GraduationCap, FileText, Instagram, Youtube } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 
 const baseItems = [
   { icon: Home, label: "Home", href: "/" },
@@ -11,9 +10,6 @@ const baseItems = [
 
 export function HomeMobileBottomNav() {
   const location = useLocation();
-  const { user } = useAuth();
-  const profileHref = user ? "/dashboard" : "/auth";
-  const profileImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || "";
   const [visible, setVisible] = useState(false);
   const lastScrollY = useRef(0);
   const upSteps = useRef(0);
@@ -69,7 +65,7 @@ export function HomeMobileBottomNav() {
           visible ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="grid h-16 grid-cols-6 items-stretch px-1">
+        <div className="grid h-16 grid-cols-5 items-stretch px-1">
           {baseItems.map((item) => {
             const active = item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href);
             return (
@@ -87,10 +83,6 @@ export function HomeMobileBottomNav() {
             <Youtube className="h-5 w-5" />
             <span>YouTube</span>
           </a>
-          <Link to={profileHref} className={`flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium ${location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/auth") ? "text-primary" : "text-slate-500"}`}>
-            {profileImage ? <img src={profileImage} alt="Profile" className="h-6 w-6 rounded-full object-cover ring-1 ring-primary/20" /> : <User className="h-5 w-5" />}
-            <span className="truncate">Profile</span>
-          </Link>
         </div>
       </nav>
     </>

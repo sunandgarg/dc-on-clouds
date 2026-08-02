@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { useAllAds } from "@/hooks/useAds";
+import { decodeAdLocation, encodeAdLocation, useAllAds } from "@/hooks/useAds";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -22,18 +22,20 @@ import {
   Megaphone, HelpCircle, Eye, Info, Upload,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/SearchableSelect";
+import { SearchableMultiSelect } from "@/components/SearchableMultiSelect";
 import { AdEntitySearchSelect } from "@/components/admin/AdEntitySearchSelect";
 import { useStatesAndCities } from "@/hooks/useLocations";
 
 import { CSVTools } from "@/components/CSVTools";
 import { useDraftState } from "@/hooks/useDraftState";
+import { resetBootstrap } from "@/lib/bootstrap";
 // ─── Friendly labels ───────────────────────────────────────────────────
 
 const AUDIENCE_OPTIONS = [
   { value: "universal", emoji: "🌍", label: "Show Everywhere", help: "This ad will appear on every page as a fallback when no better-matched ad exists." },
   { value: "page", emoji: "📄", label: "Show on a Specific Page", help: "This ad appears only on one listing page - like All Colleges, All Courses, etc." },
   { value: "item", emoji: "🎯", label: "Show on a Specific College / Course / Exam / Article", help: "This ad appears only when someone visits a specific detail page, e.g. the IIT Delhi page." },
-  { value: "state", emoji: "📍", label: "Show for a Specific State", help: "This ad appears anywhere on the site for visitors whose saved profile or lead state matches." },
+  { value: "state", emoji: "📍", label: "Show for Selected Locations", help: "Target a state, multiple cities, or both. City choices are independent of the selected state." },
 ] as const;
 
 const PAGE_OPTIONS = [
@@ -99,6 +101,7 @@ interface AdForm {
   target_page: string;
   target_item_slug: string;
   target_state: string;
+  target_cities: string[];
   position: string;
   priority: number;
   is_active: boolean;
@@ -107,7 +110,7 @@ interface AdForm {
 const emptyForm: AdForm = {
   title: "", subtitle: "", cta_text: "Learn More", link_url: "", image_url: "",
   variant: "horizontal", bg_gradient: "from-violet-600 to-purple-600",
-  target_type: "universal", target_page: "", target_item_slug: "", target_state: "",
+  target_type: "universal", target_page: "", target_item_slug: "", target_state: "", target_cities: [],
   position: "mid-page", priority: 10, is_active: true,
 };
 
@@ -140,6 +143,8 @@ export default function AdminAds() {
   const [showGuide, setShowGuide] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const targetCities = form.target_cities || [];
+  const allCities = Array.from(new Set(Object.values(locations?.citiesByState || {}).flat())).sort((a, b) => a.localeCompare(b));
 
   // ── Actions ──
 
@@ -155,11 +160,12 @@ export default function AdminAds() {
   };
 
   const openEdit = (ad: any) => {
+    const location = decodeAdLocation(ad.target_state || ad.target_city);
     setForm({
       title: ad.title, subtitle: ad.subtitle || "", cta_text: ad.cta_text, link_url: ad.link_url,
       image_url: ad.image_url || "", variant: ad.variant, bg_gradient: ad.bg_gradient,
       target_type: ad.target_type === "city" ? "state" : ad.target_type, target_page: ad.target_page || "",
-      target_item_slug: ad.target_item_slug || "", target_state: displayState(ad.target_state || ad.target_city),
+      target_item_slug: ad.target_item_slug || "", target_state: displayState(location.state), target_cities: location.cities,
       position: ad.position, priority: ad.priority, is_active: ad.is_active,
     });
     setEditingId(ad.id); setErrors({}); setShowForm(true);
@@ -211,8 +217,8 @@ export default function AdminAds() {
       e.target_page = "Please choose which page this ad should appear on";
     if (form.target_type === "item" && !form.target_item_slug.trim())
       e.target_item_slug = "Please choose the specific item this ad is for";
-    if (form.target_type === "state" && !form.target_state.trim())
-      e.target_state = "Please choose a state";
+    if (form.target_type === "state" && !form.target_state.trim() && !targetCities.length)
+      e.target_state = "Please choose a state or at least one city";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -234,7 +240,7 @@ export default function AdminAds() {
       // Keep writing the existing column as a compatibility bridge. The UI and
       // runtime treat it as a state, while the additive migration copies it to
       // target_state when the production project owner applies the migration.
-      target_city: form.target_state.trim() || null,
+      target_city: encodeAdLocation(form.target_state, targetCities),
       position: form.position,
       priority: form.priority,
       is_active: form.is_active,
@@ -249,6 +255,7 @@ export default function AdminAds() {
         if (error) throw error;
         toast({ title: "✅ Ad created!" });
       }
+      resetBootstrap();
       queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
       queryClient.invalidateQueries({ queryKey: ["ads"] });
       setShowForm(false);
@@ -262,6 +269,7 @@ export default function AdminAds() {
     const { error } = await supabase.from("ads").delete().eq("id", id);
     if (!error) {
       toast({ title: "🗑️ Ad deleted" });
+      resetBootstrap();
       queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
       queryClient.invalidateQueries({ queryKey: ["ads"] });
     }
@@ -269,6 +277,7 @@ export default function AdminAds() {
 
   const handleToggle = async (id: string, active: boolean) => {
     await supabase.from("ads").update({ is_active: active }).eq("id", id);
+    resetBootstrap();
     queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
     queryClient.invalidateQueries({ queryKey: ["ads"] });
     toast({ title: active ? "✅ Ad is now live" : "⏸️ Ad paused" });
@@ -283,14 +292,15 @@ export default function AdminAds() {
 
   const whereText = () => {
     if (form.target_type === "universal") return "This ad will show in the selected position on every public page.";
-    if (form.target_type === "page" && form.target_page && form.target_state)
-      return `This ad will show on the ${form.target_page} page for visitors in ${form.target_state}.`;
+    const cityText = targetCities.length ? `${targetCities.length} selected ${targetCities.length === 1 ? "city" : "cities"}` : "";
+    if (form.target_type === "page" && form.target_page && (form.target_state || cityText))
+      return `This ad will show on the ${form.target_page} page for visitors in ${[form.target_state, cityText].filter(Boolean).join(" and ")}.`;
     if (form.target_type === "page" && form.target_page)
       return `This ad will show on the ${form.target_page} listing page.`;
     if (form.target_type === "item" && form.target_item_slug)
       return `This ad will show only on the detail page of "${form.target_item_slug}".`;
-    if (form.target_type === "state" && form.target_state)
-      return `This ad will show on all public pages for visitors in ${form.target_state}.`;
+    if (form.target_type === "state" && (form.target_state || cityText))
+      return `This ad will show on public pages for visitors in ${[form.target_state, cityText].filter(Boolean).join(" and ")}.`;
     return "Choose targeting options above to see where this ad will appear.";
   };
 
@@ -400,7 +410,7 @@ export default function AdminAds() {
                 {AUDIENCE_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setForm({ ...form, target_type: opt.value, target_page: "", target_item_slug: "", target_state: "" })}
+                    onClick={() => setForm({ ...form, target_type: opt.value, target_page: "", target_item_slug: "", target_state: "", target_cities: [] })}
                     className={`text-left p-3 rounded-xl border-2 transition-all ${form.target_type === opt.value ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
                   >
                     <div className="flex items-center gap-2 font-medium text-sm">
@@ -435,14 +445,24 @@ export default function AdminAds() {
               )}
 
               {(form.target_type === "state" || form.target_type === "page") && (
-                <Field label={form.target_type === "state" ? "Which state?" : "State filter (optional)"} error={errors.target_state} hint={form.target_type === "page" ? "Leave empty to show on this page for everyone, or choose a state to narrow the audience." : "Uses the same complete state list as the public college filters."}>
-                  <SearchableSelect
-                    options={locations?.states || []}
-                    value={form.target_state}
-                    onChange={(state) => { setForm({ ...form, target_state: state }); setErrors({ ...errors, target_state: "" }); }}
-                    placeholder={form.target_type === "page" ? "All states" : "Search and choose a state..."}
-                  />
-                </Field>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label={form.target_type === "state" ? "State (optional if cities selected)" : "State filter (optional)"} error={errors.target_state} hint="Uses the same complete state list as public filters.">
+                    <SearchableSelect
+                      options={locations?.states || []}
+                      value={form.target_state}
+                      onChange={(state) => { setForm({ ...form, target_state: state }); setErrors({ ...errors, target_state: "" }); }}
+                      placeholder="All states"
+                    />
+                  </Field>
+                  <Field label="Cities (optional, select many)" hint="Searches all Indian cities independently - selecting a state does not limit this list.">
+                    <SearchableMultiSelect
+                      options={allCities}
+                      value={targetCities}
+                      onChange={(cities) => { setForm({ ...form, target_cities: cities }); setErrors({ ...errors, target_state: "" }); }}
+                      placeholder="Search and select cities..."
+                    />
+                  </Field>
+                </div>
               )}
 
               <div className="mt-3 p-3 bg-primary/5 rounded-xl border border-primary/20">
@@ -570,7 +590,10 @@ export default function AdminAds() {
                     <Badge variant="secondary" className="capitalize">{audienceLabel(ad.target_type)}</Badge>
                     {ad.target_page && <Badge variant="outline">{ad.target_page}</Badge>}
                     {ad.target_item_slug && <Badge variant="outline" className="font-mono">{ad.target_item_slug}</Badge>}
-                    {(ad.target_state || ad.target_city) && <Badge variant="outline">📍 {displayState(ad.target_state || ad.target_city)}</Badge>}
+                    {(ad.target_state || ad.target_city) && (() => {
+                      const location = decodeAdLocation(ad.target_state || ad.target_city);
+                      return <Badge variant="outline">📍 {[displayState(location.state), location.cities.length ? `${location.cities.length} cities` : ""].filter(Boolean).join(" + ")}</Badge>;
+                    })()}
                     <span className="text-muted-foreground">• {PLACEMENT_OPTIONS.find(p => p.value === ad.position)?.label}</span>
                     <span className="text-muted-foreground">• Priority {ad.priority}</span>
                   </div>

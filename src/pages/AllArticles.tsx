@@ -120,7 +120,7 @@ export default function AllArticles() {
                   </div>
                 </article>
               </Link>
-              {(i + 1) % 3 === 0 && i < filtered.length - 1 && <div className="mt-4"><DynamicAdBanner variant="horizontal" position="mid-page" page="articles" /></div>}
+              {i === 2 && i < filtered.length - 1 && <div className="mt-4"><DynamicAdBanner variant="horizontal" position="mid-page" page="articles" /></div>}
             </motion.div>
           ))}
           {filtered.length === 0 && <div className="text-center py-16 text-muted-foreground">No articles found</div>}

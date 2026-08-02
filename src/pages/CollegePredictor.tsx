@@ -192,6 +192,8 @@ export default function CollegePredictor() {
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         <PageBreadcrumb items={[{ label: "Home", href: "/" }, { label: "College Predictor", href: "/college-predictor" }, ...(slug ? [{ label: slug }] : [])]} />
 
+        <AlsoCheckSection variant="strip" className="mb-5" />
+
         <section className="mt-3 rounded-3xl bg-gradient-to-br from-indigo-100 via-violet-50 to-fuchsia-100 border border-indigo-200/60 p-5 md:p-7 relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-44 h-44 bg-indigo-300/30 rounded-full blur-3xl" />
           <div className="relative">
@@ -258,8 +260,6 @@ export default function CollegePredictor() {
             </form>
           </div>
         </section>
-
-        <AlsoCheckSection variant="strip" />
 
         {/* LOW-RANK PATH */}
         {phase === "low" && (

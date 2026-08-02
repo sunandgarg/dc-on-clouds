@@ -18,6 +18,7 @@ import { downloadRoadmapPDF, type RoadmapData } from "@/lib/targetRoadmapPdf";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { buildLockTargetSeo } from "@/lib/lockTargetSeo";
+import { AlsoCheckSection } from "@/components/AlsoCheckSection";
 
 
 const CLASS_LEVELS = ["10", "11", "12", "Dropper"];
@@ -283,6 +284,8 @@ export default function LockTarget() {
 
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         <PageBreadcrumb items={[{ label: "Home", href: "/" }, { label: "Lock Your Target", href: "/lock-target" }, ...(slug ? [{ label: slug.replace(/-/g, " ") }] : [])]} />
+
+        <AlsoCheckSection variant="strip" className="mb-5" />
 
         {/* HERO */}
         <section className="mt-3 rounded-3xl bg-gradient-to-br from-orange-100 via-rose-50 to-amber-100 border border-orange-200/60 p-5 md:p-7 relative overflow-hidden">
@@ -689,4 +692,3 @@ function buildCheckpoints(roadmap: RoadmapData | null): Checkpoint[] {
     when: m.tasks?.[0] || "Track progress weekly. Adjust hours if behind.",
   }));
 }
-

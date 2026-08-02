@@ -4,7 +4,6 @@ import { HeroBannerCarousel } from "@/components/HeroBannerCarousel";
 import { CategorySection } from "@/components/CategorySection";
 import { TrendingPrograms } from "@/components/TrendingPrograms";
 import { ExploreCTACards } from "@/components/ExploreCTACards";
-import { DynamicAdBanner } from "@/components/DynamicAdBanner";
 import { CitySearch } from "@/components/CitySearch";
 import { OnlineEducationSection } from "@/components/OnlineEducationSection";
 import { CareerScopeSection } from "@/components/CareerScopeSection";
@@ -28,14 +27,12 @@ export default function HomeBelowFold() {
     <div className="container"><CategorySection /></div>
     <div className="container">
       <div id="explore-cta-heading"><ExploreCTACards /></div>
-      <section className="py-4"><DynamicAdBanner variant="leaderboard" position="mid-page" /></section>
       <div id="city-search-heading"><CitySearch /></div>
     </div>
     <div id="online-education-heading"><OnlineEducationSection /></div>
     <div className="container">
       <div id="career-scope-heading"><CareerScopeSection /></div>
       <div id="tools-heading"><ToolsSection /></div>
-      <section className="py-4"><DynamicAdBanner variant="horizontal" position="mid-page" /></section>
       <div id="news-heading"><NewsSection /></div>
       <div id="exam-strategies-heading"><ExamStrategiesSection /></div>
       <FeaturesSection />

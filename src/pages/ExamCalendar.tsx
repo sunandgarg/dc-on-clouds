@@ -149,6 +149,8 @@ export default function ExamCalendar() {
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <PageBreadcrumb items={[{ label: "Home", href: "/" }, { label: `Exam Calendar ${year}` }]} />
 
+        <AlsoCheckSection variant="strip" className="mb-5" />
+
         {/* Hero - Gen Z 2026: bold, sticky search, dopamine chips */}
         <section className="mt-3 rounded-3xl bg-gradient-to-br from-orange-100 via-amber-50 to-rose-100 border border-orange-200/60 p-5 md:p-7 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-300/30 rounded-full blur-3xl" />
@@ -225,9 +227,6 @@ export default function ExamCalendar() {
             </p>
           </div>
         </section>
-
-        {/* Mid-page discovery strip - Gen Z attention peak */}
-        <AlsoCheckSection variant="strip" />
 
 
         {/* Month sections */}

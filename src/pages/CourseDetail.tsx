@@ -493,7 +493,6 @@ export default function CourseDetail() {
               )}
             </RichSection>
 
-            <DynamicAdBanner variant="horizontal" position="mid-page" page="courses" itemSlug={slug} />
 
             {/* Fees */}
             <RichSection id="fees" title={<>Fee Structure</>}>

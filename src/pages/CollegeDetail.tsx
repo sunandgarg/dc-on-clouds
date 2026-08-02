@@ -448,7 +448,6 @@ export default function CollegeDetail() {
               </div>
             </RichSection>
 
-            <DynamicAdBanner variant="horizontal" position="mid-page" page="colleges" itemSlug={college.slug} />
             <LeadCaptureForm variant="inline" title="📞 Get admission guidance for this college" source={`college_inline_${college.slug}`} interestedCollegeSlug={college.slug} />
 
             {/* Admissions */}
@@ -645,7 +644,6 @@ export default function CollegeDetail() {
               </RichSection>
             )}
 
-            <DynamicAdBanner variant="horizontal" position="bottom" page="colleges" itemSlug={college.slug} />
 
             {/* Compare */}
             <section id="compare" className="bg-card rounded-2xl border border-border p-5 scroll-mt-32">
