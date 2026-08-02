@@ -62,7 +62,6 @@ export default function ToolPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="tools" />
       <main className="container py-4 md:py-6">
         <PageBreadcrumb items={[{ label: "Tools", href: "/tools" }, { label: tool.title }]} />
         <Link to="/tools" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">

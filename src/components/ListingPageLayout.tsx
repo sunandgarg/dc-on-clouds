@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FixedCounsellingCTA } from "@/components/FixedCounsellingCTA";
-import { DynamicAdBanner } from "@/components/DynamicAdBanner";
 import { AlsoCheckSection } from "@/components/AlsoCheckSection";
 
 interface ListingPageLayoutProps {
@@ -16,7 +15,6 @@ export function ListingPageLayout({ children, title, description, page }: Listin
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page={page} />
       <main className="container py-4 md:py-6">
         <header className="mb-4">
           <h1 className="text-headline font-bold text-foreground">{title}</h1>

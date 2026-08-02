@@ -39,8 +39,8 @@ const ARTICLE_RESEARCH_SOURCES = [
   "https://collegedunia.com/news",
   "https://www.collegedekho.com/news",
   "https://www.pagalguy.com/mba/articles",
-  "https://www.dekhocampus.com/news",
-  "https://www.dekhocampus.in/news",
+  "https://dekhocampus.com/news",
+  "https://dekhocampus.com/news",
 ];
 const WORD_LIMITS = [
   { value: 900, label: "Quick", hint: "900 words" },

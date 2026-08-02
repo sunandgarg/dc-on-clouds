@@ -207,8 +207,6 @@ export default function CollegeDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="colleges" itemSlug={college.slug} />
-
       <main className="container px-3 md:px-6 py-3 md:py-6 max-w-full" style={{ overflowX: "clip" }}>
         <PageBreadcrumb items={[{ label: "Colleges", href: "/colleges" }, { label: college.name }]} />
 

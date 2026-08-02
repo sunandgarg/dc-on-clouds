@@ -159,8 +159,6 @@ export default function ExamDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="exams" itemSlug={slug} />
-
       <main className="container px-3 md:px-6 py-4 md:py-6">
         <PageBreadcrumb items={[
           { label: "Exams", href: "/exams" },

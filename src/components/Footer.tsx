@@ -6,6 +6,7 @@ import { GoogleGLogo } from "@/components/GoogleGLogo";
 import logo from "@/assets/dekhocampus-footer-logo.png";
 import dcLogo from "@/assets/dc-logo-small.webp";
 import { QuickLinksBar } from "@/components/QuickLinksBar";
+import { GlobalInternalAds } from "@/components/GlobalInternalAds";
 
 const footerLinks = {
   explore: [
@@ -51,6 +52,7 @@ const socialLinks = [
 export function Footer() {
   return (
     <>
+    <GlobalInternalAds area="bottom" />
     <QuickLinksBar />
     <footer className="bg-foreground text-background" role="contentinfo">
       {/* Built by IIT Delhi Alumni strip - shown on every page */}

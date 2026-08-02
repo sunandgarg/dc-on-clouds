@@ -1,26 +1,39 @@
-/**
- * Postbuild sitemap generator.
- * Runs after `vite build` (see package.json `postbuild` hook) and writes
- * `dist/sitemap.xml` with one entry per public route + every published row in
- * colleges, courses, exams, careers, scholarships, articles, landing pages,
- * tools and study material.
- *
- * Falls back gracefully (still emits the static-route sitemap) if Supabase
- * env vars are unavailable at build time.
- */
+/** Production sitemap generator: public routes, live records and crawl-safe filter landings. */
 import { writeFileSync } from "fs";
 import { resolve } from "path";
 import { createClient } from "@supabase/supabase-js";
+import { loadEnv } from "vite";
 import { eligibilityComboSlugs, predictorComboSlugs } from "../src/lib/seoSubSlugs";
+import { LOCK_TARGET_TRENDING_SLUGS, TOOL_SLUGS } from "../src/lib/toolsRegistry";
+import { STRATEGY_SLUGS } from "../src/lib/examStrategies";
+import {
+  citiesByState,
+  collegeCourseGroups,
+  collegeExams,
+  collegeFeeRanges,
+  collegeStreams,
+  collegeTypes,
+  courseCourseGroups,
+  courseDurations,
+  courseModes,
+  courseSpecializations,
+  courseStreams,
+  examCategories,
+  examCourseGroups,
+  examLevels,
+  examStreams,
+  indianStates,
+} from "../src/data/indianLocations";
+import { collegeApprovals, collegeNaacGrades } from "../src/data/colleges";
 import { SITE_URL } from "../src/lib/constant";
 
-const BASE_URL = process.env.SITEMAP_BASE_URL || SITE_URL;
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
-const SUPABASE_ANON =
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_PUBLISHABLE_KEY ||
-  "";
+const fileEnv = loadEnv(process.env.NODE_ENV || "production", process.cwd(), "");
+const env = { ...fileEnv, ...process.env };
+const BASE_URL = (env.SITEMAP_BASE_URL || SITE_URL).replace(/\/+$/, "");
+const SUPABASE_URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL || "";
+const SUPABASE_ANON = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || "";
+const PAGE_SIZE = 1000;
+const SITEMAP_CHUNK_SIZE = 45_000;
 
 interface SitemapEntry {
   path: string;
@@ -29,173 +42,259 @@ interface SitemapEntry {
   priority?: string;
 }
 
-// Static, public-facing routes from src/App.tsx (admin / dashboard / auth omitted).
 const STATIC: SitemapEntry[] = [
   { path: "/", changefreq: "daily", priority: "1.0" },
   { path: "/colleges", changefreq: "daily", priority: "0.9" },
   { path: "/courses", changefreq: "daily", priority: "0.9" },
   { path: "/exams", changefreq: "daily", priority: "0.9" },
+  { path: "/premium-programs", changefreq: "daily", priority: "0.9" },
+  { path: "/articles", changefreq: "daily", priority: "0.85" },
+  { path: "/news", changefreq: "daily", priority: "0.85" },
   { path: "/careers", changefreq: "weekly", priority: "0.8" },
+  { path: "/jobs", changefreq: "daily", priority: "0.8" },
+  { path: "/vacancies", changefreq: "daily", priority: "0.8" },
   { path: "/scholarships", changefreq: "weekly", priority: "0.8" },
-  { path: "/articles", changefreq: "daily", priority: "0.8" },
-  { path: "/news", changefreq: "daily", priority: "0.8" },
-  { path: "/study-material", changefreq: "weekly", priority: "0.7" },
+  { path: "/study-material", changefreq: "weekly", priority: "0.75" },
+  { path: "/college-study-material", changefreq: "weekly", priority: "0.75" },
   { path: "/resources", changefreq: "weekly", priority: "0.7" },
-  { path: "/tools", changefreq: "weekly", priority: "0.6" },
+  { path: "/tools", changefreq: "weekly", priority: "0.7" },
   { path: "/cat-universe", changefreq: "daily", priority: "0.8" },
-  { path: "/compare", changefreq: "weekly", priority: "0.5" },
+  { path: "/compare", changefreq: "weekly", priority: "0.6" },
   { path: "/eligibility-checker", changefreq: "weekly", priority: "0.7" },
   { path: "/college-predictor", changefreq: "weekly", priority: "0.7" },
-  { path: "/exam-calendar", changefreq: "weekly", priority: "0.7" },
-  { path: "/exam-calendar-2026", changefreq: "weekly", priority: "0.7" },
-  { path: "/about-us", changefreq: "monthly", priority: "0.4" },
+  { path: "/exam-calendar", changefreq: "daily", priority: "0.75" },
+  { path: "/exam-calendar-2026", changefreq: "daily", priority: "0.75" },
+  { path: "/lock-target", changefreq: "weekly", priority: "0.7" },
+  { path: "/achieve-target", changefreq: "weekly", priority: "0.65" },
+  { path: "/roadmap", changefreq: "weekly", priority: "0.65" },
+  { path: "/dream-college-roadmap", changefreq: "weekly", priority: "0.65" },
+  { path: "/about-us", changefreq: "monthly", priority: "0.5" },
+  { path: "/about", changefreq: "monthly", priority: "0.4" },
 ];
 
-// SEO sub-slug combos for tool pages - generates thousands of indexable URLs.
-function toolComboEntries(): SitemapEntry[] {
-  const out: SitemapEntry[] = [];
-  for (const s of eligibilityComboSlugs()) {
-    out.push({ path: `/eligibility-checker/${s}`, changefreq: "weekly", priority: "0.55" });
+const sb = SUPABASE_URL && SUPABASE_ANON ? createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+
+async function fetchRows(table: string, select: string, configure?: (query: any) => any): Promise<any[]> {
+  if (!sb) return [];
+  const rows: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    let query = sb.from(table).select(select);
+    if (configure) query = configure(query);
+    const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+    if (error) {
+      console.warn(`[sitemap] ${table}: ${error.message}`);
+      return rows;
+    }
+    rows.push(...(data || []));
+    if (!data || data.length < PAGE_SIZE) return rows;
   }
-  for (const s of predictorComboSlugs()) {
-    out.push({ path: `/college-predictor/${s}`, changefreq: "weekly", priority: "0.55" });
-  }
-  return out;
 }
 
-async function fetchSlugs(table: string, extraFilter?: (q: any) => any): Promise<{ slug: string; updated_at?: string }[]> {
-  if (!SUPABASE_URL || !SUPABASE_ANON) return [];
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
-  let q = sb.from(table).select("slug, updated_at").not("slug", "is", null);
-  if (extraFilter) q = extraFilter(q);
-  const { data, error } = await q.limit(50000);
-  if (error) {
-    console.warn(`[sitemap] ${table}: ${error.message}`);
-    return [];
-  }
-  return (data ?? []).filter((r) => r.slug);
+function changed(value?: string) {
+  return value ? new Date(value).toISOString().slice(0, 10) : undefined;
 }
 
-async function fetchRows(table: string, select: string, extraFilter?: (q: any) => any): Promise<any[]> {
-  if (!SUPABASE_URL || !SUPABASE_ANON) return [];
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
-  let q = sb.from(table).select(select);
-  if (extraFilter) q = extraFilter(q);
-  const { data, error } = await q.limit(50000);
-  if (error) {
-    console.warn(`[sitemap] ${table}: ${error.message}`);
-    return [];
-  }
-  return data ?? [];
-}
-
-function entriesFor(prefix: string, rows: { slug: string; updated_at?: string }[], priority = "0.7"): SitemapEntry[] {
-  return rows.map((r) => ({
-    path: `${prefix}/${r.slug}`,
-    lastmod: r.updated_at ? new Date(r.updated_at).toISOString().slice(0, 10) : undefined,
+function detailEntries(prefix: string, rows: any[], priority = "0.7"): SitemapEntry[] {
+  return rows.filter((row) => row.slug).map((row) => ({
+    path: `${prefix}/${row.slug}`,
+    lastmod: changed(row.updated_at),
     changefreq: "weekly",
     priority,
   }));
 }
 
+function filteredPath(base: string, values: Record<string, string>) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) if (value) query.set(key, value);
+  return `${base}?${query.toString()}`;
+}
+
+function addSingles(out: SitemapEntry[], base: string, key: string, values: readonly string[]) {
+  for (const value of values.filter((item) => item && item !== "All")) {
+    out.push({ path: filteredPath(base, { [key]: value }), changefreq: "weekly", priority: "0.55" });
+  }
+}
+
+/** Every frontend filter value plus high-intent two-facet landings, without crawl-trap permutations. */
+function filterEntries(): SitemapEntry[] {
+  const out: SitemapEntry[] = [];
+
+  addSingles(out, "/colleges", "state", indianStates);
+  addSingles(out, "/colleges", "stream", collegeStreams);
+  addSingles(out, "/colleges", "group", collegeCourseGroups);
+  addSingles(out, "/colleges", "type", collegeTypes);
+  addSingles(out, "/colleges", "approval", collegeApprovals);
+  addSingles(out, "/colleges", "naac", collegeNaacGrades);
+  addSingles(out, "/colleges", "fee", collegeFeeRanges);
+  addSingles(out, "/colleges", "exam", collegeExams);
+  for (const state of indianStates) {
+    for (const city of citiesByState[state] || []) {
+      out.push({ path: filteredPath("/colleges", { state, city }), changefreq: "weekly", priority: "0.58" });
+    }
+    for (const stream of collegeStreams) {
+      out.push({ path: filteredPath("/colleges", { stream, state }), changefreq: "weekly", priority: "0.6" });
+    }
+    for (const group of collegeCourseGroups) {
+      out.push({ path: filteredPath("/colleges", { group, state }), changefreq: "weekly", priority: "0.6" });
+    }
+  }
+
+  addSingles(out, "/courses", "stream", courseStreams);
+  addSingles(out, "/courses", "group", courseCourseGroups);
+  addSingles(out, "/courses", "specialization", courseSpecializations);
+  addSingles(out, "/courses", "mode", courseModes);
+  addSingles(out, "/courses", "duration", courseDurations);
+  for (const stream of courseStreams) for (const mode of courseModes) {
+    out.push({ path: filteredPath("/courses", { stream, mode }), changefreq: "weekly", priority: "0.57" });
+  }
+  for (const group of courseCourseGroups) for (const mode of courseModes) {
+    out.push({ path: filteredPath("/courses", { group, mode }), changefreq: "weekly", priority: "0.57" });
+  }
+
+  addSingles(out, "/exams", "category", examCategories);
+  addSingles(out, "/exams", "stream", examStreams);
+  addSingles(out, "/exams", "group", examCourseGroups);
+  addSingles(out, "/exams", "level", examLevels);
+  for (const stream of examStreams) for (const level of examLevels) {
+    out.push({ path: filteredPath("/exams", { stream, level }), changefreq: "weekly", priority: "0.57" });
+  }
+  for (const category of examCategories) for (const stream of examStreams) {
+    out.push({ path: filteredPath("/exams", { category, stream }), changefreq: "weekly", priority: "0.57" });
+  }
+
+  return out;
+}
+
+function toolEntries(): SitemapEntry[] {
+  return [
+    ...TOOL_SLUGS.map((slug) => ({ path: `/tools/${slug}`, changefreq: "monthly" as const, priority: "0.55" })),
+    ...eligibilityComboSlugs().map((slug) => ({ path: `/eligibility-checker/${slug}`, changefreq: "weekly" as const, priority: "0.55" })),
+    ...predictorComboSlugs().map((slug) => ({ path: `/college-predictor/${slug}`, changefreq: "weekly" as const, priority: "0.55" })),
+    ...LOCK_TARGET_TRENDING_SLUGS.flatMap((slug) => ["lock-target", "achieve-target", "roadmap", "dream-college-roadmap"].map((prefix) => ({
+      path: `/${prefix}/${slug}`,
+      changefreq: "weekly" as const,
+      priority: "0.55",
+    }))),
+  ];
+}
+
 async function studyEntries(): Promise<SitemapEntry[]> {
-  const subjects = await fetchRows(
-    "study_subjects",
-    "id, slug, class_num, board_slug, updated_at",
-    (q) => q.eq("is_active", true).not("slug", "is", null),
-  );
-  const chapters = await fetchRows(
-    "study_chapters",
-    "slug, subject_id, updated_at",
-    (q) => q.eq("is_active", true).not("slug", "is", null),
-  );
-  const subjectById = new Map(subjects.map((s) => [s.id, s]));
-  const classBoardEntries = new Map<string, SitemapEntry>();
-  for (const s of subjects) {
-    classBoardEntries.set(`${s.class_num}/${s.board_slug}`, {
-      path: `/study-material/class-${s.class_num}/${s.board_slug}`,
-      lastmod: s.updated_at ? new Date(s.updated_at).toISOString().slice(0, 10) : undefined,
-      changefreq: "weekly",
-      priority: "0.6",
+  const [subjects, chapters, programs, universities, semesters, collegeSubjects] = await Promise.all([
+    fetchRows("study_subjects", "id,slug,class_num,board_slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("study_chapters", "slug,subject_id,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("college_programs", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("college_universities", "slug,program_slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("college_semesters", "semester_num,program_slug,university_slug,updated_at", (q) => q.eq("is_active", true)),
+    fetchRows("college_subjects", "slug,semester_num,program_slug,university_slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+  ]);
+  const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
+  const classBoards = new Map<string, SitemapEntry>();
+  for (const subject of subjects) {
+    classBoards.set(`${subject.class_num}/${subject.board_slug}`, {
+      path: `/study-material/class-${subject.class_num}/${subject.board_slug}`,
+      lastmod: changed(subject.updated_at), changefreq: "weekly", priority: "0.62",
     });
   }
   return [
-    ...classBoardEntries.values(),
-    ...subjects.map((s) => ({
-      path: `/study-material/class-${s.class_num}/${s.board_slug}/${s.slug}`,
-      lastmod: s.updated_at ? new Date(s.updated_at).toISOString().slice(0, 10) : undefined,
-      changefreq: "weekly" as const,
-      priority: "0.55",
-    })),
-    ...chapters.flatMap((ch) => {
-      const s = subjectById.get(ch.subject_id);
-      if (!s) return [];
-      return [{
-        path: `/study-material/class-${s.class_num}/${s.board_slug}/${s.slug}/${ch.slug}`,
-        lastmod: ch.updated_at ? new Date(ch.updated_at).toISOString().slice(0, 10) : undefined,
-        changefreq: "weekly" as const,
-        priority: "0.5",
-      }];
+    ...classBoards.values(),
+    ...subjects.map((subject) => ({ path: `/study-material/class-${subject.class_num}/${subject.board_slug}/${subject.slug}`, lastmod: changed(subject.updated_at), changefreq: "weekly" as const, priority: "0.58" })),
+    ...chapters.flatMap((chapter) => {
+      const subject = subjectById.get(chapter.subject_id);
+      return subject ? [{ path: `/study-material/class-${subject.class_num}/${subject.board_slug}/${subject.slug}/${chapter.slug}`, lastmod: changed(chapter.updated_at), changefreq: "weekly" as const, priority: "0.55" }] : [];
     }),
+    ...programs.map((row) => ({ path: `/college-study-material/${row.slug}`, lastmod: changed(row.updated_at), changefreq: "weekly" as const, priority: "0.62" })),
+    ...universities.map((row) => ({ path: `/college-study-material/${row.program_slug}/${row.slug}`, lastmod: changed(row.updated_at), changefreq: "weekly" as const, priority: "0.58" })),
+    ...semesters.map((row) => ({ path: `/college-study-material/${row.program_slug}/${row.university_slug}/semester-${row.semester_num}`, lastmod: changed(row.updated_at), changefreq: "weekly" as const, priority: "0.55" })),
+    ...collegeSubjects.map((row) => ({ path: `/college-study-material/${row.program_slug}/${row.university_slug}/semester-${row.semester_num}/${row.slug}`, lastmod: changed(row.updated_at), changefreq: "weekly" as const, priority: "0.52" })),
   ];
+}
+
+function escapeXml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
 function xmlFor(entries: SitemapEntry[]) {
-  const urls = entries.map((e) =>
-    [
-      `  <url>`,
-      `    <loc>${BASE_URL}${e.path}</loc>`,
-      e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
-      e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
-      e.priority ? `    <priority>${e.priority}</priority>` : null,
-      `  </url>`,
-    ]
-      .filter(Boolean)
-      .join("\n"),
-  );
+  const urls = entries.map((entry) => [
+    "  <url>",
+    `    <loc>${escapeXml(`${BASE_URL}${entry.path}`)}</loc>`,
+    entry.lastmod ? `    <lastmod>${entry.lastmod}</lastmod>` : null,
+    entry.changefreq ? `    <changefreq>${entry.changefreq}</changefreq>` : null,
+    entry.priority ? `    <priority>${entry.priority}</priority>` : null,
+    "  </url>",
+  ].filter(Boolean).join("\n"));
+  return [`<?xml version="1.0" encoding="UTF-8"?>`, `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`, ...urls, `</urlset>`].join("\n");
+}
+
+function sitemapIndex(files: string[]) {
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`,
-    ...urls,
-    `</urlset>`,
+    `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`,
+    ...files.map((file) => `  <sitemap><loc>${escapeXml(`${BASE_URL}/${file}`)}</loc></sitemap>`),
+    `</sitemapindex>`,
   ].join("\n");
 }
 
+function writeSitemaps(entries: SitemapEntry[]) {
+  if (entries.length <= SITEMAP_CHUNK_SIZE) {
+    writeFileSync(resolve("dist/sitemap.xml"), xmlFor(entries));
+    return ["sitemap.xml"];
+  }
+  const files: string[] = [];
+  for (let index = 0; index < entries.length; index += SITEMAP_CHUNK_SIZE) {
+    const file = `sitemap-${files.length + 1}.xml`;
+    writeFileSync(resolve("dist", file), xmlFor(entries.slice(index, index + SITEMAP_CHUNK_SIZE)));
+    files.push(file);
+  }
+  writeFileSync(resolve("dist/sitemap.xml"), sitemapIndex(files));
+  return files;
+}
+
 (async () => {
-  const [colleges, courses, exams, careers, scholarships, articles, landing, catUniverseModules, study] = await Promise.all([
-    fetchSlugs("colleges", (q) => q.eq("is_active", true)),
-    fetchSlugs("courses", (q) => q.eq("is_active", true)),
-    fetchSlugs("exams", (q) => q.eq("is_active", true)),
-    fetchSlugs("career_profiles", (q) => q.eq("is_active", true)),
-    fetchSlugs("scholarships", (q) => q.eq("is_active", true)),
-    fetchSlugs("articles", (q) => q.eq("is_active", true)),
-    fetchSlugs("landing_pages", (q) => q.eq("is_active", true)),
-    fetchSlugs("cat_universe_modules", (q) => q.eq("is_active", true)),
+  const [colleges, courses, exams, careers, scholarships, articles, landing, catModules, premiumPrograms, jobs, authors, legalPages, study] = await Promise.all([
+    fetchRows("colleges", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("courses", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("exams", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("career_profiles", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("scholarships", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("articles", "slug,updated_at,tags", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("landing_pages", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("cat_universe_modules", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("promoted_programs", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("jobs", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("authors", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("legal_pages", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
     studyEntries(),
   ]);
 
+  const tags = [...new Set(articles.flatMap((article) => Array.isArray(article.tags) ? article.tags : []).filter(Boolean))];
   const all: SitemapEntry[] = [
     ...STATIC,
-    ...entriesFor("/colleges", colleges, "0.85"),
-    ...entriesFor("/courses", courses, "0.85"),
-    ...entriesFor("/exams", exams, "0.85"),
-    ...entriesFor("/careers", careers, "0.7"),
-    ...entriesFor("/scholarships", scholarships, "0.7"),
-    ...entriesFor("/articles", articles, "0.6"),
-    ...entriesFor("/landing", landing, "0.6"),
-    ...entriesFor("/cat-universe", catUniverseModules, "0.75"),
+    ...detailEntries("/colleges", colleges, "0.88"),
+    ...detailEntries("/courses", courses, "0.85"),
+    ...detailEntries("/exams", exams, "0.85"),
+    ...exams.flatMap((exam) => STRATEGY_SLUGS.map((strategy) => ({ path: `/exams/${exam.slug}/${strategy}`, lastmod: changed(exam.updated_at), changefreq: "weekly" as const, priority: "0.64" }))),
+    ...detailEntries("/careers", careers, "0.72"),
+    ...detailEntries("/scholarships", scholarships, "0.72"),
+    ...detailEntries("/articles", articles, "0.7"),
+    ...detailEntries("/news", articles, "0.7"),
+    ...tags.map((tag) => ({ path: `/news/tag/${encodeURIComponent(String(tag).toLowerCase().trim().replace(/\s+/g, "-"))}`, changefreq: "daily" as const, priority: "0.62" })),
+    ...detailEntries("/landing", landing, "0.65"),
+    ...detailEntries("/cat-universe", catModules, "0.75"),
+    ...detailEntries("/premium-programs", premiumPrograms, "0.86"),
+    ...detailEntries("/jobs", jobs, "0.75"),
+    ...detailEntries("/vacancies", jobs, "0.72"),
+    ...detailEntries("/author", authors, "0.58"),
+    ...detailEntries("/legal", legalPages, "0.45"),
     ...study,
-    ...toolComboEntries(),
+    ...toolEntries(),
+    ...filterEntries(),
   ];
 
-  // Dedupe by path
   const seen = new Set<string>();
-  const unique = all.filter((e) => (seen.has(e.path) ? false : (seen.add(e.path), true)));
-
-  writeFileSync(resolve("dist/sitemap.xml"), xmlFor(unique));
-  console.log(`sitemap.xml written - ${unique.length} entries`);
-})().catch((e) => {
-  console.warn("[sitemap] fatal:", e?.message || e);
-  // Still emit the static sitemap so the build doesn't fail.
-  writeFileSync(resolve("dist/sitemap.xml"), xmlFor(STATIC));
+  const unique = all.filter((entry) => entry.path && !seen.has(entry.path) && (seen.add(entry.path), true));
+  const files = writeSitemaps(unique);
+  console.log(`sitemap written - ${unique.length} URLs across ${files.length} file(s)`);
+})().catch((error) => {
+  console.warn("[sitemap] fatal:", error?.message || error);
+  writeSitemaps(STATIC);
 });

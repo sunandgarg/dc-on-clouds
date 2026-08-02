@@ -1,4 +1,4 @@
-export const PHONE_AUTH_EMAIL_DOMAIN = "auth.dekhocampus.in";
+export const PHONE_AUTH_EMAIL_DOMAIN = "auth.dekhocampus.com";
 export const LEGACY_PHONE_AUTH_EMAIL_DOMAIN = "dekhocampus.local";
 
 export function phoneAuthEmail(phoneDigits: string) {

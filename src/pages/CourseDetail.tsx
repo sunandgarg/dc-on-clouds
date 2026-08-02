@@ -252,8 +252,6 @@ export default function CourseDetail() {
   return (
     <div className="min-h-screen bg-background overflow-x-clip">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="courses" itemSlug={slug} />
-
       {/* overflow-x-hidden on <main> was the scroll-sticking culprit:
           it creates an implicit scroll container in Webkit/Blink, intercepting touch scroll.
           Removed - the root div handles horizontal overflow containment instead. */}

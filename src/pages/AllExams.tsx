@@ -60,7 +60,7 @@ export default function AllExams() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search]);
 
-  useCanonical();
+  useCanonical(undefined, true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -142,7 +142,6 @@ export default function AllExams() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="exams" />
       <main className="px-3 md:container py-4 md:py-6">
         <PageBreadcrumb items={[{ label: "Exams" }]} />
         <header className="mb-4">

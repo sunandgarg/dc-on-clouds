@@ -17,7 +17,6 @@ function updateIndexHtml() {
     [/https:\/\/ui\.dekhocampus\.com\/?/g, SITE_URL],
     [/https:\/\/www\.dekhocampus\.com\/?/g, SITE_URL],
     [/https:\/\/dekhocampus\.com\/?/g, SITE_URL],
-    [/https:\/\/www\.dekhocampus\.in\/?/g, SITE_URL],
     [/"url":\s*"https:\/\/[^"]+"/g, `"url": "${SITE_URL}"`],
     [/"logo":\s*"https:\/\/[^"]+\/logo\.png"/g, `"logo": "${absoluteSiteUrl(SITE_CONFIG.logoPath)}"`],
     [/"target":\s*"https:\/\/[^"]+\{search_term_string\}"/g, `"target": "${absoluteSiteUrl(`${SITE_CONFIG.searchPath}?q={search_term_string}`)}"`],

@@ -17,7 +17,7 @@ const DEFAULT_SOURCES = [
   { name: "CollegeDunia", url: "https://collegedunia.com/news", source_type: "competitor" },
   { name: "CollegeDekho", url: "https://www.collegedekho.com/news", source_type: "competitor" },
   { name: "PaGaLGuY", url: "https://www.pagalguy.com/mba/articles", source_type: "competitor" },
-  { name: "DekhoCampus", url: "https://www.dekhocampus.in/news", source_type: "own" },
+  { name: "DekhoCampus", url: "https://dekhocampus.com/news", source_type: "own" },
 ];
 
 function json(body: unknown, status = 200) {
@@ -126,7 +126,7 @@ async function loadInternalLinkContext(admin: any, topic: any) {
     return (data || []).map((row: any) => ({
       label: row[request.column],
       type: request.type,
-      url: `https://dekhocampus.in/${request.path}/${row.slug}`,
+      url: `https://dekhocampus.com/${request.path}/${row.slug}`,
     }));
   }));
   return settled.flatMap((result) => result.status === "fulfilled" ? result.value : []).slice(0, 16);
@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
       image_template_url: "",
       image_prompt_style: "Premium editorial, clean, credible, student-focused",
       include_logo: true,
-      logo_url: "https://dekhocampus.in/brand/dekhocampus-blog-logo.png",
+      logo_url: "https://dekhocampus.com/brand/dekhocampus-blog-logo.png",
       logo_position: "top-center",
       image_aspect_ratio: "16:9",
       output_resolution: "4k",

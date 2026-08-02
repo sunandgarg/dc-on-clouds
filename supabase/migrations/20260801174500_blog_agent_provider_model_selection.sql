@@ -68,7 +68,7 @@ SET text_model = CASE
     END,
     image_provider = 'gemini',
     image_model = 'gemini-3.1-flash-lite-image',
-    logo_url = 'https://dekhocampus.in/brand/dekhocampus-blog-logo.png',
+    logo_url = 'https://dekhocampus.com/brand/dekhocampus-blog-logo.png',
     logo_position = 'top-center'
 WHERE id = 'default';
 

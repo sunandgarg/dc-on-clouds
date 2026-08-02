@@ -8,31 +8,32 @@ interface DynamicAdBannerProps {
   position?: string;
   page?: string;
   itemSlug?: string;
-  city?: string;
+  state?: string;
   className?: string;
 }
 
 export function DynamicAdBanner({
-  variant = "horizontal",
+  variant,
   position = "mid-page",
   page,
   itemSlug,
-  city,
+  state,
   className = "",
 }: DynamicAdBannerProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const { data: ad } = useAds({ page, itemSlug, city, variant, position });
+  const { data: ad } = useAds({ page, itemSlug, state, variant, position });
 
   if (!isVisible || !ad) return null;
 
   const { title, subtitle, cta_text, link_url, bg_gradient, image_url } = ad;
+  const effectiveVariant = (ad.variant || variant || "horizontal") as NonNullable<DynamicAdBannerProps["variant"]>;
 
   const bgStyle = image_url
     ? { backgroundImage: `url(${image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
     : {};
   const overlayClass = image_url ? "bg-black/40" : "";
 
-  if (variant === "leaderboard") {
+  if (effectiveVariant === "leaderboard") {
     return (
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -62,7 +63,7 @@ export function DynamicAdBanner({
     );
   }
 
-  if (variant === "horizontal") {
+  if (effectiveVariant === "horizontal") {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -87,7 +88,7 @@ export function DynamicAdBanner({
     );
   }
 
-  if (variant === "vertical") {
+  if (effectiveVariant === "vertical") {
     return (
       <motion.div
         initial={{ opacity: 0, x: 20 }}

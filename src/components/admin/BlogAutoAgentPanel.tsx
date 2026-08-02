@@ -99,7 +99,7 @@ const DEFAULT_SETTINGS: Settings = {
   image_template_url: "",
   image_prompt_style: "Premium editorial, clean, credible, student-focused",
   include_logo: true,
-  logo_url: "https://dekhocampus.in/brand/dekhocampus-blog-logo.png",
+  logo_url: "https://dekhocampus.com/brand/dekhocampus-blog-logo.png",
   logo_position: "top-center",
   image_aspect_ratio: "16:9",
   output_resolution: "4k",
@@ -112,7 +112,7 @@ const DEFAULT_SOURCES: Source[] = [
   { name: "CollegeDunia", url: "https://collegedunia.com/news", source_type: "competitor", is_active: true },
   { name: "CollegeDekho", url: "https://www.collegedekho.com/news", source_type: "competitor", is_active: true },
   { name: "PaGaLGuY", url: "https://www.pagalguy.com/mba/articles", source_type: "competitor", is_active: true },
-  { name: "DekhoCampus", url: "https://www.dekhocampus.in/news", source_type: "own", is_active: true },
+  { name: "DekhoCampus", url: "https://dekhocampus.com/news", source_type: "own", is_active: true },
 ];
 
 export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: () => void }) {

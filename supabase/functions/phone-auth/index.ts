@@ -24,7 +24,7 @@ function normalizeIndianMobile(input: string) {
 }
 
 function emailForPhone(phone: string) {
-  return `phone${phone}@auth.dekhocampus.in`;
+  return `phone${phone}@auth.dekhocampus.com`;
 }
 
 function randomPassword() {
@@ -88,7 +88,7 @@ async function generateSessionFallback(admin: any, email: string, redirectTo?: s
   const { data, error } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email,
-    options: { redirectTo: redirectTo || "https://www.dekhocampus.in/auth" },
+    options: { redirectTo: redirectTo || "https://dekhocampus.com/auth" },
   });
 
   if (error) throw error;

@@ -55,10 +55,6 @@ export function NewsSection() {
   return (
     <section className="py-10 md:py-16 bg-muted/30" aria-label="Latest Education News">
       <div className="container">
-        <div className="mb-8">
-          <DynamicAdBanner variant="leaderboard" position="leaderboard" />
-        </div>
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -148,6 +144,9 @@ export function NewsSection() {
           >
             View All News & Updates <ArrowRight className="w-4 h-4" />
           </Link>
+        </div>
+        <div className="mt-8">
+          <DynamicAdBanner position="mid-page" page="home" />
         </div>
       </div>
     </section>

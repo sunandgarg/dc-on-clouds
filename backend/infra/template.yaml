@@ -10,7 +10,7 @@ Parameters:
     NoEcho: true
   CorsOrigin:
     Type: String
-    Default: https://www.dekhocampus.in
+    Default: https://dekhocampus.com
 
 Globals:
   Function:

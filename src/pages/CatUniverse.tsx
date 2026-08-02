@@ -25,7 +25,6 @@ export default function CatUniverse() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="cat_universe" />
       <main className="container py-4 md:py-6">
         <PageBreadcrumb items={[{ label: "CAT Universe" }]} />
         {settings ? <CatUniverseSpotlight settings={settings} sections={sections} modules={modules} /> : null}

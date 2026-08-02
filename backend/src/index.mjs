@@ -10,7 +10,7 @@ const backendMode = () => {
 };
 
 const corsHeaders = {
-  "access-control-allow-origin": process.env.CORS_ORIGIN || "https://www.dekhocampus.in",
+  "access-control-allow-origin": process.env.CORS_ORIGIN || "https://dekhocampus.com",
   "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
   "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 };

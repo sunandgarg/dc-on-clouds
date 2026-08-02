@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       userId = data?.user?.id ?? null;
     } else if (phone) {
       const cleanPhone = normalizeIndianMobile(phone);
-      const fakeEmail = `phone${cleanPhone}@auth.dekhocampus.in`;
+      const fakeEmail = `phone${cleanPhone}@auth.dekhocampus.com`;
       const { data, error } = await admin.auth.admin.createUser({
         email: fakeEmail, password, email_confirm: true,
         phone: `+91${cleanPhone}`,

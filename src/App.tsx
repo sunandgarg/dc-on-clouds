@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CompareProvider } from "@/contexts/CompareContext";
 import { HomeMobileBottomNav } from "@/components/HomeMobileBottomNav";
+import { GlobalInternalAds } from "@/components/GlobalInternalAds";
 
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { ScrollLockGuard } from "@/components/ScrollLockGuard";
@@ -272,6 +273,7 @@ const App = () => (
             <ScrollLockGuard />
             <ChunkErrorBoundary>
             <Suspense fallback={<PageLoader />}>
+            <GlobalInternalAds area="top" />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />

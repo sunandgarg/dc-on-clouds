@@ -107,7 +107,7 @@ export default function CatUniverseModulePage() {
             "@type": "WebPage",
             "name": seoTitle,
             "description": seoDescription,
-            "url": `https://www.dekhocampus.in/cat-universe/${module?.slug}`,
+            "url": `https://dekhocampus.com/cat-universe/${module?.slug}`,
             "about": ["CAT score calculator", "CAT percentile predictor", "MBA admission planning"],
           },
           {
@@ -138,7 +138,6 @@ export default function CatUniverseModulePage() {
         ] : undefined}
       />
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="cat_universe" itemSlug={module.slug} />
       <main className="container py-4 md:py-6">
         <PageBreadcrumb items={[{ label: "CAT Universe", href: "/cat-universe" }, { label: section.title }, { label: module.title }]} />
         <Link to="/cat-universe" className="mb-4 inline-flex items-center gap-1 text-sm text-primary hover:underline">

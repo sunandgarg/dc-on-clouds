@@ -10,6 +10,7 @@ import { AlsoCheckSection } from "@/components/AlsoCheckSection";
 import { Link, useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { DynamicAdBanner } from "@/components/DynamicAdBanner";
 
 const categories = [
   { label: "All News", icon: Newspaper, value: "" },
@@ -346,7 +347,8 @@ export default function News() {
                     <Fragment key={a.id}>
                       <LatestCard a={a} eager={i < 3} />
                       {i === Math.min(5, Math.floor(gridArticles.length / 2)) && (
-                        <div className="sm:col-span-2 lg:col-span-3 my-2">
+                        <div className="sm:col-span-2 lg:col-span-3 my-2 space-y-4">
+                          <DynamicAdBanner position="mid-page" page="articles" />
                           <LeadCaptureForm
                             variant="banner"
                             title="📞 Confused about colleges or courses?"

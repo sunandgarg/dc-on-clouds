@@ -3,7 +3,6 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FixedCounsellingCTA } from "@/components/FixedCounsellingCTA";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
-import { DynamicAdBanner } from "@/components/DynamicAdBanner";
 import { AlsoCheckSection } from "@/components/AlsoCheckSection";
 import { Calculator, Percent, IndianRupee, BarChart3, FileCheck, Heart, CalendarDays, Wallet, AlignLeft, Building2, Brain, ArrowRight, Target, Sparkles, Lock } from "lucide-react";
 import { TOOLS_REGISTRY } from "@/lib/toolsRegistry";
@@ -34,7 +33,6 @@ export default function AllTools() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="tools" />
       <main className="container py-4 md:py-6">
         <PageBreadcrumb items={[{ label: "Tools" }]} />
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Helpful Tools for Students</h1>

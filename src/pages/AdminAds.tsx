@@ -21,10 +21,9 @@ import {
   Plus, Pencil, Trash2, X, ExternalLink, Copy, Search,
   Megaphone, HelpCircle, Eye, Info, Upload,
 } from "lucide-react";
-import { colleges } from "@/data/colleges";
-import { courses } from "@/data/courses";
-import { exams } from "@/data/exams";
-import { articles } from "@/data/articles";
+import { SearchableSelect } from "@/components/SearchableSelect";
+import { AdEntitySearchSelect } from "@/components/admin/AdEntitySearchSelect";
+import { useStatesAndCities } from "@/hooks/useLocations";
 
 import { CSVTools } from "@/components/CSVTools";
 import { useDraftState } from "@/hooks/useDraftState";
@@ -34,15 +33,24 @@ const AUDIENCE_OPTIONS = [
   { value: "universal", emoji: "🌍", label: "Show Everywhere", help: "This ad will appear on every page as a fallback when no better-matched ad exists." },
   { value: "page", emoji: "📄", label: "Show on a Specific Page", help: "This ad appears only on one listing page - like All Colleges, All Courses, etc." },
   { value: "item", emoji: "🎯", label: "Show on a Specific College / Course / Exam / Article", help: "This ad appears only when someone visits a specific detail page, e.g. the IIT Delhi page." },
-  { value: "city", emoji: "📍", label: "Show for a Specific City", help: "This ad appears anywhere on the site for users in the selected city." },
+  { value: "state", emoji: "📍", label: "Show for a Specific State", help: "This ad appears anywhere on the site for visitors whose saved profile or lead state matches." },
 ] as const;
 
 const PAGE_OPTIONS = [
+  { value: "home", label: "Homepage" },
   { value: "colleges", label: "Colleges Page" },
   { value: "courses", label: "Courses Page" },
   { value: "exams", label: "Exams Page" },
   { value: "articles", label: "Articles / News Page" },
+  { value: "premium_programs", label: "Upgrade Yourself / Premium Programs" },
+  { value: "scholarships", label: "Scholarships" },
+  { value: "careers", label: "Careers and Jobs" },
+  { value: "tools", label: "Tools" },
+  { value: "study_material", label: "Study Material" },
+  { value: "cat_universe", label: "CAT Universe" },
 ] as const;
+
+const ITEM_PAGE_OPTIONS = PAGE_OPTIONS.filter((page) => ["colleges", "courses", "exams", "articles"].includes(page.value));
 
 const LOOK_OPTIONS = [
   { value: "horizontal", emoji: "▬", label: "Wide Banner", help: "A horizontal banner shown in the main content area", size: "728 × 90 px or 970 × 250 px" },
@@ -72,25 +80,9 @@ const COLOR_OPTIONS = [
   { value: "from-pink-500 to-violet-500", label: "Magenta" },
 ] as const;
 
-const CITIES = [
-  "Delhi", "Mumbai", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Pune",
-  "Ahmedabad", "Jaipur", "Lucknow", "Chandigarh", "Bhopal", "Kochi", "Indore",
-] as const;
-
-// ─── Helpers ───────────────────────────────────────────────────────────
-
-function getItems(page: string) {
-  switch (page) {
-    case "colleges": return colleges.map((c) => ({ slug: c.slug, label: c.name }));
-    case "courses": return courses.map((c) => ({ slug: c.slug, label: c.fullName }));
-    case "exams": return exams.map((e) => ({ slug: e.slug, label: e.fullName }));
-    case "articles": return articles.map((a) => ({ slug: a.slug, label: a.title }));
-    default: return [];
-  }
-}
-
 function audienceLabel(type: string) {
-  return AUDIENCE_OPTIONS.find((a) => a.value === type)?.label ?? type;
+  const normalized = type === "city" ? "state" : type;
+  return AUDIENCE_OPTIONS.find((a) => a.value === normalized)?.label ?? normalized;
 }
 
 // ─── Form shape ────────────────────────────────────────────────────────
@@ -106,7 +98,7 @@ interface AdForm {
   target_type: string;
   target_page: string;
   target_item_slug: string;
-  target_city: string;
+  target_state: string;
   position: string;
   priority: number;
   is_active: boolean;
@@ -115,7 +107,7 @@ interface AdForm {
 const emptyForm: AdForm = {
   title: "", subtitle: "", cta_text: "Learn More", link_url: "", image_url: "",
   variant: "horizontal", bg_gradient: "from-violet-600 to-purple-600",
-  target_type: "universal", target_page: "", target_item_slug: "", target_city: "",
+  target_type: "universal", target_page: "", target_item_slug: "", target_state: "",
   position: "mid-page", priority: 10, is_active: true,
 };
 
@@ -134,6 +126,7 @@ function Hint({ children }: { children: React.ReactNode }) {
 
 export default function AdminAds() {
   const { data: ads, isLoading } = useAllAds();
+  const { data: locations } = useStatesAndCities();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -152,12 +145,21 @@ export default function AdminAds() {
 
   const openCreate = () => { setForm(emptyForm); setEditingId(null); setErrors({}); setShowForm(true); };
 
+  const displayState = (value?: string | null) => {
+    const clean = value?.trim() || "";
+    if (clean === "Delhi") return "Delhi NCR";
+    if (locations?.states.includes(clean)) return clean;
+    return Object.entries(locations?.citiesByState || {}).find(([, cities]) =>
+      cities.some((city) => city.toLowerCase() === clean.toLowerCase())
+    )?.[0] || clean;
+  };
+
   const openEdit = (ad: any) => {
     setForm({
       title: ad.title, subtitle: ad.subtitle || "", cta_text: ad.cta_text, link_url: ad.link_url,
       image_url: ad.image_url || "", variant: ad.variant, bg_gradient: ad.bg_gradient,
-      target_type: ad.target_type, target_page: ad.target_page || "",
-      target_item_slug: ad.target_item_slug || "", target_city: ad.target_city || "",
+      target_type: ad.target_type === "city" ? "state" : ad.target_type, target_page: ad.target_page || "",
+      target_item_slug: ad.target_item_slug || "", target_state: displayState(ad.target_state || ad.target_city),
       position: ad.position, priority: ad.priority, is_active: ad.is_active,
     });
     setEditingId(ad.id); setErrors({}); setShowForm(true);
@@ -209,8 +211,8 @@ export default function AdminAds() {
       e.target_page = "Please choose which page this ad should appear on";
     if (form.target_type === "item" && !form.target_item_slug.trim())
       e.target_item_slug = "Please choose the specific item this ad is for";
-    if (form.target_type === "city" && !form.target_city.trim())
-      e.target_city = "Please choose a city";
+    if (form.target_type === "state" && !form.target_state.trim())
+      e.target_state = "Please choose a state";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -226,10 +228,13 @@ export default function AdminAds() {
       image_url: form.image_url.trim() || null,
       variant: form.variant,
       bg_gradient: form.bg_gradient,
-      target_type: form.target_type,
+      target_type: form.target_type === "state" ? "city" : form.target_type,
       target_page: ["page", "item"].includes(form.target_type) && form.target_page ? form.target_page : null,
       target_item_slug: form.target_type === "item" && form.target_item_slug ? form.target_item_slug : null,
-      target_city: form.target_city.trim() || null,
+      // Keep writing the existing column as a compatibility bridge. The UI and
+      // runtime treat it as a state, while the additive migration copies it to
+      // target_state when the production project owner applies the migration.
+      target_city: form.target_state.trim() || null,
       position: form.position,
       priority: form.priority,
       is_active: form.is_active,
@@ -271,23 +276,21 @@ export default function AdminAds() {
 
   const filteredAds = (ads ?? []).filter((ad) => {
     const s = searchQuery.toLowerCase();
-    const matchSearch = !s || ad.title.toLowerCase().includes(s) || (ad.target_city ?? "").toLowerCase().includes(s);
-    const matchTarget = filterTarget === "all" || ad.target_type === filterTarget;
+    const matchSearch = !s || ad.title.toLowerCase().includes(s) || (ad.target_state ?? ad.target_city ?? "").toLowerCase().includes(s);
+    const matchTarget = filterTarget === "all" || ad.target_type === filterTarget || (filterTarget === "state" && ad.target_type === "city");
     return matchSearch && matchTarget;
   });
 
-  const items = form.target_page ? getItems(form.target_page) : [];
-
   const whereText = () => {
-    if (form.target_type === "universal") return "This ad will show on every page (as a fallback).";
-    if (form.target_type === "page" && form.target_page && form.target_city)
-      return `This ad will show on the ${form.target_page} page for users in ${form.target_city}.`;
+    if (form.target_type === "universal") return "This ad will show in the selected position on every public page.";
+    if (form.target_type === "page" && form.target_page && form.target_state)
+      return `This ad will show on the ${form.target_page} page for visitors in ${form.target_state}.`;
     if (form.target_type === "page" && form.target_page)
       return `This ad will show on the ${form.target_page} listing page.`;
     if (form.target_type === "item" && form.target_item_slug)
       return `This ad will show only on the detail page of "${form.target_item_slug}".`;
-    if (form.target_type === "city" && form.target_city)
-      return `This ad will show on all pages for users in ${form.target_city}.`;
+    if (form.target_type === "state" && form.target_state)
+      return `This ad will show on all public pages for visitors in ${form.target_state}.`;
     return "Choose targeting options above to see where this ad will appear.";
   };
 
@@ -397,7 +400,7 @@ export default function AdminAds() {
                 {AUDIENCE_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setForm({ ...form, target_type: opt.value, target_page: "", target_item_slug: "", target_city: "" })}
+                    onClick={() => setForm({ ...form, target_type: opt.value, target_page: "", target_item_slug: "", target_state: "" })}
                     className={`text-left p-3 rounded-xl border-2 transition-all ${form.target_type === opt.value ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
                   >
                     <div className="flex items-center gap-2 font-medium text-sm">
@@ -414,32 +417,31 @@ export default function AdminAds() {
                   <Select value={form.target_page} onValueChange={(v) => { setForm({ ...form, target_page: v, target_item_slug: "" }); setErrors({ ...errors, target_page: "" }); }}>
                     <SelectTrigger className={`rounded-xl ${errors.target_page ? "border-destructive" : ""}`}><SelectValue placeholder="Choose a page..." /></SelectTrigger>
                     <SelectContent>
-                      {PAGE_OPTIONS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                      {(form.target_type === "item" ? ITEM_PAGE_OPTIONS : PAGE_OPTIONS).map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </Field>
               )}
 
               {form.target_type === "item" && form.target_page && (
-                <Field label={`Which specific ${form.target_page.slice(0, -1)}?`} error={errors.target_item_slug} hint={`Pick the exact ${form.target_page.slice(0, -1)} this ad is for. The "slug" is the URL-friendly name like "iit-delhi".`}>
-                  <Select value={form.target_item_slug} onValueChange={(v) => { setForm({ ...form, target_item_slug: v }); setErrors({ ...errors, target_item_slug: "" }); }}>
-                    <SelectTrigger className={`rounded-xl ${errors.target_item_slug ? "border-destructive" : ""}`}><SelectValue placeholder={`Choose a ${form.target_page.slice(0, -1)}...`} /></SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {items.map((i) => <SelectItem key={i.slug} value={i.slug}>{i.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <Field label={`Which specific ${form.target_page.slice(0, -1)}?`} error={errors.target_item_slug} hint="Searches the complete live database, including records that were missing from the old static dropdown.">
+                  <AdEntitySearchSelect
+                    page={form.target_page as "colleges" | "courses" | "exams" | "articles"}
+                    value={form.target_item_slug}
+                    error={errors.target_item_slug}
+                    onChange={(slug) => { setForm({ ...form, target_item_slug: slug }); setErrors({ ...errors, target_item_slug: "" }); }}
+                  />
                 </Field>
               )}
 
-              {(form.target_type === "city" || form.target_type === "page") && (
-                <Field label={form.target_type === "city" ? "Which city?" : "City filter (optional)"} error={errors.target_city} hint={form.target_type === "page" ? "Leave on 'All cities' to show on this page for everyone, or pick a city to narrow down" : undefined}>
-                  <Select value={form.target_city || "__all__"} onValueChange={(v) => { setForm({ ...form, target_city: v === "__all__" ? "" : v }); setErrors({ ...errors, target_city: "" }); }}>
-                    <SelectTrigger className={`rounded-xl ${errors.target_city ? "border-destructive" : ""}`}><SelectValue placeholder="Choose a city..." /></SelectTrigger>
-                    <SelectContent>
-                      {form.target_type === "page" && <SelectItem value="__all__">All cities</SelectItem>}
-                      {CITIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+              {(form.target_type === "state" || form.target_type === "page") && (
+                <Field label={form.target_type === "state" ? "Which state?" : "State filter (optional)"} error={errors.target_state} hint={form.target_type === "page" ? "Leave empty to show on this page for everyone, or choose a state to narrow the audience." : "Uses the same complete state list as the public college filters."}>
+                  <SearchableSelect
+                    options={locations?.states || []}
+                    value={form.target_state}
+                    onChange={(state) => { setForm({ ...form, target_state: state }); setErrors({ ...errors, target_state: "" }); }}
+                    placeholder={form.target_type === "page" ? "All states" : "Search and choose a state..."}
+                  />
                 </Field>
               )}
 
@@ -568,7 +570,7 @@ export default function AdminAds() {
                     <Badge variant="secondary" className="capitalize">{audienceLabel(ad.target_type)}</Badge>
                     {ad.target_page && <Badge variant="outline">{ad.target_page}</Badge>}
                     {ad.target_item_slug && <Badge variant="outline" className="font-mono">{ad.target_item_slug}</Badge>}
-                    {ad.target_city && <Badge variant="outline">📍 {ad.target_city}</Badge>}
+                    {(ad.target_state || ad.target_city) && <Badge variant="outline">📍 {displayState(ad.target_state || ad.target_city)}</Badge>}
                     <span className="text-muted-foreground">• {PLACEMENT_OPTIONS.find(p => p.value === ad.position)?.label}</span>
                     <span className="text-muted-foreground">• Priority {ad.priority}</span>
                   </div>
@@ -717,30 +719,30 @@ function QuickGuide({ onClose }: { onClose: () => void }) {
               example='Ad for "IIT Delhi Admissions 2026" → only shows when someone visits /colleges/iit-delhi'
             />
             <GuideCard
-              emoji="📄📍" title="2. Page + City Ad"
-              what="Shows on a specific listing page only for users in a specific city."
+              emoji="📄📍" title="2. Page + State Ad"
+              what="Shows on a specific page only for visitors in a selected state."
               how={[
                 'Choose "Show on a Specific Page" → pick the page (e.g. Colleges)',
-                'Then in the "City filter" dropdown, pick a city (e.g. Mumbai)',
+                'Then in the "State filter" search, pick a state (e.g. Maharashtra)',
               ]}
-              example='Ad for "Mumbai Colleges Fair" → shows on /colleges only for Mumbai visitors'
+              example='Ad for "Maharashtra Colleges Fair" → shows on /colleges for visitors in Maharashtra'
             />
             <GuideCard
               emoji="📄" title="3. Page-Only Ad"
-              what="Shows on a specific listing page for ALL visitors regardless of city."
+              what="Shows on a specific page for all visitors regardless of state."
               how={[
                 'Choose "Show on a Specific Page" → pick the page (e.g. Exams)',
-                'Leave the "City filter" on "All cities"',
+                'Leave the optional state filter empty',
               ]}
               example='Ad for "JEE Preparation Kit" → shows on /exams page for everyone'
             />
             <GuideCard
-              emoji="📍" title="4. City-Only Ad"
-              what="Shows on ANY page for visitors in a specific city."
+              emoji="📍" title="4. State-Only Ad"
+              what="Shows on any public page for visitors in a specific state."
               how={[
-                'Choose "Show for a Specific City" → pick the city',
+                'Choose "Show for a Specific State" → search for and select the state',
               ]}
-              example='Ad for "Delhi Coaching Center" → shows on every page for Delhi visitors'
+              example='Ad for "Delhi NCR Coaching" → shows across the site for Delhi NCR visitors'
             />
             <GuideCard
               emoji="🌍" title="5. Universal Ad (Lowest Priority - Fallback)"
@@ -757,7 +759,7 @@ function QuickGuide({ onClose }: { onClose: () => void }) {
         <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
           <p className="font-semibold mb-2">📊 Priority Order (most specific wins)</p>
           <div className="flex flex-wrap gap-2 text-xs">
-            {["🎯 Item", "📄📍 Page+City", "📄 Page", "📍 City", "🌍 Universal"].map((label, i) => (
+            {["🎯 Item", "📄📍 Page+State", "📄 Page", "📍 State", "🌍 Universal"].map((label, i) => (
               <span key={i} className="flex items-center gap-1">
                 <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">{i + 1}</span>
                 {label}

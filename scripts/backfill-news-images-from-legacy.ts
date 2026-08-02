@@ -4,7 +4,7 @@ type ArticleRow = { id: string; slug: string; title: string; featured_image: str
 type LegacyImage = { slug: string; legacy_url: string; live_url: string; image: string; title: string };
 
 const legacyOrigin = process.env.LEGACY_NEWS_ORIGIN || "https://dekhocampus.com";
-const liveOrigin = process.env.LIVE_NEWS_ORIGIN || "https://dekhocampus.in";
+const liveOrigin = process.env.LIVE_NEWS_ORIGIN || "https://dekhocampus.com";
 const sitemapUrls = [
   `${legacyOrigin}/sitemap.xml`,
   `${legacyOrigin}/news-sitemap.xml`,

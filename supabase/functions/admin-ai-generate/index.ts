@@ -48,8 +48,8 @@ const DEFAULT_ARTICLE_RESEARCH_SOURCES = [
   "https://collegedunia.com/news",
   "https://www.collegedekho.com/news",
   "https://www.pagalguy.com/mba/articles",
-  "https://www.dekhocampus.com/news",
-  "https://www.dekhocampus.in/news",
+  "https://dekhocampus.com/news",
+  "https://dekhocampus.com/news",
 ];
 
 const GOOGLE_TRENDS_EDUCATION_SOURCE = "https://trends.google.com/trending/rss?geo=IN";
@@ -374,7 +374,7 @@ Deno.serve(async (req) => {
       ...(opts.research_competitors !== false ? (opts.competitor_sources?.length ? opts.competitor_sources : DEFAULT_ARTICLE_RESEARCH_SOURCES) : []),
       ...(opts.research_trends !== false ? [GOOGLE_TRENDS_EDUCATION_SOURCE] : []),
       ...(opts.research_viral !== false ? VIRAL_EDUCATION_SOURCES : []),
-      ...(opts.check_own_news !== false ? ["https://www.dekhocampus.com/news", "https://www.dekhocampus.in/news"] : []),
+      ...(opts.check_own_news !== false ? ["https://dekhocampus.com/news", "https://dekhocampus.com/news"] : []),
     ];
     const articleSignals = entity_type === "articles" && opts.automatic_research
       ? await fetchArticleResearchSignals(selectedResearchSources)

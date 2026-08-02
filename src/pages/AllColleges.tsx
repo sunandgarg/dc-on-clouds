@@ -127,7 +127,7 @@ export default function AllColleges() {
   }, [location.pathname, location.search]);
   const { data: locations } = useStatesAndCities();
 
-  useCanonical();
+  useCanonical(undefined, true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -268,8 +268,6 @@ export default function AllColleges() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <DynamicAdBanner variant="leaderboard" position="leaderboard" page="colleges" />
-
       <main className="px-3 md:container py-4 md:py-6">
         <PageBreadcrumb items={[{ label: "Colleges" }]} />
         <header className="mb-4">

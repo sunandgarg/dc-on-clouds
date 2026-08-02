@@ -4,7 +4,7 @@ import { buildChunkRecoveryUrl, isChunkLoadError } from "./lazyRetry";
 describe("chunk load recovery", () => {
   it("recognises deployment-skew import failures", () => {
     expect(isChunkLoadError(new TypeError(
-      "Failed to fetch dynamically imported module: https://dekhocampus.in/assets/Page-old.js",
+      "Failed to fetch dynamically imported module: https://dekhocampus.com/assets/Page-old.js",
     ))).toBe(true);
     expect(isChunkLoadError(new Error("ChunkLoadError: Loading chunk 42 failed"))).toBe(true);
     expect(isChunkLoadError(new Error("Importing a module script failed"))).toBe(true);
@@ -17,7 +17,7 @@ describe("chunk load recovery", () => {
 
   it("adds a cache buster while preserving route state", () => {
     const recovered = new URL(buildChunkRecoveryUrl(
-      "https://dekhocampus.in/colleges/iit-delhi?tab=courses#fees",
+      "https://dekhocampus.com/colleges/iit-delhi?tab=courses#fees",
       "build-123",
     ));
 

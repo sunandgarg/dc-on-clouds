@@ -37,7 +37,7 @@ INSERT INTO public.blog_research_sources (name, url, source_type, display_order)
   ('CollegeDunia', 'https://collegedunia.com/news', 'competitor', 40),
   ('CollegeDekho', 'https://www.collegedekho.com/news', 'competitor', 50),
   ('PaGaLGuY', 'https://www.pagalguy.com/mba/articles', 'competitor', 60),
-  ('DekhoCampus', 'https://www.dekhocampus.in/news', 'own', 100)
+  ('DekhoCampus', 'https://dekhocampus.com/news', 'own', 100)
 ON CONFLICT (url) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS public.blog_auto_agent_runs (

@@ -9,7 +9,7 @@ Browser/Vercel:
 ```env
 VITE_USE_SUPABASE=yes
 VITE_USE_AWS=no
-VITE_AWS_API_URL=https://api.dekhocampus.in
+VITE_AWS_API_URL=https://api.dekhocampus.com
 ```
 
 AWS runtime:

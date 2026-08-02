@@ -436,6 +436,7 @@ export type Database = {
           start_date: string | null
           subtitle: string | null
           target_city: string | null
+          target_state: string | null
           target_item_slug: string | null
           target_page: string | null
           target_type: string
@@ -457,6 +458,7 @@ export type Database = {
           start_date?: string | null
           subtitle?: string | null
           target_city?: string | null
+          target_state?: string | null
           target_item_slug?: string | null
           target_page?: string | null
           target_type?: string
@@ -478,6 +480,7 @@ export type Database = {
           start_date?: string | null
           subtitle?: string | null
           target_city?: string | null
+          target_state?: string | null
           target_item_slug?: string | null
           target_page?: string | null
           target_type?: string
