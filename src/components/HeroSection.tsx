@@ -39,7 +39,7 @@ const heroTiles = [
   { label: "840+ Courses", icon: catCourse, href: "/courses", tone: "bg-sky-50 border-sky-100" },
   { label: "219+ Exams", icon: catExam, href: "/exams", tone: "bg-violet-50 border-violet-100" },
   { label: "Application Form", icon: catApplication, href: "/colleges", tone: "bg-emerald-50 border-emerald-100" },
-  { label: "Review", icon: catReviews, href: "/articles", tone: "bg-amber-50 border-amber-100" },
+  { label: "Review", icon: catReviews, href: "/news", tone: "bg-amber-50 border-amber-100" },
   { label: "News", icon: catNews, href: "/news", tone: "bg-cyan-50 border-cyan-100" },
 ] as const;
 

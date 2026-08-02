@@ -29,7 +29,7 @@ export function sortByPriority<T extends Sortable>(items: T[]): T[] {
   });
 }
 
-// Pinned = manually given a top slot (priority 1–10), default is 50.
+// Pinned = manually given a top slot (priority 1-10), default is 50.
 export function isPinned(priority?: number | null) {
   const p = priority ?? 50;
   return p > 0 && p <= 10;

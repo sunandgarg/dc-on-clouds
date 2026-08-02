@@ -23,7 +23,7 @@ export default function AdminSitemap() {
     // static
     [
       ["/", 1.0, "daily"], ["/colleges", 0.9, "daily"], ["/courses", 0.9, "daily"],
-      ["/exams", 0.9, "daily"], ["/articles", 0.8, "weekly"], ["/news", 0.8, "daily"],
+      ["/exams", 0.9, "daily"], ["/news", 0.8, "daily"],
       ["/careers", 0.8, "weekly"], ["/tools", 0.8, "weekly"],
       ["/legal/privacy-policy", 0.3, "monthly"], ["/legal/terms-of-service", 0.3, "monthly"],
       ["/legal/refund-policy", 0.3, "monthly"], ["/legal/cookie-policy", 0.3, "monthly"],
@@ -58,7 +58,7 @@ export default function AdminSitemap() {
       ...STRATEGY_SLUGS,
     ]);
     tally["exam_strategies"] = STRATEGY_SLUGS.length;
-    await fetchSlugs("articles", "/articles", 0.6);
+    await fetchSlugs("articles", "/news", 0.6);
     await fetchSlugs("career_profiles", "/careers", 0.6);
 
     // Programmatic SEO landing pages: city × course-group / stream / type combos

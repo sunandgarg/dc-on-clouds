@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { hydrateBootstrap } from "@/lib/bootstrap";
 import { Suspense, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CompareProvider } from "@/contexts/CompareContext";
@@ -16,6 +16,7 @@ import { ScrollLockGuard } from "@/components/ScrollLockGuard";
 import { lazyRetry } from "@/lib/lazyRetry";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { useLocation } from "react-router-dom";
+import { SITE_URL } from "@/lib/constant";
 
 const CompareFloatingBar = lazyRetry(() => import("@/components/CompareFloatingBar").then((module) => ({ default: module.CompareFloatingBar })), "CompareFloatingBar");
 const LockTargetFloatingPromo = lazyRetry(() => import("@/components/LockTargetFloatingPromo").then((module) => ({ default: module.LockTargetFloatingPromo })), "LockTargetFloatingPromo");
@@ -46,6 +47,30 @@ function GlobalMobileNavigation() {
   const { pathname } = useLocation();
   if (pathname.startsWith("/admin") || pathname.startsWith("/lp") || pathname.startsWith("/landing/")) return null;
   return <HomeMobileBottomNav />;
+}
+
+function RouteSeoPolicy() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const privateRoute = pathname.startsWith("/admin") || pathname.startsWith("/dashboard") || pathname === "/auth" || pathname === "/onboarding" || pathname.startsWith("/target-dashboard") || pathname.startsWith("/my-targets");
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.name = "robots";
+      document.head.appendChild(robots);
+    }
+    robots.content = privateRoute ? "noindex, nofollow, noarchive" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+
+    const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    let canonicalPath = "";
+    try { canonicalPath = canonical ? new URL(canonical.href).pathname : ""; } catch { /* replace invalid canonical below */ }
+    if (!canonical || canonicalPath !== pathname) {
+      const link = canonical || document.head.appendChild(document.createElement("link"));
+      link.rel = "canonical";
+      link.href = `${SITE_URL}${pathname.replace(/\/+$/, "") || "/"}`;
+    }
+  }, [pathname]);
+  return null;
 }
 
 function DeferredGlobalUi() {
@@ -210,6 +235,16 @@ function CollegeNestedRoute() {
   return slug?.startsWith("top-") ? <AllColleges /> : <CollegeDetail />;
 }
 
+function LegacyCollegeRoute() {
+  const { slug = "" } = useParams<{ slug: string }>();
+  return <Navigate to={`/colleges/${slug}`} replace />;
+}
+
+function LegacyArticlesRoute() {
+  const { slug } = useParams<{ slug?: string }>();
+  return <Navigate to={slug ? `/news/${slug}` : "/news"} replace />;
+}
+
 function CourseRoute() {
   const { slug } = useParams<{ slug: string }>();
   return slug?.startsWith("top-") ? <AllCourses /> : <CourseDetail />;
@@ -273,6 +308,7 @@ const App = () => (
             <ScrollLockGuard />
             <ChunkErrorBoundary>
             <Suspense fallback={<PageLoader />}>
+            <RouteSeoPolicy />
             <GlobalInternalAds area="top" />
             <Routes>
               <Route path="/" element={<Index />} />
@@ -280,14 +316,15 @@ const App = () => (
               <Route path="/colleges" element={<AllColleges />} />
               <Route path="/colleges/:slug" element={<CollegeRoute />} />
               <Route path="/colleges/:slug/:tab" element={<CollegeNestedRoute />} />
+              <Route path="/college/:slug" element={<LegacyCollegeRoute />} />
               <Route path="/courses" element={<AllCourses />} />
               <Route path="/courses/:slug" element={<CourseRoute />} />
               <Route path="/courses/:slug/:tab" element={<CourseNestedRoute />} />
               <Route path="/exams" element={<AllExams />} />
               <Route path="/exams/:slug" element={<ExamRoute />} />
               <Route path="/exams/:slug/:tab" element={<ExamNestedRoute />} />
-              <Route path="/articles" element={<News />} />
-              <Route path="/articles/:slug" element={<ArticleDetail />} />
+              <Route path="/articles" element={<LegacyArticlesRoute />} />
+              <Route path="/articles/:slug" element={<LegacyArticlesRoute />} />
               <Route path="/news" element={<News />} />
               <Route path="/news/tag/:tag" element={<News />} />
               <Route path="/news/:slug" element={<ArticleDetail />} />

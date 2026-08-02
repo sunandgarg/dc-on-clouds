@@ -38,10 +38,10 @@ const wrap = (ui: React.ReactNode) => {
 };
 
 describe("NewsSection (homepage)", () => {
-  it("renders both 'View All' link and bottom button pointing to /articles", () => {
+  it("renders both 'View All' link and bottom button pointing to /news", () => {
     render(wrap(<NewsSection />));
     const links = screen.getAllByRole("link");
-    const articleLinks = links.filter((l) => l.getAttribute("href") === "/articles");
+    const articleLinks = links.filter((l) => l.getAttribute("href") === "/news");
     // Desktop link + mobile link + bottom CTA button
     expect(articleLinks.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/View All News & Updates/i)).toBeInTheDocument();

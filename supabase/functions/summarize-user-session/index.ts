@@ -44,13 +44,13 @@ serve(async (req) => {
 Produce a tightly-structured markdown brief for the inside sales team. Be specific, factual, and short.
 
 Use exactly these sections:
-**Identity & Context** – name/phone/email if known, device, location/UTM, total time, pages visited.
-**Top Page Intents** – the 2-3 colleges / courses / exams / careers they engaged with most (with paths).
-**Likely Goals** – what the user is most probably trying to do (admission, comparison, fee research, scholarship, study material, loan, etc.).
-**Funnel Stage** – Awareness / Consideration / Intent / Decision (pick one) with one-line justification.
-**Friction & Drop-offs** – rage clicks, dead clicks, repeated page leaves, abandoned forms.
-**Best Next Action for Sales** – the single highest-leverage move (call now, send brochure, share fee comparison, recommend loan, etc.) with the exact talking point.
-**Lead Score (0-100)** – a number with one-line reasoning.
+**Identity & Context** - name/phone/email if known, device, location/UTM, total time, pages visited.
+**Top Page Intents** - the 2-3 colleges / courses / exams / careers they engaged with most (with paths).
+**Likely Goals** - what the user is most probably trying to do (admission, comparison, fee research, scholarship, study material, loan, etc.).
+**Funnel Stage** - Awareness / Consideration / Intent / Decision (pick one) with one-line justification.
+**Friction & Drop-offs** - rage clicks, dead clicks, repeated page leaves, abandoned forms.
+**Best Next Action for Sales** - the single highest-leverage move (call now, send brochure, share fee comparison, recommend loan, etc.) with the exact talking point.
+**Lead Score (0-100)** - a number with one-line reasoning.
 
 Do not invent details that are not in the data.
 

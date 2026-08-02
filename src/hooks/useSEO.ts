@@ -49,10 +49,11 @@ export function useSEO({
       meta.setAttribute("content", content);
     };
 
-    const canonicalUrl = absoluteCanonical(canonical);
+    const canonicalUrl = absoluteCanonical(canonical || window.location.pathname);
     const imageUrl = absoluteCanonical(ogImage);
     setNameMeta("description", description);
     setNameMeta("keywords", keywords);
+    setNameMeta("robots", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
     setNameMeta("twitter:card", imageUrl ? "summary_large_image" : "summary");
     setNameMeta("twitter:title", title);
     setNameMeta("twitter:description", description);

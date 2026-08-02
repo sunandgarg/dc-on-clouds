@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { RichText } from "@/components/detail/RichText";
 
 interface PageSummaryProps {
-  /** HTML or plain text written by admin (200–800 words). */
+  /** HTML or plain text written by admin (200-800 words). */
   html?: string | null;
   /** Optional context (e.g. "Amity Noida") used inside the heading. */
   entityName?: string;

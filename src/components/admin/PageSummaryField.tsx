@@ -26,7 +26,7 @@ export function PageSummaryField({ value, onChange }: PageSummaryFieldProps) {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-foreground">Quick Summary (Page Summary)</p>
           <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
-            <b>Summarise the whole page in 200–800 words.</b> This is the very first block students
+            <b>Summarise the whole page in 200-800 words.</b> This is the very first block students
             see - it stays collapsed by default with a "Quick Summary" heading and opens on click.
             Write it like you're explaining the page to a friend: clear, helpful, easy to scan.
           </p>
@@ -38,7 +38,7 @@ export function PageSummaryField({ value, onChange }: PageSummaryFieldProps) {
         value={value}
         onChange={onChange}
         rows={8}
-        placeholder="Start the summary here… Cover the most important things a student would want to know about this page in 200–800 words."
+        placeholder="Start the summary here… Cover the most important things a student would want to know about this page in 200-800 words."
       />
       <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
         <span
@@ -54,7 +54,7 @@ export function PageSummaryField({ value, onChange }: PageSummaryFieldProps) {
           }
         >
           {words} {words === 1 ? "word" : "words"}
-          {inRange ? " · perfect" : tooShort ? " · add a bit more (min 200)" : tooLong ? " · trim down (max 800)" : " · target 200–800"}
+          {inRange ? " · perfect" : tooShort ? " · add a bit more (min 200)" : tooLong ? " · trim down (max 800)" : " · target 200-800"}
         </span>
         <span className="text-muted-foreground">Headings, lists and tables are supported.</span>
       </div>

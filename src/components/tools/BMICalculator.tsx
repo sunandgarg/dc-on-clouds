@@ -84,7 +84,7 @@ export function BMICalculator() {
             />
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground px-1">
-            <span>Under 18.5</span><span>18.5–25</span><span>25–30</span><span>30+</span>
+            <span>Under 18.5</span><span>18.5-25</span><span>25-30</span><span>30+</span>
           </div>
         </div>
       )}

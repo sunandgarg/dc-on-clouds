@@ -19,7 +19,7 @@ const ENTITIES: { key: EntityKey; label: string; table: string; pathPrefix: stri
   { key: "exam", label: "Exams", table: "exams", pathPrefix: "/exams" },
   { key: "career", label: "Careers", table: "career_profiles", pathPrefix: "/careers" },
   { key: "scholarship", label: "Scholarships", table: "scholarships", pathPrefix: "/scholarships" },
-  { key: "article", label: "Articles", table: "articles", pathPrefix: "/articles" },
+  { key: "article", label: "Articles", table: "articles", pathPrefix: "/news" },
   { key: "subject", label: "Study subjects", table: "study_subjects", pathPrefix: "/study-material" },
   { key: "college_subject", label: "College subjects", table: "college_subjects", pathPrefix: "/study-material" },
   { key: "board", label: "Boards / Study links", table: "study_board_links", pathPrefix: "" },

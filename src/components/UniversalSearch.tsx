@@ -21,8 +21,8 @@ const quickCategories = [
   { label: "840+ Courses", icon: BookOpen, bgColor: "bg-sky-50", borderColor: "border-sky-100", iconBg: "bg-sky-100", href: "/courses" },
   { label: "219+ Exams", icon: FileText, bgColor: "bg-cyan-50", borderColor: "border-cyan-100", iconBg: "bg-cyan-100", href: "/exams" },
   { label: "Application Form", icon: ClipboardList, bgColor: "bg-emerald-50", borderColor: "border-emerald-100", iconBg: "bg-emerald-100", href: "/colleges" },
-  { label: "Review", icon: Star, bgColor: "bg-amber-50", borderColor: "border-amber-100", iconBg: "bg-amber-100", href: "/articles" },
-  { label: "News", icon: Newspaper, bgColor: "bg-sky-50", borderColor: "border-sky-100", iconBg: "bg-sky-100", href: "/articles" },
+  { label: "Review", icon: Star, bgColor: "bg-amber-50", borderColor: "border-amber-100", iconBg: "bg-amber-100", href: "/news" },
+  { label: "News", icon: Newspaper, bgColor: "bg-sky-50", borderColor: "border-sky-100", iconBg: "bg-sky-100", href: "/news" },
 ];
 
 interface UniversalSearchProps {

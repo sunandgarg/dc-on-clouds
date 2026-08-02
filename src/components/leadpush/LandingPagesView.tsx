@@ -363,7 +363,7 @@ function LandingPageDialog({
         <div className="space-y-4">
           <div>
             <Label className="text-xs">Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="MBA Landing Page – Q1 2026" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="MBA Landing Page - Q1 2026" />
           </div>
           <div>
             <Label className="text-xs">Description</Label>

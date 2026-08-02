@@ -137,7 +137,7 @@ export function useDbColleges() {
     queryFn: async () => {
       // Sort rule (UI/UX 2026, leaderboard semantics):
       //   1. priority asc (1 = top, nulls last) - admin-pinned items always win
-      //   2. featured_rank asc (1–4 slots) - secondary tiebreaker
+      //   2. featured_rank asc (1-4 slots) - secondary tiebreaker
       //   3. most-recently re-pinned wins ties
       //   4. rating desc
       return fetchActiveColleges();
@@ -321,8 +321,8 @@ function applyCollegeFallbacks(c: DbCollege | null): DbCollege | null {
     rating: c.rating ?? 4.2,
     reviews: c.reviews ?? 0,
     courses_count: c.courses_count ?? 25,
-    fees: c.fees || "₹50,000 – ₹2,50,000 / year (approx.)",
-    placement: c.placement || "₹4 – 8 LPA (avg.)",
+    fees: c.fees || "₹50,000 - ₹2,50,000 / year (approx.)",
+    placement: c.placement || "₹4 - 8 LPA (avg.)",
     ranking: c.ranking || "Emerging",
     image: c.image || "/placeholder.svg",
     tags: c.tags?.length ? c.tags : ["Admissions Open", `Session ${yr}`],

@@ -233,7 +233,7 @@ export default function AllColleges() {
     approval: selectedApprovals[0],
   }), [selectedStreams, selectedCourseGroups, selectedState, selectedCity, selectedTypes, selectedExams, selectedApprovals]);
 
-  useSEO({ title: heading, description: `Explore ${heading.toLowerCase()} - compare fees, placements, NAAC ratings and admissions.` });
+  useSEO({ title: heading, description: `Explore ${heading.toLowerCase()} - compare fees, placements, NAAC ratings and admissions.`, canonical: `/colleges${searchParams.toString() ? `?${searchParams.toString()}` : ""}` });
 
   const clearAll = () => {
     setSelectedStreams([]); setSelectedState(""); setSelectedCity("");

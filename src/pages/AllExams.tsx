@@ -116,7 +116,7 @@ export default function AllExams() {
     level: selectedLevels[0],
   }), [selectedStreams, selectedCategories, selectedCourseGroups, selectedLevels]);
 
-  useSEO({ title: heading, description: `${heading} - dates, eligibility, syllabus, application steps and previous year papers.` });
+  useSEO({ title: heading, description: `${heading} - dates, eligibility, syllabus, application steps and previous year papers.`, canonical: `/exams${searchParams.toString() ? `?${searchParams.toString()}` : ""}` });
 
   const clearAll = () => {
     setSelectedCategories([]); setSelectedStreams([]);

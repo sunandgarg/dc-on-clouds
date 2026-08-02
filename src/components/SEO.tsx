@@ -24,7 +24,7 @@ export function SEO({
   jsonLd,
 }: SEOProps) {
   useEffect(() => {
-    const canonicalUrl = absoluteCanonical(canonical);
+    const canonicalUrl = absoluteCanonical(canonical || window.location.pathname);
     const ogImageUrl = absoluteCanonical(ogImage);
     if (title) document.title = title;
 
@@ -52,6 +52,7 @@ export function SEO({
 
     if (description) setNameMeta("description", description);
     if (keywords) setNameMeta("keywords", keywords);
+    setNameMeta("robots", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
 
     if (canonicalUrl) {
       let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;

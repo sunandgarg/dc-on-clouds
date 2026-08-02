@@ -9,8 +9,8 @@ interface Props {
 /**
  * Visual marker for pinned / high-priority listings.
  * Lower number = higher rank (priority 1 is the top).
- *  1–3  => Top Pick (gold)
- *  4–10 => Featured (primary)
+ *  1-3  => Top Pick (gold)
+ *  4-10 => Featured (primary)
  *  else => null
  */
 export function PriorityBadge({ priority, className = "", variant = "crown" }: Props) {

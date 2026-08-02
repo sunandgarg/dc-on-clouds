@@ -4,11 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function SiteIntegrations() {
   const location = useLocation();
+
+  useEffect(() => {
+    const analyticsWindow = window as Window & { dataLayer?: Array<Record<string, unknown>> };
+    const dataLayer = (analyticsWindow.dataLayer = analyticsWindow.dataLayer || []);
+    dataLayer.push({
+      event: "virtual_page_view",
+      page_location: window.location.href,
+      page_path: `${location.pathname}${location.search}`,
+      page_title: document.title,
+    });
+  }, [location.pathname, location.search]);
+
   useEffect(() => {
     let cancelled = false;
     const cleanupFns: Array<() => void> = [];
     (async () => {
-      const { data } = await (supabase as any).from("site_integrations").select("key,value,enabled");
+      const { data } = await supabase.from("site_integrations").select("key,value,enabled");
       if (cancelled || !data) return;
       const map: Record<string, string> = {};
       for (const r of data) if (r.enabled && r.value) map[r.key] = r.value;
@@ -39,7 +51,7 @@ export function SiteIntegrations() {
         s.id = id; s.text = code;
         document.head.appendChild(s);
       };
-      const isAdmin = location.pathname.startsWith("/admin");
+      const isAdmin = window.location.pathname.startsWith("/admin");
       const copyBlocked = !isAdmin && map.content_copy_protection === "copy_blocked";
       document.body.classList.toggle("content-copy-protected", copyBlocked);
       if (copyBlocked && !document.getElementById("content-copy-protection-style")) {
@@ -63,8 +75,11 @@ export function SiteIntegrations() {
         });
       }
 
-      // GA4
-      if (map.ga4_measurement_id) {
+      const gtmContainerId = map.gtm_container_id || "GTM-5PF56SJF";
+      const hasGtm = Boolean(gtmContainerId);
+      // GA4 is intentionally managed by GTM. Only fall back to direct gtag
+      // when an installation explicitly removes the GTM container.
+      if (map.ga4_measurement_id && !hasGtm) {
         script("ga4-lib", `https://www.googletagmanager.com/gtag/js?id=${map.ga4_measurement_id}`);
         inline("ga4-init", `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${map.ga4_measurement_id}');`);
       }
@@ -80,8 +95,8 @@ export function SiteIntegrations() {
         inline("gads-helper", `window.fireGoogleAdsConversion=function(extra){try{var l='${label}';if(!l)return;window.gtag&&window.gtag('event','conversion',Object.assign({send_to:'${map.google_ads_id}/'+l},extra||{}));}catch(e){}};`);
       }
       // GTM
-      if (map.gtm_container_id) {
-        inline("gtm-init", `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${map.gtm_container_id}');`);
+      if (gtmContainerId) {
+        inline("gtm-init", `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmContainerId}');`);
       }
       // GSC
       if (map.gsc_verification) inject("gsc-meta", `<meta id="gsc-meta" name="google-site-verification" content="${map.gsc_verification}" />`);
@@ -116,6 +131,6 @@ export function SiteIntegrations() {
       }
     })();
     return () => { cancelled = true; cleanupFns.forEach((fn) => fn()); document.body.classList.remove("content-copy-protected"); };
-  }, [location.pathname]);
+  }, []);
   return null;
 }

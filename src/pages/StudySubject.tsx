@@ -428,13 +428,13 @@ function ChapterArticles({ chapterId, chapterSlug }: { chapterId: string; chapte
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Link
-                to={`/articles/${a.slug}`}
+                to={`/news/${a.slug}`}
                 className="inline-flex items-center justify-center gap-1 h-8 rounded-lg bg-primary text-primary-foreground text-[11px] font-semibold hover:bg-primary/90 transition"
               >
                 <BookOpen className="w-3 h-3" /> Read Article
               </Link>
               <Link
-                to={`/articles/${a.slug}#download`}
+                to={`/news/${a.slug}#download`}
                 className="inline-flex items-center justify-center gap-1 h-8 rounded-lg border border-primary/40 text-primary text-[11px] font-semibold hover:bg-primary/10 transition"
               >
                 <FileDown className="w-3 h-3" /> Download PDF

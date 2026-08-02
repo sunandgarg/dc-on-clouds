@@ -123,7 +123,7 @@ export default function AdminColleges() {
     }
     const desiredRank = (editing as any).featured_rank ?? null;
     if (desiredRank != null && (desiredRank < 1 || desiredRank > 4)) {
-      toast.error("Featured slot must be 1–4 or empty");
+      toast.error("Featured slot must be 1-4 or empty");
       return;
     }
     const { featured_rank: _omit, ...payload } = editing as any;

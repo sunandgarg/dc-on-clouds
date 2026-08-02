@@ -137,6 +137,98 @@ async function chooseProvider(admin: any, providerName: string) {
   return (data || []).find((p: any) => p.provider_name?.toLowerCase() === String(providerName).toLowerCase() && p.api_key_encrypted);
 }
 
+function isQuotaOrRateLimit(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return /\b429\b|quota|rate.?limit|resource_exhausted/i.test(message);
+}
+
+async function generateBlogJsonResilient(
+  admin: any,
+  config: any,
+  prompt: string,
+  operation: string,
+) {
+  try {
+    return await generateBlogJson(config, prompt, { admin, feature: "blog-agent", operation });
+  } catch (firstError) {
+    if (!isQuotaOrRateLimit(firstError)) throw firstError;
+
+    const originalModel = String(config.textModel || "");
+    const alternatives = ["openai", "anthropic", "xai"];
+    const failures: string[] = [firstError instanceof Error ? firstError.message : String(firstError)];
+
+    for (const providerName of alternatives) {
+      const provider = await chooseProvider(admin, providerName);
+      try {
+        if (providerName === "openai") {
+          if (provider?.api_key_encrypted) config.openaiKey = provider.api_key_encrypted;
+          if (!config.openaiKey) continue;
+          config.textModel = provider?.default_model || "gpt-4o-mini";
+        } else if (providerName === "anthropic") {
+          if (provider?.api_key_encrypted) config.claudeKey = provider.api_key_encrypted;
+          if (!config.claudeKey) continue;
+          config.textModel = provider?.default_model || "auto-haiku";
+        } else {
+          if (!provider?.api_key_encrypted) continue;
+          config.compatibleApiKey = provider.api_key_encrypted;
+          config.compatibleBaseUrl = provider.base_url || "https://api.x.ai/v1";
+          config.textModel = provider.default_model || "grok-3-mini";
+        }
+        const result = await generateBlogJson(config, prompt, { admin, feature: "blog-agent", operation: `${operation}-quota-fallback` });
+        return result;
+      } catch (fallbackError) {
+        failures.push(fallbackError instanceof Error ? fallbackError.message : String(fallbackError));
+      }
+    }
+
+    config.textModel = originalModel;
+    throw new Error(`Gemini quota is exhausted and no configured fallback provider succeeded. Add an OpenAI, Claude or Grok key in Admin - AI Providers, or wait for the Gemini quota reset. ${failures.join(" | ").slice(0, 1200)}`);
+  }
+}
+
+type SelectedEntity = { entity_type: "college" | "course" | "exam"; slug: string };
+
+async function loadSelectedEntityResearch(admin: any, selected: SelectedEntity[]) {
+  const tableByType = { college: "colleges", course: "courses", exam: "exams" } as const;
+  const pathByType = { college: "colleges", course: "courses", exam: "exams" } as const;
+  const topics: any[] = [];
+  const officialSources: any[] = [];
+
+  for (const item of selected.slice(0, 20)) {
+    const table = tableByType[item.entity_type];
+    if (!table || !item.slug) continue;
+    const { data } = await admin.from(table).select("*").eq("slug", item.slug).maybeSingle();
+    if (!data) continue;
+    let rawSources = data.data_source_urls;
+    if (typeof rawSources === "string") {
+      try { rawSources = JSON.parse(rawSources); } catch { /* keep invalid legacy source metadata out of fetches */ }
+    }
+    const sourceUrls = new Set<string>();
+    [data.official_website, data.website].forEach((url: unknown) => {
+      if (/^https?:\/\//i.test(String(url || ""))) sourceUrls.add(String(url));
+    });
+    if (Array.isArray(rawSources)) rawSources.forEach((url) => /^https?:\/\//i.test(String(url || "")) && sourceUrls.add(String(url)));
+    if (rawSources && typeof rawSources === "object") {
+      const values = [rawSources.website, ...(Array.isArray(rawSources.official) ? rawSources.official : []), ...(Array.isArray(rawSources.sources) ? rawSources.sources : [])];
+      values.forEach((url) => /^https?:\/\//i.test(String(url || "")) && sourceUrls.add(String(url)));
+    }
+    sourceUrls.forEach((url) => officialSources.push({ name: `${data.name} official source`, url, source_type: "official", entity_type: item.entity_type, entity_slug: item.slug }));
+    const safeRecord = Object.fromEntries(Object.entries(data).filter(([key]) => !["id", "created_at", "updated_at"].includes(key)).slice(0, 80));
+    topics.push({
+      title: `${data.name}: latest guide, eligibility, fees, dates and key facts`,
+      angle: `A source-backed guide to ${data.name} for Indian students and parents`,
+      primary_keyword: data.name,
+      geo_focus: [data.city, data.state, "India"].filter(Boolean).join(", "),
+      reason: "Selected by an administrator for official-source research",
+      category: item.entity_type === "exam" ? "Exams" : item.entity_type === "course" ? "Courses" : "Colleges",
+      tags: [item.entity_type, item.slug, "official-source-research"],
+      selected_entity: { type: item.entity_type, slug: item.slug, url: `https://dekhocampus.com/${pathByType[item.entity_type]}/${item.slug}` },
+      database_facts: safeRecord,
+    });
+  }
+  return { topics, officialSources };
+}
+
 async function callModel(admin: any, providerName: string, prompt: string) {
   const chosen = await chooseProvider(admin, providerName);
   if (!chosen || chosen.provider_name === "gemini") {
@@ -170,7 +262,10 @@ async function parseOrRepairJson(blogAi: any, raw: string, admin?: any) {
   try {
     return parseJson(raw);
   } catch (firstError) {
-    const repaired = await generateBlogJson(blogAi, `Repair the following malformed JSON into one valid JSON object. Preserve every factual value and all HTML content. Escape quotes, backslashes and newlines correctly. Remove markdown fences. Return only the repaired JSON object.\n\n${raw}`, admin ? { admin, feature: "blog-agent", operation: "json-repair" } : undefined);
+    const repairPrompt = `Repair the following malformed JSON into one valid JSON object. Preserve every factual value and all HTML content. Escape quotes, backslashes and newlines correctly. Remove markdown fences. Return only the repaired JSON object.\n\n${raw}`;
+    const repaired = admin
+      ? await generateBlogJsonResilient(admin, blogAi, repairPrompt, "json-repair")
+      : await generateBlogJson(blogAi, repairPrompt);
     try {
       return parseJson(repaired);
     } catch {
@@ -286,7 +381,8 @@ Deno.serve(async (req) => {
         control_note: cleanControlNote(body.note),
       });
     }
-    const triggerType = body.trigger_type === "schedule" ? "schedule" : "manual";
+    const entityResearchMode = body.mode === "entity_research";
+    const triggerType = body.trigger_type === "schedule" ? "schedule" : entityResearchMode ? "entity_research" : "manual";
 
     const { data: settingsRow } = await admin.from("blog_auto_agent_settings").select("*").eq("id", "default").maybeSingle();
     const settings = {
@@ -386,7 +482,17 @@ Deno.serve(async (req) => {
     }
 
     const { data: sourceRows } = await admin.from("blog_research_sources").select("*").eq("is_active", true).order("display_order");
-    const sources = (sourceRows?.length ? sourceRows : DEFAULT_SOURCES);
+    let sources = (sourceRows?.length ? sourceRows : DEFAULT_SOURCES);
+    let selectedEntityTopics: any[] = [];
+    if (entityResearchMode) {
+      const selected = (Array.isArray(body.selected_entities) ? body.selected_entities : [])
+        .filter((item: any) => ["college", "course", "exam"].includes(item?.entity_type) && item?.slug)
+        .slice(0, 20) as SelectedEntity[];
+      if (!selected.length) throw new Error("Select at least one college, course or exam for research");
+      const entityResearch = await loadSelectedEntityResearch(admin, selected);
+      selectedEntityTopics = entityResearch.topics;
+      sources = [...entityResearch.officialSources, ...sources].slice(0, 30);
+    }
     await updateRun(admin, runId, { progress: 8, current_step: `Researching ${sources.length} sources`, completed_steps: 0 });
     const signals = await fetchSignals(sources);
     await assertRunActive(admin, runId);
@@ -397,9 +503,11 @@ Deno.serve(async (req) => {
     const existingTitles = new Set(existingTitleList);
 
     const topicPrompt = `You are the DekhoCampus education-news editor. Today is ${new Date().toISOString().slice(0, 10)} in India.\n\nResearch signals from competitor and own website pages:\n${JSON.stringify(signals)}\n\nRecent DekhoCampus article titles and slugs to avoid duplicates:\n${JSON.stringify(existingArticles.slice(0, 1500).map((a: any) => ({ title: a.title, slug: a.slug })))}\n\nPick the best ${Math.max(settings.posts_per_run * 2, 4)} article opportunities for Indian students and parents. Prioritise timely admissions, exams, counselling, scholarships, careers and college decisions. Reject anything already covered by DekhoCampus. Do not copy competitors. Return JSON only: {topics:[{title,angle,primary_keyword,geo_focus,reason,category,tags:[...]}]}.`;
-    const topicRaw = await generateBlogJson(blogAi, topicPrompt + "\nUse natural plain language, never use an em dash, and return JSON only.", { admin, feature: "blog-agent", operation: "topic-research" });
+    const generatedTopics = entityResearchMode
+      ? selectedEntityTopics
+      : ((await parseOrRepairJson(blogAi, await generateBlogJsonResilient(admin, blogAi, topicPrompt + "\nUse natural plain language, never use an em dash, and return JSON only.", "topic-research"), admin)).topics || []);
     await assertRunActive(admin, runId);
-    const topics = ((await parseOrRepairJson(blogAi, topicRaw, admin)).topics || []).filter((topic: any) => {
+    const topics = generatedTopics.filter((topic: any) => {
       const candidateSlug = slugify(topic.title || "");
       return candidateSlug && !existingSlugs.has(candidateSlug) && !existingTitles.has(normalizedTitle(topic.title)) && !isSimilarTitle(topic.title, existingTitleList);
     }).slice(0, settings.posts_per_run);
@@ -419,7 +527,10 @@ Deno.serve(async (req) => {
       const baseProgress = 30 + Math.round((topicIndex / Math.max(topics.length, 1)) * 65);
       await updateRun(admin, runId, { progress: baseProgress, current_step: `Writing article ${topicIndex + 1} of ${topics.length}`, completed_steps: 2 + topicIndex * 3 });
       const internalLinkContext = await loadInternalLinkContext(admin, topic);
-      const articlePrompt = `Create a complete original DekhoCampus article from this approved topic:\n${JSON.stringify(topic)}\n\nResearch context:\n${JSON.stringify(signals)}\n\nVerified internal-link candidates (use only when genuinely useful):\n${JSON.stringify(internalLinkContext)}\n\nEditorial configuration:\n${JSON.stringify({
+      const topicSignals = topic.selected_entity?.slug
+        ? signals.filter((source: any) => !source.entity_slug || source.entity_slug === topic.selected_entity.slug)
+        : signals;
+      const articlePrompt = `Create a complete original DekhoCampus article from this approved topic:\n${JSON.stringify(topic)}\n\nResearch context:\n${JSON.stringify(topicSignals)}\n\nVerified internal-link candidates (use only when genuinely useful):\n${JSON.stringify(internalLinkContext)}\n\nEditorial configuration:\n${JSON.stringify({
         language: settings.language,
         audience: settings.audience,
         tone: settings.tone,
@@ -428,7 +539,7 @@ Deno.serve(async (req) => {
         minimum_sources: settings.minimum_sources,
         editorial_quality_target: settings.editorial_quality_target,
       })}\n\nTarget length: ${settings.word_limit} words.\n\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker}.\n\nRules: optimise for the configured search, answer-engine, geographic and AI-discovery goals while prioritising student usefulness. Open with a concise direct answer, use descriptive headings, short paragraphs, comparison-ready facts, FAQs, named entities, and small hyphen '-' only. Write naturally with varied sentence length and concrete student-facing explanations; do not claim a human or detector score. Never copy source wording or structure. Avoid fake certainty on dates, fees, cutoffs or rules. Cite at least ${settings.minimum_sources} independent sources and prefer current official sources. Add useful internal links only when a matching DekhoCampus college, course, exam, job profile, scholarship, tool or news page is present in the supplied context. Add a final Sources section. External citations are automatically published as nofollow.`;
-      const articleRaw = await generateBlogJson(blogAi, articlePrompt + "\nThis is AI-assisted content that requires editorial review. Never claim human authorship, undetectability, a detector score or 0 AI.", { admin, feature: "blog-agent", operation: "article-generation" });
+      const articleRaw = await generateBlogJsonResilient(admin, blogAi, articlePrompt + "\nThis is AI-assisted content that requires editorial review. Never claim human authorship, undetectability, a detector score or 0 AI.", "article-generation");
       await assertRunActive(admin, runId);
       const draft = await parseOrRepairJson(blogAi, articleRaw, admin);
       const slug = slugify(draft.slug || draft.title || topic.title);

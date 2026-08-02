@@ -34,7 +34,7 @@ export default function AdminScholarships() {
           { key: "level", label: "Level", placeholder: "UG / PG / Diploma" },
           { key: "apply_url", label: "Apply URL" },
           { key: "image", label: "Cover image (upload or link)", type: "image" },
-          { key: "page_summary", label: "Quick Summary - summarise the whole page (200–800 words, HTML allowed)", type: "textarea" },
+          { key: "page_summary", label: "Quick Summary - summarise the whole page (200-800 words, HTML allowed)", type: "textarea" },
           { key: "description", label: "Description (HTML)", type: "textarea" },
           { key: "is_live", label: "Live (show in homepage strip)", type: "boolean" },
           { key: "is_active", label: "Active", type: "boolean" },

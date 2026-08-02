@@ -123,7 +123,7 @@ export default function AllCourses() {
     duration: selectedDurations[0],
   }), [selectedStreams, selectedCourseGroups, selectedModes, selectedDurations]);
 
-  useSEO({ title: heading, description: `Browse ${heading.toLowerCase()} - eligibility, duration, fees, top colleges and career options.` });
+  useSEO({ title: heading, description: `Browse ${heading.toLowerCase()} - eligibility, duration, fees, top colleges and career options.`, canonical: `/courses${searchParams.toString() ? `?${searchParams.toString()}` : ""}` });
 
   const clearAll = () => {
     setSelectedStreams([]); setSelectedCourseGroups([]);

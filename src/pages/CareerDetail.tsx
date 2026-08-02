@@ -32,7 +32,7 @@ export default function CareerDetail() {
 
   return (
     <>
-      <SEO title={c.meta_title || `${c.name} – Career Scope, Salary & Job Profile`} description={c.meta_description || c.short_description} keywords={c.meta_keywords} />
+      <SEO title={c.meta_title || `${c.name} - Career Scope, Salary & Job Profile`} description={c.meta_description || c.short_description} keywords={c.meta_keywords} />
       <Navbar />
       <main className="min-h-screen">
         <section className="bg-gradient-to-br from-primary/10 to-accent/10 py-10">

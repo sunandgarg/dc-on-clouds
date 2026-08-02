@@ -76,6 +76,7 @@ User-agent: facebookexternalhit
 Allow: /
 
 Sitemap: ${absoluteSiteUrl("/sitemap.xml")}
+Sitemap: ${absoluteSiteUrl("/sitemap-index.xml")}
 `;
   writeFileSync(robotsPath, content);
 }

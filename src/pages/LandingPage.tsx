@@ -64,7 +64,7 @@ export default function LandingPage() {
       document.head.appendChild(s);
       cleanups.push(() => s.remove());
     };
-    if (data.ga_id) {
+    if (data.ga_id && !data.gtm_id) {
       inject(`ga-src-${data.ga_id}`, "", `https://www.googletagmanager.com/gtag/js?id=${data.ga_id}`);
       inject(`ga-init-${data.ga_id}`, `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${data.ga_id}',{anonymize_ip:true});`);
     }

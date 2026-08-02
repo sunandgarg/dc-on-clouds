@@ -94,14 +94,14 @@ export default function ExamDetail() {
       : (exam.meta_description || `${exam.name} ${year} exam dates, syllabus, preparation tips, cutoff`)
     ) : undefined,
     keywords: exam?.meta_keywords || undefined,
-    canonical: exam ? buildExamHref(exam as any) : undefined,
+    canonical: exam ? `${buildExamHref(exam as any)}${strategy ? `/${strategy.slug}` : ""}` : undefined,
     ogImage: exam?.image || undefined,
     jsonLd: exam ? {
       "@context": "https://schema.org",
       "@type": "WebPage",
       name: exam.full_name || exam.name,
       description: (exam as any).page_summary || exam.description || undefined,
-      url: absoluteSiteUrl(buildExamHref(exam as any)),
+      url: absoluteSiteUrl(`${buildExamHref(exam as any)}${strategy ? `/${strategy.slug}` : ""}`),
       primaryImageOfPage: exam.image ? { "@type": "ImageObject", url: exam.image } : undefined,
       about: {
         "@type": "Thing",

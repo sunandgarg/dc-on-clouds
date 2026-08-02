@@ -57,7 +57,7 @@ export function LatestNewsSection({ entityName, entityType, entitySlug }: Props)
         {items.map((a) => (
           <Link
             key={a.id}
-            to={`/articles/${a.slug}`}
+            to={`/news/${a.slug}`}
             className="flex gap-3 p-3 rounded-xl bg-muted/40 hover:bg-muted transition group"
           >
             {a.featured_image && (

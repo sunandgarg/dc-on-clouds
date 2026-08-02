@@ -113,7 +113,7 @@ export function DashboardFavorites() {
             {news.map((n: any) => {
               const college = (colleges || []).find((c: any) => c.slug === n.college_slug);
               return (
-                <Link key={n.id} to={`/articles/${n.slug}`} className="flex items-center gap-3 p-3 hover:bg-muted/40 transition-colors">
+                <Link key={n.id} to={`/news/${n.slug}`} className="flex items-center gap-3 p-3 hover:bg-muted/40 transition-colors">
                   <div className="w-14 h-14 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
                     {n.featured_image && <img src={n.featured_image} alt="" className="w-full h-full object-cover" loading="lazy" />}
                   </div>

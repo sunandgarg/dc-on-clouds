@@ -13,7 +13,7 @@ interface Author {
 }
 
 const SOURCES: { table: string; label: string; route: (slug: string) => string; icon: any }[] = [
-  { table: "articles", label: "Articles", route: (s) => `/articles/${s}`, icon: Newspaper },
+  { table: "articles", label: "Articles", route: (s) => `/news/${s}`, icon: Newspaper },
   { table: "colleges", label: "Colleges", route: (s) => `/colleges/${s}`, icon: GraduationCap },
   { table: "courses", label: "Courses", route: (s) => `/courses/${s}`, icon: BookOpen },
   { table: "exams", label: "Exams", route: (s) => `/exams/${s}`, icon: FileText },

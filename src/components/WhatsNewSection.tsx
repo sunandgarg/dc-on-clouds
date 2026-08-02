@@ -51,7 +51,7 @@ export function WhatsNewSection({ entityName, entityType, entitySlug, category }
   const newsItems = relevantArticles.map((a) => ({
     title: a.title,
     date: new Date(a.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-    slug: `/articles/${a.slug}`,
+    slug: `/news/${a.slug}`,
   }));
 
   return (

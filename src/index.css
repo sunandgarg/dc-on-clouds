@@ -184,7 +184,7 @@
   }
 
   .dc-bottom-nav-aware-tight {
-    bottom: calc(var(--dc-mobile-bottom-nav-offset, 0px) + 0.75rem);
+    bottom: var(--dc-mobile-bottom-nav-offset, 0px);
   }
 
   .dc-bottom-nav-spacer {

@@ -1,5 +1,5 @@
 // Bootstrap edge function - returns ALL initial home/app data in ONE round-trip.
-// Replaces 8–12 separate Supabase queries with a single fetch.
+// Replaces 8-12 separate Supabase queries with a single fetch.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {

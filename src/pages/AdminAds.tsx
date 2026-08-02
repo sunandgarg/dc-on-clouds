@@ -499,7 +499,7 @@ export default function AdminAds() {
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="Priority" hint="Higher number = this ad wins over others. Range: 0–100">
+                  <Field label="Priority" hint="Higher number = this ad wins over others. Range: 0-100">
                     <Input type="number" value={form.priority} onChange={(e) => setForm({ ...form, priority: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })} className="rounded-xl" min={0} max={100} />
                   </Field>
                   <div className="flex items-center gap-3 pt-6">

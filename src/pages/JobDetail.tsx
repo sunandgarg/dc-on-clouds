@@ -32,7 +32,7 @@ export default function JobDetail() {
 
   return (
     <>
-      <SEO title={j.meta_title || `${j.title} at ${j.company} – Careers`} description={j.meta_description || j.short_description} keywords={j.meta_keywords} />
+      <SEO title={j.meta_title || `${j.title} at ${j.company} - Careers`} description={j.meta_description || j.short_description} keywords={j.meta_keywords} />
       <Navbar />
       <main className="min-h-screen">
         <section className="bg-gradient-to-br from-primary/10 to-accent/10 py-10">

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, ExternalLink, Phone, Mail, Loader2 } from "lucide-react";
+import { Search, ExternalLink, Phone, Mail, Loader2, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 import { CSVTools } from "@/components/CSVTools";
@@ -17,6 +18,8 @@ export default function AdminApplications() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const { data: apps = [], isLoading } = useQuery({
     queryKey: ["admin-applications"],
@@ -47,6 +50,18 @@ export default function AdminApplications() {
     const { error } = await supabase.from("college_applications").update({ status }).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Updated");
+    qc.invalidateQueries({ queryKey: ["admin-applications"] });
+  };
+
+  const deleteApplications = async (ids: string[], label: string) => {
+    const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+    if (!uniqueIds.length || !confirm(`Delete ${uniqueIds.length} ${label}? This cannot be undone.`)) return;
+    setDeleteBusy(true);
+    const { error } = await supabase.from("college_applications").delete().in("id", uniqueIds);
+    setDeleteBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Deleted ${uniqueIds.length} ${label}`);
+    setSelectedIds(new Set());
     qc.invalidateQueries({ queryKey: ["admin-applications"] });
   };
 
@@ -90,6 +105,15 @@ export default function AdminApplications() {
         })}
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5">
+        <Button size="sm" variant="outline" onClick={() => setSelectedIds(selectedIds.size === filtered.length ? new Set() : new Set(filtered.map((app: any) => app.id)))}>
+          {selectedIds.size === filtered.length && filtered.length ? "Clear selection" : `Select all filtered (${filtered.length})`}
+        </Button>
+        <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
+        <Button size="sm" variant="destructive" disabled={deleteBusy || !selectedIds.size} onClick={() => deleteApplications(Array.from(selectedIds), "selected application(s)")} className="gap-1.5"><Trash2 className="h-3.5 w-3.5" /> Delete selected</Button>
+        <Button size="sm" variant="outline" disabled={deleteBusy || !filtered.length} onClick={() => deleteApplications(filtered.map((app: any) => app.id), "filtered application(s)")} className="gap-1.5 text-destructive"><Trash2 className="h-3.5 w-3.5" /> Delete all filtered</Button>
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
@@ -97,9 +121,15 @@ export default function AdminApplications() {
       ) : (
         <div className="space-y-3">
           {filtered.map((a: any) => (
-            <Card key={a.id}>
+            <Card key={a.id} className={selectedIds.has(a.id) ? "border-primary bg-primary/5" : ""}>
               <CardContent className="p-4">
                 <div className="flex flex-col md:flex-row gap-4 justify-between">
+                  <Checkbox checked={selectedIds.has(a.id)} onCheckedChange={() => setSelectedIds((current) => {
+                    const next = new Set(current);
+                    if (next.has(a.id)) next.delete(a.id);
+                    else next.add(a.id);
+                    return next;
+                  })} aria-label={`Select ${a.name}`} className="mt-1" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       <h3 className="font-bold text-foreground truncate">{a.name}</h3>
@@ -134,6 +164,7 @@ export default function AdminApplications() {
                     <Button asChild variant="outline" size="sm" className="h-9">
                       <a href={`https://wa.me/91${a.phone}`} target="_blank" rel="noreferrer">WhatsApp</a>
                     </Button>
+                    <Button variant="ghost" size="sm" disabled={deleteBusy} onClick={() => deleteApplications([a.id], "application")} className="h-9 gap-1 text-destructive"><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
                   </div>
                 </div>
               </CardContent>

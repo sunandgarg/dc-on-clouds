@@ -167,7 +167,7 @@ export function buildLockTargetSeo(slug?: string): LockTargetSeo {
         { "@type": "HowToStep", name: "Lock your target", text: `Pick ${target} as your dream college and commit.` },
         { "@type": "HowToStep", name: "Crack the entrance", text: `Build a phase-wise plan for ${examPhrase}.` },
         { "@type": "HowToStep", name: "Follow weekly plan", text: "Stick to a subject-wise weekly study schedule and mock test cycle." },
-        { "@type": "HowToStep", name: "Backup plan", text: "Always have 3–5 backup colleges from the same exam." },
+        { "@type": "HowToStep", name: "Backup plan", text: "Always have 3-5 backup colleges from the same exam." },
         { "@type": "HowToStep", name: "Download PDF", text: "Download your personalised AI roadmap PDF and revisit it monthly." },
       ],
     },

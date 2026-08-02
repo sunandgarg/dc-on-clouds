@@ -2,6 +2,7 @@ import { PermGate } from "@/components/PermGate";
 import { AIGenerateDialog } from "@/components/admin/AIGenerateDialog";
 import { BlogStudioDialog } from "@/components/admin/BlogStudioDialog";
 import { BlogAutoAgentPanel } from "@/components/admin/BlogAutoAgentPanel";
+import { EntityResearchBlogPanel } from "@/components/admin/EntityResearchBlogPanel";
 import { useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { useAllDbArticles, useSaveArticle, useDeleteArticle, type DbArticle } from "@/hooks/useArticlesData";
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Search, Newspaper, Info, FileText, Settings, ExternalLink, HelpCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Newspaper, Info, FileText, Settings, ExternalLink, HelpCircle, CheckSquare2, Square } from "lucide-react";
 import { toast } from "sonner";
 import { CSVTools } from "@/components/CSVTools";
 import { useAuth } from "@/hooks/useAuth";
@@ -65,6 +66,8 @@ export default function AdminArticles() {
   const deleteArticle = useDeleteArticle();
   const [editing, setEditing] = useDraftState<Partial<DbArticle> | null>('admin.articles.editing.v1', null);
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const filtered = (articles ?? []).filter((a) =>
     a.title.toLowerCase().includes(search.toLowerCase()) || a.slug.toLowerCase().includes(search.toLowerCase())
@@ -72,6 +75,28 @@ export default function AdminArticles() {
 
   const { can, isAdmin } = useAuth();
   const canPublish = isAdmin || can("articles", "publish") || can("articles", "edit");
+
+  const bulkUpdate = async (updates: Record<string, unknown>, label: string, ids = Array.from(selectedIds)) => {
+    if (!ids.length) return toast.error("Select at least one article");
+    setBulkBusy(true);
+    const { error } = await (supabase as any).from("articles").update(updates).in("id", ids);
+    setBulkBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${label}: ${ids.length} article(s)`);
+    setSelectedIds(new Set());
+    void refetchArticles();
+  };
+
+  const bulkDelete = async (ids = Array.from(selectedIds)) => {
+    if (!ids.length || !confirm(`Delete ${ids.length} selected article(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    const { error } = await (supabase as any).from("articles").delete().in("id", ids);
+    setBulkBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Deleted ${ids.length} article(s)`);
+    setSelectedIds(new Set());
+    void refetchArticles();
+  };
 
   const handleSave = () => {
     if (!editing?.slug || !editing?.title) { toast.error("Slug and Title required"); return; }
@@ -103,6 +128,7 @@ export default function AdminArticles() {
     <AdminLayout title="Articles Manager">
       <div className="mb-3 flex flex-wrap gap-2"><BlogStudioDialog onSaved={() => { void refetchArticles(); }} /><AIGenerateDialog entityType="articles" table="articles" /></div>
       <BlogAutoAgentPanel onArticlesCreated={() => { void refetchArticles(); }} />
+      <EntityResearchBlogPanel onArticlesCreated={() => { void refetchArticles(); }} />
       <div className="flex flex-col sm:flex-row gap-3 mb-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -126,6 +152,16 @@ export default function AdminArticles() {
         />
       </div>
 
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5">
+        <Button size="sm" variant="outline" onClick={() => setSelectedIds(selectedIds.size === filtered.length ? new Set() : new Set(filtered.map((article) => article.id)))} className="gap-2">
+          {selectedIds.size === filtered.length && filtered.length ? <CheckSquare2 className="h-4 w-4" /> : <Square className="h-4 w-4" />} {selectedIds.size === filtered.length && filtered.length ? "Clear all" : `Select all filtered (${filtered.length})`}
+        </Button>
+        <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
+        <Button size="sm" disabled={bulkBusy || !selectedIds.size || !canPublish} onClick={() => bulkUpdate({ status: "Published", is_active: true }, "Published")}>Publish selected</Button>
+        <Button size="sm" variant="outline" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkUpdate({ status: "Draft" }, "Moved to Draft")}>Draft selected</Button>
+        <Button size="sm" variant="destructive" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkDelete()}>Delete selected</Button>
+      </div>
+
       <div className="mb-4">
         <CSVTools
           table="articles"
@@ -143,7 +179,15 @@ export default function AdminArticles() {
       ) : (
         <div className="space-y-2">
           {filtered.map((a) => (
-            <div key={a.id} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
+            <div key={a.id} className={`bg-card rounded-xl border p-4 flex items-center gap-4 ${selectedIds.has(a.id) ? "border-primary bg-primary/5" : "border-border"}`}>
+              <button type="button" onClick={() => setSelectedIds((current) => {
+                const next = new Set(current);
+                if (next.has(a.id)) next.delete(a.id);
+                else next.add(a.id);
+                return next;
+              })} aria-label={`Select ${a.title}`}>
+                {selectedIds.has(a.id) ? <CheckSquare2 className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
+              </button>
               {a.featured_image && <img src={a.featured_image} alt={a.title} className="w-16 h-10 rounded-lg object-cover hidden sm:block" />}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -154,7 +198,7 @@ export default function AdminArticles() {
                 <p className="text-xs text-muted-foreground truncate">{a.author} • {a.views} views • {new Date(a.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex gap-1">
-                <a href={`/articles/${a.slug}`} target="_blank" rel="noopener noreferrer" title="Open public page" className="inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted text-muted-foreground hover:text-primary"><ExternalLink className="w-3.5 h-3.5" /></a>
+                <a href={`/news/${a.slug}`} target="_blank" rel="noopener noreferrer" title="Open public page" className="inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted text-muted-foreground hover:text-primary"><ExternalLink className="w-3.5 h-3.5" /></a>
                 <Button variant="ghost" size="icon" onClick={() => setEditing({ ...a })} className="w-8 h-8"><Pencil className="w-3.5 h-3.5" /></Button>
                 <PermGate module="articles" action="delete"><Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete?")) deleteArticle.mutate(a.id); }} className="w-8 h-8 text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button></PermGate>
               </div>

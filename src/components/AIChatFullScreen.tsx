@@ -32,7 +32,7 @@ const DEFAULT_SUGGESTIONS = [
 ];
 
 /* ─── Helpers: resolve any AI link to an internal SPA path when possible ─── */
-const INTERNAL_PREFIXES = ["/colleges/", "/courses/", "/exams/", "/articles/", "/scholarships/", "/careers/"];
+const INTERNAL_PREFIXES = ["/colleges/", "/courses/", "/exams/", "/news/", "/scholarships/", "/careers/"];
 
 function toInternalPath(href: string | undefined): string | null {
   if (!href) return null;

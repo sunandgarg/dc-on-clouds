@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
 
     const opts: GenOptions = options || {};
     const tone = opts.tone || "Authoritative-yet-friendly";
-    const audience = opts.audience || "Indian students & parents (Class 11 – PG aspirants)";
+    const audience = opts.audience || "Indian students & parents (Class 11 - PG aspirants)";
     const depth = opts.depth || "in-depth";
     const language = opts.language || "English";
     const region = opts.region || "India";

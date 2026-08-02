@@ -31,9 +31,9 @@ SET content = content || $$
 <h2>Advertising Cookies (Google AdSense)</h2>
 <p>We use <strong>Google AdSense</strong>, a third-party advertising service, which may set cookies on your device to deliver and measure advertisements.</p>
 <ul>
-  <li><strong>__gads / __gpi</strong> – set by Google to measure ad performance and frequency capping.</li>
-  <li><strong>IDE, NID, ANID</strong> – set by Google to personalise ads based on your interests and browsing history.</li>
-  <li><strong>FPID, FPLC</strong> – first-party identifiers used by Google Tag for analytics and ads measurement.</li>
+  <li><strong>__gads / __gpi</strong> - set by Google to measure ad performance and frequency capping.</li>
+  <li><strong>IDE, NID, ANID</strong> - set by Google to personalise ads based on your interests and browsing history.</li>
+  <li><strong>FPID, FPLC</strong> - first-party identifiers used by Google Tag for analytics and ads measurement.</li>
 </ul>
 
 <h3>Managing advertising cookies</h3>

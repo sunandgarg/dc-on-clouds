@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Home, GraduationCap, FileText, Phone, User } from "lucide-react";
+import { Home, GraduationCap, FileText, Instagram, Youtube, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -69,7 +69,7 @@ export function HomeMobileBottomNav() {
           visible ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="grid h-16 grid-cols-5 items-stretch px-1">
+        <div className="grid h-16 grid-cols-6 items-stretch px-1">
           {baseItems.map((item) => {
             const active = item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href);
             return (
@@ -79,9 +79,13 @@ export function HomeMobileBottomNav() {
               </Link>
             );
           })}
-          <a href="tel:+919990109797" className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
-            <Phone className="h-5 w-5" />
-            <span>Call</span>
+          <a href="https://www.instagram.com/dekhocampus" target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
+            <Instagram className="h-5 w-5" />
+            <span>Instagram</span>
+          </a>
+          <a href="https://www.youtube.com/@dekhocampus" target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
+            <Youtube className="h-5 w-5" />
+            <span>YouTube</span>
           </a>
           <Link to={profileHref} className={`flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium ${location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/auth") ? "text-primary" : "text-slate-500"}`}>
             {profileImage ? <img src={profileImage} alt="Profile" className="h-6 w-6 rounded-full object-cover ring-1 ring-primary/20" /> : <User className="h-5 w-5" />}

@@ -594,7 +594,7 @@ export function BlogAutoAgentPanel({ onArticlesCreated }: { onArticlesCreated?: 
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Recently generated articles</div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {generatedArticles.map((article) => (
-              <a key={article.id} href={`/articles/${article.slug}`} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-md">
+              <a key={article.id} href={`/news/${article.slug}`} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="aspect-[16/9] bg-muted">
                   {article.featured_image ? <img src={article.featured_image} alt="" loading="lazy" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground" /></div>}
                 </div>

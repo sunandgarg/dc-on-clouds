@@ -32,7 +32,7 @@ export function CollegeAffiliationCard({ college }: Props) {
       if (!parentSlug) return null;
       const { data } = await supabase
         .from("colleges")
-        .select("slug, name, short_name, city, state, logo, naac_grade, type, short_id")
+        .select("slug, name, short_name, city, state, logo, image, naac_grade, type, short_id")
         .eq("slug", parentSlug)
         .maybeSingle();
       return data;
@@ -47,7 +47,7 @@ export function CollegeAffiliationCard({ college }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("colleges")
-        .select("slug, name, short_name, city, state, logo, short_id")
+        .select("slug, name, short_name, city, state, logo, image, short_id")
         .eq("parent_university_slug", college.slug)
         .eq("is_active", true)
         .order("name")
@@ -68,12 +68,16 @@ export function CollegeAffiliationCard({ college }: Props) {
         className="group block bg-gradient-to-br from-primary/5 via-card to-card border border-primary/20 rounded-2xl p-4 hover:border-primary/40 transition-colors"
       >
         <div className="flex items-center gap-3">
-          {parent.logo ? (
+          {parent.logo || parent.image ? (
             <img
-              src={parent.logo}
+              src={parent.logo || parent.image}
               alt={`${parent.name} logo`}
               className="w-12 h-12 rounded-xl object-contain bg-background border border-border p-1.5 shrink-0"
               loading="lazy"
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                if (parent.image) event.currentTarget.src = parent.image;
+              }}
             />
           ) : (
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -121,8 +125,17 @@ export function CollegeAffiliationCard({ college }: Props) {
             className="snap-start shrink-0 w-44 group rounded-xl border border-border p-3 hover:border-primary/40 hover:bg-primary/5 transition-colors"
           >
             <div className="flex items-center gap-2 mb-1.5">
-              {c.logo ? (
-                <img src={c.logo} alt="" className="entity-logo-safe w-8 h-8 rounded-md border border-border" loading="lazy" />
+              {c.logo || c.image ? (
+                <img
+                  src={c.logo || c.image}
+                  alt={`${c.name} logo`}
+                  className="entity-logo-safe w-8 h-8 rounded-md border border-border"
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    if (c.image) event.currentTarget.src = c.image;
+                  }}
+                />
               ) : (
                 <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
                   <Landmark className="w-4 h-4 text-primary" />

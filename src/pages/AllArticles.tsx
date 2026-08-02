@@ -100,7 +100,7 @@ export default function AllArticles() {
         <div className="flex-1 min-w-0 space-y-4">
           {filtered.map((article, i) => (
             <motion.div key={article.slug} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-              <Link to={`/articles/${article.slug}`} className="block">
+              <Link to={`/news/${article.slug}`} className="block">
                 <article className="bg-card rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-shadow flex flex-col sm:flex-row">
                   <div className="sm:w-48 md:w-56 flex-shrink-0">
                     <img src={article.image} alt={article.title} className="w-full h-40 sm:h-full object-cover" loading="lazy" />

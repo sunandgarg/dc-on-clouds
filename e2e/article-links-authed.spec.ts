@@ -4,8 +4,8 @@ import { test, expect } from "@playwright/test";
  * Authenticated DB-level E2E for News article links.
  *
  * Requirements (skipped automatically when missing):
- *   E2E_ADMIN_STORAGE_STATE  – path to a Playwright storageState JSON for an admin session
- *   E2E_TEST_ARTICLE_SLUG    – slug of a published article that already has at least one
+ *   E2E_ADMIN_STORAGE_STATE  - path to a Playwright storageState JSON for an admin session
+ *   E2E_TEST_ARTICLE_SLUG    - slug of a published article that already has at least one
  *                              college link (for the render assertion below)
  *
  * To wire this up locally:

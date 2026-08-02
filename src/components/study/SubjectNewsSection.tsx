@@ -113,7 +113,7 @@ export function SubjectNewsSection({ subjectSlug, subjectName, subjectId }: Prop
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {visible.map((a: any) => (
-            <Link key={a.id} to={`/articles/${a.slug}`} className="flex gap-3 p-3 rounded-xl bg-muted/40 hover:bg-muted transition group">
+            <Link key={a.id} to={`/news/${a.slug}`} className="flex gap-3 p-3 rounded-xl bg-muted/40 hover:bg-muted transition group">
               {a.featured_image && (
                 <img src={a.featured_image} alt={a.title} loading="lazy" className="w-24 h-20 rounded-lg object-cover flex-shrink-0" />
               )}

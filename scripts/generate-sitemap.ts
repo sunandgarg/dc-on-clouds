@@ -31,7 +31,11 @@ const fileEnv = loadEnv(process.env.NODE_ENV || "production", process.cwd(), "")
 const env = { ...fileEnv, ...process.env };
 const BASE_URL = (env.SITEMAP_BASE_URL || SITE_URL).replace(/\/+$/, "");
 const SUPABASE_URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL || "";
-const SUPABASE_ANON = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || "";
+// CI should provide a server-only key so RLS cannot silently remove public
+// detail pages from the generated sitemap. Local builds still fall back to the
+// publishable key and emit an explicit warning when no live rows are visible.
+const SUPABASE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "";
+const SITEMAP_SEED_URL = env.SITEMAP_SEED_URL || "https://dekhocampus.in/sitemap.xml";
 const PAGE_SIZE = 1000;
 const SITEMAP_CHUNK_SIZE = 45_000;
 
@@ -48,7 +52,6 @@ const STATIC: SitemapEntry[] = [
   { path: "/courses", changefreq: "daily", priority: "0.9" },
   { path: "/exams", changefreq: "daily", priority: "0.9" },
   { path: "/premium-programs", changefreq: "daily", priority: "0.9" },
-  { path: "/articles", changefreq: "daily", priority: "0.85" },
   { path: "/news", changefreq: "daily", priority: "0.85" },
   { path: "/careers", changefreq: "weekly", priority: "0.8" },
   { path: "/jobs", changefreq: "daily", priority: "0.8" },
@@ -72,7 +75,19 @@ const STATIC: SitemapEntry[] = [
   { path: "/about", changefreq: "monthly", priority: "0.4" },
 ];
 
-const sb = SUPABASE_URL && SUPABASE_ANON ? createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+function supabaseServerFetch(input: RequestInfo | URL, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  if (/^sb_(publishable|secret)_/i.test(SUPABASE_KEY) && headers.get("Authorization") === `Bearer ${SUPABASE_KEY}`) {
+    headers.delete("Authorization");
+  }
+  headers.set("apikey", SUPABASE_KEY);
+  return fetch(input, { ...init, headers });
+}
+
+const sb = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: { fetch: supabaseServerFetch },
+  auth: { persistSession: false, autoRefreshToken: false },
+}) : null;
 
 async function fetchRows(table: string, select: string, configure?: (query: any) => any): Promise<any[]> {
   if (!sb) return [];
@@ -213,6 +228,71 @@ function escapeXml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
+function decodeXml(value: string) {
+  return value.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+}
+
+const PUBLIC_ROUTE_ROOTS = [
+  "/colleges", "/courses", "/exams", "/premium-programs", "/news", "/careers", "/jobs", "/vacancies",
+  "/scholarships", "/study-material", "/college-study-material", "/resources", "/tools", "/cat-universe",
+  "/compare", "/eligibility-checker", "/college-predictor", "/exam-calendar", "/exam-calendar-2026",
+  "/lock-target", "/achieve-target", "/roadmap", "/dream-college-roadmap", "/about-us", "/about", "/landing",
+  "/author", "/legal",
+];
+
+function canonicalSeedPath(rawLocation: string) {
+  try {
+    const url = new URL(decodeXml(rawLocation));
+    if (!/(^|\.)dekhocampus\.(com|in)$/i.test(url.hostname)) return null;
+    let pathname = url.pathname.replace(/\/+$/, "") || "/";
+    if (pathname === "/articles") pathname = "/news";
+    else if (pathname.startsWith("/articles/")) pathname = pathname.replace(/^\/articles\//, "/news/");
+    if (pathname.startsWith("/college/")) pathname = pathname.replace(/^\/college\//, "/colleges/");
+    const allowed = pathname === "/" || PUBLIC_ROUTE_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
+    return allowed ? `${pathname}${url.search}` : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSeedEntries(): Promise<SitemapEntry[]> {
+  const pending = [SITEMAP_SEED_URL];
+  const visited = new Set<string>();
+  const entries: SitemapEntry[] = [];
+  while (pending.length && visited.size < 25) {
+    const source = pending.shift()!;
+    if (visited.has(source)) continue;
+    visited.add(source);
+    try {
+      const response = await fetch(source, { headers: { "User-Agent": "DekhoCampus sitemap migration/1.0" } });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const xml = await response.text();
+      if (/<sitemapindex\b/i.test(xml)) {
+        for (const match of xml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)) {
+          const child = decodeXml(match[1].trim());
+          try {
+            const childUrl = new URL(child);
+            if (/(^|\.)dekhocampus\.(com|in)$/i.test(childUrl.hostname)) pending.push(childUrl.href);
+          } catch { /* skip malformed child sitemap URL */ }
+        }
+        continue;
+      }
+      for (const match of xml.matchAll(/<url>([\s\S]*?)<\/url>/gi)) {
+        const block = match[1];
+        const location = block.match(/<loc>([\s\S]*?)<\/loc>/i)?.[1]?.trim();
+        const path = location ? canonicalSeedPath(location) : null;
+        if (!path) continue;
+        const lastmod = block.match(/<lastmod>([\s\S]*?)<\/lastmod>/i)?.[1]?.trim();
+        entries.push({ path, lastmod: lastmod && /^\d{4}-\d{2}-\d{2}/.test(lastmod) ? lastmod.slice(0, 10) : undefined, changefreq: "weekly", priority: "0.6" });
+      }
+    } catch (error) {
+      console.warn(`[sitemap] seed ${source}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  console.log(`[sitemap] recovered ${entries.length} canonical URL(s) from the published migration seed`);
+  return entries;
+}
+
 function xmlFor(entries: SitemapEntry[]) {
   const urls = entries.map((entry) => [
     "  <url>",
@@ -235,17 +315,15 @@ function sitemapIndex(files: string[]) {
 }
 
 function writeSitemaps(entries: SitemapEntry[]) {
-  if (entries.length <= SITEMAP_CHUNK_SIZE) {
-    writeFileSync(resolve("dist/sitemap.xml"), xmlFor(entries));
-    return ["sitemap.xml"];
-  }
   const files: string[] = [];
   for (let index = 0; index < entries.length; index += SITEMAP_CHUNK_SIZE) {
     const file = `sitemap-${files.length + 1}.xml`;
     writeFileSync(resolve("dist", file), xmlFor(entries.slice(index, index + SITEMAP_CHUNK_SIZE)));
     files.push(file);
   }
-  writeFileSync(resolve("dist/sitemap.xml"), sitemapIndex(files));
+  const index = sitemapIndex(files);
+  writeFileSync(resolve("dist/sitemap.xml"), index);
+  writeFileSync(resolve("dist/sitemap-index.xml"), index);
   return files;
 }
 
@@ -267,6 +345,11 @@ function writeSitemaps(entries: SitemapEntry[]) {
   ]);
 
   const tags = [...new Set(articles.flatMap((article) => Array.isArray(article.tags) ? article.tags : []).filter(Boolean))];
+  const liveEntityRowsVisible = Boolean(colleges.length || courses.length || exams.length || articles.length || premiumPrograms.length);
+  const seedEntries = liveEntityRowsVisible ? [] : await fetchSeedEntries();
+  if (!liveEntityRowsVisible) {
+    console.warn("[sitemap] no live entity rows are visible. Configure SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) in the production build environment so RLS cannot omit detail URLs.");
+  }
   const all: SitemapEntry[] = [
     ...STATIC,
     ...detailEntries("/colleges", colleges, "0.88"),
@@ -275,7 +358,6 @@ function writeSitemaps(entries: SitemapEntry[]) {
     ...exams.flatMap((exam) => STRATEGY_SLUGS.map((strategy) => ({ path: `/exams/${exam.slug}/${strategy}`, lastmod: changed(exam.updated_at), changefreq: "weekly" as const, priority: "0.64" }))),
     ...detailEntries("/careers", careers, "0.72"),
     ...detailEntries("/scholarships", scholarships, "0.72"),
-    ...detailEntries("/articles", articles, "0.7"),
     ...detailEntries("/news", articles, "0.7"),
     ...tags.map((tag) => ({ path: `/news/tag/${encodeURIComponent(String(tag).toLowerCase().trim().replace(/\s+/g, "-"))}`, changefreq: "daily" as const, priority: "0.62" })),
     ...detailEntries("/landing", landing, "0.65"),
@@ -288,6 +370,7 @@ function writeSitemaps(entries: SitemapEntry[]) {
     ...study,
     ...toolEntries(),
     ...filterEntries(),
+    ...seedEntries,
   ];
 
   const seen = new Set<string>();

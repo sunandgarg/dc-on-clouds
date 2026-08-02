@@ -145,11 +145,11 @@ export function normalizeImportedData(raw: any): UniversityExportData {
 }
 
 /**
- * Normalise bulk import – accepts array or { universities: [...] }
+ * Normalise bulk import - accepts array or { universities: [...] }
  */
 export function normalizeBulkImport(raw: any): UniversityExportData[] {
   const arr = Array.isArray(raw) ? raw : (raw?.universities ?? null);
-  if (!Array.isArray(arr)) throw new Error('Invalid bulk config file – expected an array');
+  if (!Array.isArray(arr)) throw new Error('Invalid bulk config file - expected an array');
   return arr.map(normalizeImportedData);
 }
 

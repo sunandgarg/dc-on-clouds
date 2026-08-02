@@ -25,7 +25,7 @@ export default function AdminPriority() {
         <p className="text-sm text-foreground">
           <Crown className="w-4 h-4 inline text-amber-600 mr-1" />
           Set a priority from <b>1 (top of every list)</b> upward - lower number = higher rank, like a leaderboard.
-          Default is <b>50</b>. Items with priority <b>1–10</b> show a <b>Featured</b> badge in listings; <b>1–3</b> shows a <b>Top Pick</b> badge.
+          Default is <b>50</b>. Items with priority <b>1-10</b> show a <b>Featured</b> badge in listings; <b>1-3</b> shows a <b>Top Pick</b> badge.
           Sorting in /colleges, /courses, /exams updates instantly.
         </p>
       </div>

@@ -69,13 +69,13 @@ export function NewsSection() {
             <h2 className="text-headline font-extrabold text-foreground">Education News & Updates</h2>
             <p className="text-muted-foreground mt-1">Stay updated with the latest in Indian education</p>
           </div>
-          <Link to="/articles" className="hidden md:flex items-center gap-2 text-primary font-semibold hover:underline">
+          <Link to="/news" className="hidden md:flex items-center gap-2 text-primary font-semibold hover:underline">
             View All News <ArrowRight className="w-4 h-4" />
           </Link>
         </motion.div>
 
         <div className="md:hidden -mt-6 mb-5 flex justify-end">
-          <Link to="/articles" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+          <Link to="/news" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
             View All News <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -86,7 +86,7 @@ export function NewsSection() {
         <div className="grid lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3 space-y-6">
             <div className="grid lg:grid-cols-3 gap-6">
-              <Link to={`/articles/${items[0].slug}`} className="lg:col-span-2 card-elevated p-6 group">
+              <Link to={`/news/${items[0].slug}`} className="lg:col-span-2 card-elevated p-6 group">
                 <div className="flex items-start gap-4">
                   {isImg(items[0].image) ? (
                     <img src={items[0].image} alt={items[0].title} className="w-20 h-20 rounded-xl object-cover" />
@@ -111,7 +111,7 @@ export function NewsSection() {
 
               <div className="space-y-4">
                 {items.slice(1, 4).map((item, i) => (
-                  <Link to={`/articles/${item.slug}`} key={item.id} className="card-elevated p-4 group block">
+                  <Link to={`/news/${item.slug}`} key={item.id} className="card-elevated p-4 group block">
                     <div className="flex items-start gap-3">
                       {isImg(item.image) ? (
                         <img src={item.image} alt={item.title} className="w-10 h-10 rounded-lg object-cover" />
@@ -139,7 +139,7 @@ export function NewsSection() {
 
         <div className="flex justify-center mt-8">
           <Link
-            to="/articles"
+            to="/news"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
           >
             View All News & Updates <ArrowRight className="w-4 h-4" />

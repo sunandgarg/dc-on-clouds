@@ -77,7 +77,7 @@ supabase/functions/
 - \`/colleges\` → \`/colleges/:slug\` → \`/colleges/:slug/:tab\` - College listing, detail & sub-sections
 - \`/courses\` → \`/courses/:slug\` → \`/courses/:slug/:tab\` - Course listing, detail & sub-sections
 - \`/exams\` → \`/exams/:slug\` → \`/exams/:slug/:tab\` - Exam listing, detail & sub-sections
-- \`/articles\` → \`/articles/:slug\` - Article listing & detail
+- \`/news\` → \`/news/:slug\` - News and article listing & detail (legacy \`/articles\` redirects permanently)
 
 **Sub-slug Pattern (Collegedunia-style):**
 - \`/colleges/iit-delhi/overview\` - College overview tab

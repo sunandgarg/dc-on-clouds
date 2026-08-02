@@ -20,9 +20,9 @@ export const EXAM_STRATEGIES: ExamStrategy[] = [
   {
     key: "sample-paper", slug: "sample-paper",
     label: "Sample Paper", focusSection: "preparation",
-    h1: (n, y) => `${n} Sample Paper ${y} – Free PDF Download`,
+    h1: (n, y) => `${n} Sample Paper ${y} - Free PDF Download`,
     intro: (n, y) => `Download the latest ${n} ${y} sample papers, model question papers and previous year solutions in PDF - curated by toppers and updated for the ${y} exam pattern.`,
-    metaTitle: (n, y) => `${n} Sample Paper ${y} PDF Download – Model Papers & Solutions`,
+    metaTitle: (n, y) => `${n} Sample Paper ${y} PDF Download - Model Papers & Solutions`,
     metaDescription: (n, y) => `Free ${n} ${y} sample paper PDFs with solutions. Latest pattern, topic-wise practice sets, mock tests and toppers' answer keys.`,
     bullets: (n) => [
       `Latest ${n} pattern-based sample papers`,
@@ -34,9 +34,9 @@ export const EXAM_STRATEGIES: ExamStrategy[] = [
   {
     key: "tips-tricks", slug: "tips-and-tricks",
     label: "Tips & Tricks", focusSection: "preparation",
-    h1: (n, y) => `${n} ${y} Tips & Tricks – Smart Preparation Hacks`,
+    h1: (n, y) => `${n} ${y} Tips & Tricks - Smart Preparation Hacks`,
     intro: (n, y) => `Topper-approved ${n} ${y} tips, shortcuts, formulas and time-management tricks to score higher with smart preparation, not just hard work.`,
-    metaTitle: (n, y) => `${n} ${y} Tips & Tricks – Topper Strategy & Shortcuts`,
+    metaTitle: (n, y) => `${n} ${y} Tips & Tricks - Topper Strategy & Shortcuts`,
     metaDescription: (n, y) => `Best ${n} ${y} tips and tricks: shortcut formulas, time management, last-week revision plan and topper-approved hacks.`,
     bullets: (n) => [
       `Subject-wise high-yield topics`,
@@ -66,7 +66,7 @@ export const EXAM_STRATEGIES: ExamStrategy[] = [
     label: "Last 2 Min", focusSection: "preparation",
     h1: (n, y) => `${n} Last 2 Minute Preparation Tips ${y}`,
     intro: (n, y) => `Walking into the ${n} ${y} exam hall? These last-2-minute mantras, formula recalls and confidence boosters help you settle nerves and pick up easy marks.`,
-    metaTitle: (n, y) => `${n} Last 2 Minute Tips ${y} – Exam Hall Survival Guide`,
+    metaTitle: (n, y) => `${n} Last 2 Minute Tips ${y} - Exam Hall Survival Guide`,
     metaDescription: (n, y) => `Last 2 minute ${n} ${y} preparation tips: quick formula recall, anxiety hacks, attempt strategy and topper mantras.`,
     bullets: (n) => [
       `5 formulas to recall right now`,
@@ -82,7 +82,7 @@ function timePlan(key: string, slug: string, label: string, days: number, focus:
     key, slug, label, focusSection: focus,
     h1: (n, y) => `${n} ${days} Day${days > 1 ? "s" : ""} Preparation Strategy ${y}`,
     intro: (n, y) => `A focused ${days}-day study plan for ${n} ${y} - daily targets, must-revise chapters, mock-test schedule and revision blocks designed for last-mile preparation.`,
-    metaTitle: (n, y) => `${n} ${days} Day${days > 1 ? "s" : ""} Preparation Strategy ${y} – Day Wise Plan`,
+    metaTitle: (n, y) => `${n} ${days} Day${days > 1 ? "s" : ""} Preparation Strategy ${y} - Day Wise Plan`,
     metaDescription: (n, y) => `Day-wise ${days}-day ${n} ${y} preparation strategy: chapters to revise, mock test schedule, formula sheet and toppers' tips.`,
     bullets: (n) => [
       `Day-wise revision schedule`,
@@ -99,7 +99,7 @@ function hourPlan(key: string, hours: number): ExamStrategy[] {
     key, slug, label: `${hours} Hours`, focusSection: "preparation",
     h1: (n, y) => `${n} ${hours} Hour${hours > 1 ? "s" : ""} Preparation Strategy ${y}`,
     intro: (n, y) => `What can you cover for ${n} ${y} in just ${hours} hour${hours > 1 ? "s" : ""}? A high-yield, time-boxed plan focusing on must-do topics, quick formula sheets and a final mock.`,
-    metaTitle: (n, y) => `${n} in ${hours} Hour${hours > 1 ? "s" : ""} – Crash Strategy ${y}`,
+    metaTitle: (n, y) => `${n} in ${hours} Hour${hours > 1 ? "s" : ""} - Crash Strategy ${y}`,
     metaDescription: (n, y) => `${hours}-hour ${n} ${y} crash preparation: high-yield topics, formula recall, quick mocks and exam-day tips.`,
     bullets: (n) => [
       `Hour-wise focused breakdown`,
@@ -116,7 +116,7 @@ function minPlan(key: string, mins: number): ExamStrategy[] {
     key, slug, label: `${mins} Min`, focusSection: "preparation",
     h1: (n, y) => `${n} ${mins} Minute Preparation Tips ${y}`,
     intro: (n, y) => `Got just ${mins} minutes before ${n} ${y}? Skim these formula recalls, attempt-order tips and quick scoring areas to maximise your final marks.`,
-    metaTitle: (n, y) => `${n} ${mins} Minute Tips ${y} – Last-Minute Revision`,
+    metaTitle: (n, y) => `${n} ${mins} Minute Tips ${y} - Last-Minute Revision`,
     metaDescription: (n, y) => `${mins} minute ${n} ${y} last-minute revision: formula recall, attempt order, do's & don'ts and topper mantras.`,
     bullets: (n) => [
       `Formula sheet at a glance`,

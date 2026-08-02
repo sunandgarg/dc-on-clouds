@@ -342,7 +342,7 @@ export default function AdminPromotedPrograms() {
                   <Field label="Apply URL (optional)"><Input value={editing.apply_url} onChange={(e) => update("apply_url", e.target.value)} placeholder="https://…/apply" /></Field>
                   <Field label="Contact Phone (shows Call button)"><Input value={editing.contact_phone} onChange={(e) => update("contact_phone", e.target.value)} placeholder="+91 98765 43210" /></Field>
                   <Field label="Batch Start Date"><Input value={editing.batch_start_date} onChange={(e) => update("batch_start_date", e.target.value)} placeholder="15 Aug 2026" /></Field>
-                  <Field label="Schedule"><Input value={editing.schedule} onChange={(e) => update("schedule", e.target.value)} placeholder="Weekend, Sun 10AM–1PM" /></Field>
+                  <Field label="Schedule"><Input value={editing.schedule} onChange={(e) => update("schedule", e.target.value)} placeholder="Weekend, Sun 10AM-1PM" /></Field>
                   <Field label="Hero Video URL (YouTube embed)"><Input value={editing.hero_video_url} onChange={(e) => update("hero_video_url", e.target.value)} placeholder="https://www.youtube.com/embed/…" /></Field>
                   <Field label="YouTube Popup URL (Watch button)"><Input value={editing.youtube_url} onChange={(e) => update("youtube_url", e.target.value)} placeholder="https://www.youtube.com/watch?v=…" /></Field>
                   <Field label="Rating (e.g. 4.7)"><Input type="number" step="0.1" value={editing.rating} onChange={(e) => update("rating", parseFloat(e.target.value) || 0)} /></Field>

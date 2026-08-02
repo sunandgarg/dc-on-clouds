@@ -372,7 +372,7 @@ export default function AdminOtpProviders() {
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted-foreground uppercase tracking-wide">OTP Length (4–10)</label>
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wide">OTP Length (4-10)</label>
             <Input
               type="number" min={4} max={10}
               defaultValue={getConfigVal(provider, "otp_length", 6)}

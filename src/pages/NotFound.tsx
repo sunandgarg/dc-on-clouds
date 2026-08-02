@@ -1,11 +1,17 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { useSEO } from "@/hooks/useSEO";
 
 const NotFound = () => {
   const location = useLocation();
+  useSEO({ title: "Page Not Found", description: "The requested DekhoCampus page could not be found.", canonical: location.pathname });
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    const robots = document.querySelector('meta[name="robots"]') || document.head.appendChild(document.createElement("meta"));
+    robots.setAttribute("name", "robots");
+    robots.setAttribute("content", "noindex, nofollow");
+    return () => robots.setAttribute("content", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
   }, [location.pathname]);
 
   return (

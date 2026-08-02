@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Download, Upload, Users, TrendingUp, Phone, Mail, Calendar as CalendarIcon, MapPin, Star, Flame, ChevronRight, ChevronDown, ChevronLeft, ChevronsLeft, ChevronsRight, Layers, FileText, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown, Filter, ShieldCheck, Zap, Trophy, GraduationCap, Copy, ExternalLink, GitMerge, CheckSquare, Square, X as XIcon, Tag } from "lucide-react";
+import { Search, Download, Upload, Users, TrendingUp, Phone, Mail, Calendar as CalendarIcon, MapPin, Star, Flame, ChevronRight, ChevronDown, ChevronLeft, ChevronsLeft, ChevronsRight, Layers, FileText, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown, Filter, ShieldCheck, Zap, Trophy, GraduationCap, Copy, ExternalLink, GitMerge, CheckSquare, Square, X as XIcon, Tag, Trash2 } from "lucide-react";
 import { format, subDays, isAfter } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -40,6 +40,7 @@ function FilterField({ label, children }: { label: string; children: React.React
  * - Color-coded source badges and quick contact actions
  */
 export default function AdminLeads() {
+  const queryClient = useQueryClient();
   const { mask, maskPhone, maskEmail, maskName } = useLeadMask();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -66,6 +67,19 @@ export default function AdminLeads() {
   const [mergeRows, setMergeRows] = useState<any[] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showImport, setShowImport] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const deleteLeads = async (ids: string[], label: string) => {
+    const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+    if (!uniqueIds.length || !confirm(`Delete ${uniqueIds.length} ${label}? This cannot be undone.`)) return;
+    setDeleteBusy(true);
+    const { error } = await (supabase as any).from("leads").delete().in("id", uniqueIds);
+    setDeleteBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Deleted ${uniqueIds.length} ${label}`);
+    setSelectedIds(new Set());
+    await queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+  };
 
 
   // Default view is intentionally minimal (8 essentials). Admins can re-enable extras
@@ -548,6 +562,12 @@ export default function AdminLeads() {
         <div className="mt-2"><CSVTools table="leads" filename="leads.csv" columns="*" upsertKey="id" /></div>
       </details>
 
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5">
+        <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
+        <Button size="sm" variant="destructive" disabled={deleteBusy || !selectedIds.size} onClick={() => deleteLeads(Array.from(selectedIds), "selected lead(s)")} className="gap-1.5"><Trash2 className="h-3.5 w-3.5" /> Delete selected</Button>
+        <Button size="sm" variant="outline" disabled={deleteBusy || !filtered.length} onClick={() => deleteLeads(filtered.map((lead: any) => lead.id), "filtered lead(s)")} className="gap-1.5 text-destructive"><Trash2 className="h-3.5 w-3.5" /> Delete all filtered ({filtered.length})</Button>
+      </div>
+
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading leads...</div>
       ) : (
@@ -654,6 +674,13 @@ export default function AdminLeads() {
                           >
                             <Copy className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
+                          <button
+                            onClick={() => deleteLeads([lead.id], "lead")}
+                            disabled={deleteBusy}
+                            className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center" title="Delete lead"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </button>
                         </div>
                       );
                     }
@@ -685,7 +712,12 @@ export default function AdminLeads() {
                   sortedFiltered.forEach((l: any) => rows.push({ key: l.id, primary: l, instances: [l] }));
                 }
                 const toggle = (k: string) => {
-                  setExpanded((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+                  setExpanded((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(k)) next.delete(k);
+                    else next.add(k);
+                    return next;
+                  });
                 };
                 const effectivePageSize = pageSize === -1 ? Math.max(1, rows.length) : pageSize;
                 const totalPages = Math.max(1, Math.ceil(rows.length / effectivePageSize));
@@ -701,7 +733,8 @@ export default function AdminLeads() {
                 };
                 const toggleRowSel = (id: string) => {
                   const next = new Set(selectedIds);
-                  next.has(id) ? next.delete(id) : next.add(id);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
                   setSelectedIds(next);
                 };
 
@@ -818,7 +851,7 @@ export default function AdminLeads() {
             return (
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border bg-muted/30">
                 <div className="text-xs text-muted-foreground">
-                  Showing <span className="font-semibold text-foreground">{start}–{end}</span> of <span className="font-semibold text-foreground">{filtered.length.toLocaleString()}</span> leads
+                  Showing <span className="font-semibold text-foreground">{start}-{end}</span> of <span className="font-semibold text-foreground">{filtered.length.toLocaleString()}</span> leads
                 </div>
                 <div className="flex items-center gap-1">
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(1)} disabled={safePage <= 1}><ChevronsLeft className="w-3.5 h-3.5" /></Button>

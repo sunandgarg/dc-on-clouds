@@ -55,7 +55,7 @@ export function LiveNewsStrip() {
             {loop.map((n, i) => (
               <Link
                 key={`${n.id}-${i}`}
-                to={`/articles/${n.slug}`}
+                to={`/news/${n.slug}`}
                 className="group inline-flex items-center gap-1.5 text-xs md:text-sm font-semibold text-blue-700 hover:text-blue-900 underline decoration-blue-400/60 decoration-dotted underline-offset-4 hover:decoration-solid hover:decoration-blue-600 transition-colors shrink-0"
               >
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:bg-blue-600 group-hover:scale-125 transition-transform" />

@@ -17,7 +17,7 @@ const footerLinks = {
     { label: "Compare", href: "#" },
   ],
   resources: [
-    { label: "Articles", href: "/articles" },
+    { label: "Articles", href: "/news" },
     { label: "News", href: "/news" },
     { label: "Career Scope", href: "/careers" },
     { label: "AI Tools", href: "/tools" },

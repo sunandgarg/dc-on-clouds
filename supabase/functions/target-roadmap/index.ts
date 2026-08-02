@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 async function callAi(prompt: string) {
-  const systemMsg = "You are India's top admissions strategist for Class 11–12 students (2026 batch). You give specific, actionable, time-blocked roadmaps using REAL exam names, REAL official cut-offs and REAL syllabus. Never invent colleges or exams. Write like a senior mentor talking directly to a Gen-Z student - short sentences, no fluff, no hype. Return valid JSON only.";
+  const systemMsg = "You are India's top admissions strategist for Class 11-12 students (2026 batch). You give specific, actionable, time-blocked roadmaps using REAL exam names, REAL official cut-offs and REAL syllabus. Never invent colleges or exams. Write like a senior mentor talking directly to a Gen-Z student - short sentences, no fluff, no hype. Return valid JSON only.";
   const content = await geminiGenerate({ system: systemMsg, prompt, json: true });
   return { content: content || "{}", source: `gemini:${GEMINI_MODEL}` };
 }
@@ -37,9 +37,9 @@ Return ONLY this JSON:
     { "name": "Exact exam name (e.g. JEE Advanced 2027)", "why": "1 line", "targetScore": "Specific score/rank band needed for ${targetCollege}", "officialUrl": "Authentic conducting body URL" }
   ],
   "milestones": [
-    { "phase": "Months 1–3 (foundation)", "focus": "1 line goal", "tasks": ["task 1","task 2","task 3","task 4"] },
-    { "phase": "Months 4–6 (build)", "focus": "1 line", "tasks": ["..."] },
-    { "phase": "Months 7–9 (mocks)", "focus": "1 line", "tasks": ["..."] },
+    { "phase": "Months 1-3 (foundation)", "focus": "1 line goal", "tasks": ["task 1","task 2","task 3","task 4"] },
+    { "phase": "Months 4-6 (build)", "focus": "1 line", "tasks": ["..."] },
+    { "phase": "Months 7-9 (mocks)", "focus": "1 line", "tasks": ["..."] },
     { "phase": "Final 90 days (peak)", "focus": "1 line", "tasks": ["..."] }
   ],
   "weeklyPlan": {
