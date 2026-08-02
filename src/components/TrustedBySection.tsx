@@ -73,7 +73,7 @@ export function TrustedBySection() {
             <div className="relative overflow-hidden">
               <div className="absolute left-0 top-0 bottom-0 w-12 md:w-20 bg-gradient-to-r from-muted/30 to-transparent z-10 pointer-events-none" />
               <div className="absolute right-0 top-0 bottom-0 w-12 md:w-20 bg-gradient-to-l from-muted/30 to-transparent z-10 pointer-events-none" />
-              <div className="flex animate-marquee [@media(hover:hover)]:hover:[animation-play-state:paused]">
+              <div className="dc-mobile-static-marquee flex animate-marquee [@media(hover:hover)]:hover:[animation-play-state:paused]">
                 {[...displayPartners, ...displayPartners].map((partner, i) => (
                   <div key={`${partner.id}-${i}`} className="flex-shrink-0 mx-2 md:mx-3 px-4 md:px-5 py-2.5 md:py-3 bg-card rounded-xl border border-border flex items-center gap-2 md:gap-3 min-w-[140px] md:min-w-[180px]">
                     {partner.logo_url ? (

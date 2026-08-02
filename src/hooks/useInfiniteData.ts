@@ -108,6 +108,7 @@ export function useInfiniteData({
     },
     enabled,
     staleTime: 5 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   // IntersectionObserver for infinite scroll

@@ -61,7 +61,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [dbResults, setDbResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [headlineIndex, setHeadlineIndex] = useState(0);
   const requestId = useRef(0);
   const navigate = useNavigate();
 
@@ -82,12 +81,6 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
     const id = setInterval(() => setBgIndex((i) => (i + 1) % bgImages.length), rotationMs);
     return () => clearInterval(id);
   }, [bgImages.length, rotationMs]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const id = setInterval(() => setHeadlineIndex((i) => (i + 1) % 5), 2200);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -217,14 +210,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
   // Keep the menu open for a valid query even when the directory has no
   // matching record. That empty state is the hand-off to Ask Diya.
   const showDropdown = isFocused && searchQuery.trim().length >= 2;
-  const rotatingWords = [
-    { label: "Path", className: "text-primary" },
-    { label: "College", className: "text-accent" },
-    { label: "Course", className: "text-accent" },
-    { label: "Career", className: "text-primary" },
-    { label: "Exam", className: "text-primary" },
-  ] as const;
-  const rotatingWord = rotatingWords[headlineIndex % rotatingWords.length];
+  const rotatingWord = { label: "Path", className: "text-primary" } as const;
   const getIcon = (item: SearchResult) => {
     if (item.type === "College") return GraduationCap;
     if (item.type === "Course") return BookOpen;
@@ -304,19 +290,7 @@ export function HeroSection({ onOpenChat }: HeroSectionProps) {
             backgroundSize: "40px 40px",
           }}
         />
-        {/* 2026 aurora orbs - ambitio-style ambient gradient glow */}
-        <div
-          aria-hidden
-          className="absolute top-[-10%] left-[10%] w-[520px] h-[520px] bg-accent/20 rounded-full blur-[140px]"
-        />
-        <div
-          aria-hidden
-          className="absolute top-[10%] right-[5%] w-[460px] h-[460px] bg-primary/20 rounded-full blur-[140px]"
-        />
-        <div
-          aria-hidden
-          className="absolute bottom-[-5%] left-[35%] w-[380px] h-[380px] bg-accent/8 rounded-full blur-[140px]"
-        />
+        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_22%_12%,hsl(var(--accent)/0.12),transparent_34%),radial-gradient(circle_at_82%_28%,hsl(var(--primary)/0.11),transparent_38%)]" />
         <div className="absolute -right-40 top-24 h-[520px] w-[520px] rounded-full border-[70px] border-primary/[0.035]" />
         <div className="absolute -left-52 top-28 h-[460px] w-[460px] rounded-full border-[60px] border-accent/[0.04]" />
       </div>

@@ -191,6 +191,23 @@
     height: var(--dc-mobile-bottom-nav-offset, 0px);
   }
 
+  .dc-home-below-fold > * {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 640px;
+  }
+
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
+}
+
+@media (max-width: 767px), (prefers-reduced-motion: reduce) {
+  .dc-mobile-static-marquee {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
   @media (min-width: 1024px) {
     .dc-bottom-nav-aware {
       bottom: 5rem;

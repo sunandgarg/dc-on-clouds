@@ -38,8 +38,6 @@ export function Navbar() {
   const { user, isAdmin, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [homeSearchVisible, setHomeSearchVisible] = useState(true);
-  const lastScrollY = useRef(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -52,31 +50,6 @@ export function Navbar() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  // On mobile, the compact search follows the common app pattern: it gets out
-  // of the way on downward reading scroll and returns as soon as the visitor
-  // reverses direction to search or navigate.
-  useEffect(() => {
-    lastScrollY.current = window.scrollY;
-    setHomeSearchVisible(true);
-    const onScroll = () => {
-      if (window.matchMedia("(min-width: 768px)").matches) {
-        setHomeSearchVisible(true);
-        return;
-      }
-      const nextY = window.scrollY;
-      const delta = nextY - lastScrollY.current;
-      lastScrollY.current = nextY;
-      if (delta > 7) {
-        setHomeSearchVisible(false);
-      } else if (delta < -7) {
-        setHomeSearchVisible(true);
-      }
-      if (nextY < 24) setHomeSearchVisible(true);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [pathname]);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
   const initial = displayName.charAt(0).toUpperCase();
@@ -91,7 +64,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full">
-      <nav className="glass border-b border-border">
+      <nav className="border-b border-border bg-white/[0.98]">
         <div className="container flex items-center justify-between h-14 md:h-16 lg:h-18">
           <Link to="/" className="flex items-center" aria-label="DekhoCampus Home">
             <img src={logo} alt="DekhoCampus" className="h-9 md:h-10" />
@@ -204,11 +177,7 @@ export function Navbar() {
         </div>
 
         {!pathname.startsWith("/admin") && !pathname.startsWith("/auth") && (
-          <div className={`border-t border-border/70 bg-white/95 px-3 backdrop-blur-xl transition-[max-height,opacity,padding] duration-200 md:py-2 ${
-            !homeSearchVisible
-              ? "max-h-0 overflow-hidden py-0 opacity-0 md:max-h-24 md:opacity-100"
-              : "max-h-24 py-2 opacity-100"
-          }`}>
+          <div className="border-t border-border/70 bg-white px-3 py-2">
             <div className="container px-0">
               <GlobalSearchBar variant="header" />
             </div>

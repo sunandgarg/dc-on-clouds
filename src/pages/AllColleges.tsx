@@ -330,7 +330,7 @@ export default function AllColleges() {
               Showing <span className="font-semibold text-foreground">{filtered.length}</span> loaded colleges
               {debouncedSearch ? ` matching “${debouncedSearch}”` : ""}
             </p>
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 content-visibility-auto">
+            <div className="grid min-h-[640px] content-start sm:grid-cols-2 xl:grid-cols-3 gap-3 content-visibility-auto">
               {isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => <CollegeCardSkeleton key={i} />)
               ) : (

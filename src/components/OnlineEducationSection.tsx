@@ -71,37 +71,37 @@ export function OnlineEducationSection() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div initial={{ scale: 0.8, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} viewport={{ once: true }} className="relative">
                     <div className="w-40 h-2 bg-accent/30 rounded-full mx-auto" />
-                    <motion.div className="relative -mt-12 mx-auto" animate={{ y: [0, -3, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+                    <div className="relative -mt-12 mx-auto">
                       <div className="w-28 h-20 bg-gradient-to-b from-foreground/90 to-foreground/70 rounded-t-lg mx-auto flex items-center justify-center border-2 border-foreground/20">
                         <div className="w-24 h-16 bg-accent/20 rounded overflow-hidden p-1">
-                          <motion.div className="space-y-1" animate={{ y: [0, -20, 0] }} transition={{ duration: 4, repeat: Infinity }}>
+                          <div className="space-y-1">
                             <div className="h-1.5 w-full bg-accent/40 rounded" />
                             <div className="h-1.5 w-3/4 bg-primary/40 rounded" />
                             <div className="h-1.5 w-full bg-accent/30 rounded" />
                             <div className="h-3 w-8 bg-accent rounded-sm mx-auto mt-1" />
-                          </motion.div>
+                          </div>
                         </div>
                       </div>
                       <div className="w-32 h-1.5 bg-foreground/60 rounded-b-lg mx-auto" />
                       <div className="w-16 h-1 bg-foreground/40 rounded-b mx-auto" />
-                    </motion.div>
-                    <motion.div className="absolute -top-24 left-1/2 -translate-x-1/2" animate={{ y: [0, -2, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}>
+                    </div>
+                    <div className="absolute -top-24 left-1/2 -translate-x-1/2">
                       <div className="w-10 h-10 rounded-full bg-accent/60 mx-auto" />
                       <div className="w-16 h-12 bg-accent/40 rounded-t-xl mx-auto -mt-2" />
-                    </motion.div>
+                    </div>
                   </motion.div>
                 </div>
                 {[
-                  { icon: Briefcase, x: "15%", y: "20%", delay: 0 },
-                  { icon: TrendingUp, x: "80%", y: "15%", delay: 0.5 },
-                  { icon: GraduationCap, x: "10%", y: "70%", delay: 1 },
-                  { icon: Users, x: "85%", y: "65%", delay: 1.5 },
-                ].map(({ icon: Icon, x, y, delay }) => (
-                  <motion.div key={`${x}-${y}`} className="absolute" style={{ left: x, top: y }} animate={{ x: [0, 8, 0], opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 3, repeat: Infinity, delay }}>
+                  { icon: Briefcase, x: "15%", y: "20%" },
+                  { icon: TrendingUp, x: "80%", y: "15%" },
+                  { icon: GraduationCap, x: "10%", y: "70%" },
+                  { icon: Users, x: "85%", y: "65%" },
+                ].map(({ icon: Icon, x, y }) => (
+                  <div key={`${x}-${y}`} className="absolute opacity-70" style={{ left: x, top: y }}>
                     <div className="w-8 h-8 rounded-lg bg-card/80 backdrop-blur-sm border border-accent/20 flex items-center justify-center shadow-sm">
                       <Icon className="w-4 h-4 text-accent" />
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
                 <div className="absolute top-3 right-3">
                   <span className="px-3 py-1 text-[10px] font-bold rounded-full bg-accent text-accent-foreground">🔥 Trending</span>
@@ -136,7 +136,7 @@ export function OnlineEducationSection() {
                   <div className="block mb-4 -mx-2">
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1.5">Our partner universities</p>
                     <div className="overflow-hidden relative" style={{ maskImage: "linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent)" }}>
-                      <div className="flex gap-6 items-center animate-[marquee_25s_linear_infinite] whitespace-nowrap py-1">
+                      <div className="dc-mobile-static-marquee flex gap-6 items-center animate-[marquee_25s_linear_infinite] whitespace-nowrap py-1">
                         {[...onlineLogos, ...onlineLogos].map((p, i) => (
                           p.logo_url ? (
                             <img key={`${p.id}-${i}`} src={p.logo_url} alt={p.name} className="h-7 md:h-8 w-auto object-contain opacity-80 hover:opacity-100 transition flex-shrink-0" loading="lazy" />
@@ -159,19 +159,20 @@ export function OnlineEducationSection() {
               className="snap-start group relative min-w-0 w-full rounded-2xl border border-border bg-card overflow-hidden">
               <div className="relative h-44 sm:h-52 md:h-56 bg-gradient-to-br from-primary/20 via-primary/10 to-background overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} className="w-32 h-32 rounded-full border-2 border-primary/20 relative">
+                  <div className="w-32 h-32 rounded-full border-2 border-primary/20 relative">
                     <div className="absolute inset-2 rounded-full border border-dashed border-primary/15" />
                     <div className="absolute inset-4 rounded-full border border-dashed border-primary/10" />
-                  </motion.div>
+                  </div>
                   {["🇺🇸", "🇬🇧", "🇨🇦", "🇦🇺"].map((flag, i) => (
-                    <motion.div key={flag} className="absolute text-2xl"
-                      animate={{
-                        x: [Math.cos(i * Math.PI / 2) * 80, Math.cos(i * Math.PI / 2 + Math.PI * 2) * 80],
-                        y: [Math.sin(i * Math.PI / 2) * 80, Math.sin(i * Math.PI / 2 + Math.PI * 2) * 80],
+                    <div
+                      key={flag}
+                      className="absolute text-2xl"
+                      style={{
+                        left: `calc(50% + ${Math.cos(i * Math.PI / 2) * 80}px)`,
+                        top: `calc(50% + ${Math.sin(i * Math.PI / 2) * 80}px)`,
+                        transform: "translate(-50%, -50%)",
                       }}
-                      transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: i * 3 }}
-                      style={{ left: "50%", top: "50%", marginLeft: "-12px", marginTop: "-12px" }}
-                    >{flag}</motion.div>
+                    >{flag}</div>
                   ))}
                 </div>
                 <div className="absolute top-3 right-3">

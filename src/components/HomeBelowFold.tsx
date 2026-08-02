@@ -20,7 +20,7 @@ import { PeriodicLeadPopup } from "@/components/PeriodicLeadPopup";
 import { QuickLinksBar } from "@/components/QuickLinksBar";
 
 export default function HomeBelowFold() {
-  return <>
+  return <div className="dc-home-below-fold">
     <QuickLinksBar compact />
     <div className="container"><AlsoCheckSection variant="strip" /></div>
     <div className="container"><TopRankedColleges /></div>
@@ -46,5 +46,5 @@ export default function HomeBelowFold() {
     </div>
     <Footer />
     <PeriodicLeadPopup />
-  </>;
+  </div>;
 }

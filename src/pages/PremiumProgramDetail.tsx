@@ -27,8 +27,31 @@ function formatPrice(price: number) {
   return `₹${price}`;
 }
 
-const FAKE_NAMES = ["Riya M.", "Arjun S.", "Priya K.", "Rohan T.", "Sneha P.", "Aman G.", "Neha R.", "Karan V.", "Ishita D.", "Vikram J."];
-const FAKE_CITIES = ["Delhi", "Mumbai", "Bengaluru", "Pune", "Hyderabad", "Chennai", "Kolkata", "Jaipur", "Lucknow", "Ahmedabad"];
+function CountdownText() {
+  const [remaining, setRemaining] = useState(23 * 60 * 60 + 59 * 60 + 30);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setRemaining((value) => (value > 0 ? value - 1 : 24 * 60 * 60 - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const hours = Math.floor(remaining / 3600);
+  const minutes = Math.floor((remaining % 3600) / 60);
+  const seconds = remaining % 60;
+  return <span className="tabular-nums">{String(hours).padStart(2, "0")}:{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</span>;
+}
+
+function LiveDemandStats() {
+  const [viewers, setViewers] = useState(() => 38 + Math.floor(Math.random() * 40));
+  const [seats] = useState(() => 12 + Math.floor(Math.random() * 8));
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setViewers((value) => Math.max(22, Math.min(120, value + (Math.random() > 0.5 ? 1 : -1) * (1 + Math.floor(Math.random() * 3)))));
+    }, 4200);
+    return () => window.clearInterval(timer);
+  }, []);
+  return <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> <span className="tabular-nums">{viewers}</span> viewing · only <span className="tabular-nums">{seats}</span> seats left</span>;
+}
 
 export default function PremiumProgramDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -38,13 +61,6 @@ export default function PremiumProgramDetail() {
   const [showLead, setShowLead] = useState(false);
   const [leadIntent, setLeadIntent] = useState<"brochure" | "apply" | "counsel">("counsel");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  // Live "seats filling" psychological scarcity
-  const [seatsLeft, setSeatsLeft] = useState<number>(() => 12 + Math.floor(Math.random() * 8));
-  const [viewersNow, setViewersNow] = useState<number>(() => 38 + Math.floor(Math.random() * 40));
-  // Countdown to cohort close (psychological urgency) - 23h59m local
-  const [countdown, setCountdown] = useState<{ h: number; m: number; s: number }>({ h: 23, m: 59, s: 30 });
-  // Live enrollment ticker (social proof)
-  const [tick, setTick] = useState<{ name: string; city: string; mins: number } | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -55,39 +71,6 @@ export default function PremiumProgramDetail() {
       setLoading(false);
     })();
   }, [slug]);
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setViewersNow((v) => Math.max(22, Math.min(120, v + (Math.random() > 0.5 ? 1 : -1) * (1 + Math.floor(Math.random() * 3)))));
-    }, 4200);
-    return () => clearInterval(t);
-  }, []);
-
-  // Countdown timer
-  useEffect(() => {
-    const t = setInterval(() => {
-      setCountdown((c) => {
-        let s = c.s - 1, m = c.m, h = c.h;
-        if (s < 0) { s = 59; m -= 1; }
-        if (m < 0) { m = 59; h -= 1; }
-        if (h < 0) { h = 23; m = 59; s = 59; }
-        return { h, m, s };
-      });
-    }, 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  // Live social-proof enrollment ticker (rotates every ~6s)
-  useEffect(() => {
-    const roll = () => setTick({
-      name: FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)],
-      city: FAKE_CITIES[Math.floor(Math.random() * FAKE_CITIES.length)],
-      mins: 1 + Math.floor(Math.random() * 18),
-    });
-    roll();
-    const t = setInterval(roll, 6500);
-    return () => clearInterval(t);
-  }, []);
 
   const openLead = (intent: "brochure" | "apply" | "counsel") => {
     setLeadIntent(intent);
@@ -163,8 +146,8 @@ export default function PremiumProgramDetail() {
       {/* SCARCITY / URGENCY TOP BAR */}
       <div className="bg-primary text-primary-foreground text-xs md:text-sm">
         <div className="container py-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 font-semibold">
-          <span className="inline-flex items-center gap-1.5"><Flame className="w-3.5 h-3.5" /> Cohort closes in <span className="bg-white/20 rounded px-1.5 py-0.5 tabular-nums">{String(countdown.h).padStart(2,"0")}:{String(countdown.m).padStart(2,"0")}:{String(countdown.s).padStart(2,"0")}</span></span>
-          <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> <span className="tabular-nums">{viewersNow}</span> viewing · only <span className="tabular-nums">{seatsLeft}</span> seats left</span>
+          <span className="inline-flex items-center gap-1.5"><Flame className="w-3.5 h-3.5" /> Cohort closes in <span className="bg-white/20 rounded px-1.5 py-0.5"><CountdownText /></span></span>
+          <LiveDemandStats />
           <span className="hidden md:inline-flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" /> Free counselling · No-cost EMI</span>
         </div>
       </div>
@@ -235,7 +218,7 @@ export default function PremiumProgramDetail() {
                   {emi > 0 && <span className="text-primary font-semibold">EMI {formatPrice(emi)}/mo</span>}
                 </div>
                 <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-primary/10 rounded-md px-2 py-1">
-                  <Flame className="w-3 h-3 animate-pulse" /> Offer ends in {String(countdown.h).padStart(2,"0")}:{String(countdown.m).padStart(2,"0")}:{String(countdown.s).padStart(2,"0")}
+                  <Flame className="w-3 h-3" /> Offer ends in <CountdownText />
                 </div>
               </div>
 

@@ -13,8 +13,9 @@ export function useCarouselNav() {
   const [active, setActive] = useState(0);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
+  const frameRef = useRef<number | null>(null);
 
-  const recompute = useCallback(() => {
+  const measure = useCallback(() => {
     const el = ref.current;
     if (!el) return;
     const total = el.scrollWidth;
@@ -25,6 +26,14 @@ export function useCarouselNav() {
     setCanRight(el.scrollLeft + view < total - 8);
   }, []);
 
+  const recompute = useCallback(() => {
+    if (frameRef.current !== null) return;
+    frameRef.current = window.requestAnimationFrame(() => {
+      frameRef.current = null;
+      measure();
+    });
+  }, [measure]);
+
   useEffect(() => {
     recompute();
     const el = ref.current;
@@ -32,8 +41,11 @@ export function useCarouselNav() {
     const ro = new ResizeObserver(recompute);
     ro.observe(el);
     Array.from(el.children).forEach((c) => ro.observe(c as Element));
-    return () => ro.disconnect();
-  }, [recompute]);
+    return () => {
+      ro.disconnect();
+      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
+    };
+  }, [measure, recompute]);
 
   const scrollByDir = (dir: "left" | "right") => {
     const el = ref.current;

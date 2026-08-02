@@ -17,29 +17,27 @@ export function HomeMobileBottomNav() {
   const [visible, setVisible] = useState(false);
   const lastScrollY = useRef(0);
   const downSteps = useRef(0);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
     downSteps.current = 0;
     setVisible(false);
 
-    const onScroll = () => {
-      if (window.matchMedia("(min-width: 1024px)").matches) {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => {
+      frameRef.current = null;
+      if (media.matches) {
         setVisible(false);
         return;
       }
-
       const nextY = window.scrollY;
       const delta = nextY - lastScrollY.current;
       lastScrollY.current = nextY;
-
       if (nextY < 80) {
         downSteps.current = 0;
         setVisible(false);
-        return;
-      }
-
-      if (delta > 8) {
+      } else if (delta > 8) {
         downSteps.current += 1;
         if (downSteps.current >= 2) setVisible(true);
       } else if (delta < -8) {
@@ -47,9 +45,15 @@ export function HomeMobileBottomNav() {
         setVisible(false);
       }
     };
+    const onScroll = () => {
+      if (frameRef.current === null) frameRef.current = window.requestAnimationFrame(update);
+    };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
+    };
   }, [location.pathname]);
 
   useEffect(() => {
@@ -61,7 +65,7 @@ export function HomeMobileBottomNav() {
     <>
       <nav
         aria-label="Mobile navigation"
-        className={`fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_28px_-24px_rgba(15,23,42,.7)] backdrop-blur-xl transition-transform duration-200 ease-out lg:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_28px_-24px_rgba(15,23,42,.7)] transition-transform duration-200 ease-out lg:hidden ${
           visible ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -85,7 +89,6 @@ export function HomeMobileBottomNav() {
           </Link>
         </div>
       </nav>
-      <div className={`dc-bottom-nav-spacer transition-[height] duration-200 lg:hidden ${visible ? "" : "!h-0"}`} aria-hidden="true" />
     </>
   );
 }

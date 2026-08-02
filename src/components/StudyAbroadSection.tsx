@@ -45,19 +45,15 @@ export function StudyAbroadSection() {
         <div className="relative">
           <Plane className="w-10 h-10 md:w-14 md:h-14 text-primary fill-primary/20 drop-shadow-lg" />
           {/* Trail effect */}
-          <motion.div
+          <div
             className="absolute -left-8 top-1/2 -translate-y-1/2 w-12 h-1 rounded-full bg-gradient-to-l from-primary/40 to-transparent"
-            animate={{ opacity: [0.3, 0.7, 0.3], scaleX: [0.8, 1.2, 0.8] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
           />
           {/* Smoke dots */}
           {[0, 1, 2].map((i) => (
-            <motion.div
+            <div
               key={i}
               className="absolute rounded-full bg-primary/20"
               style={{ left: -16 - i * 10, top: "45%", width: 6 - i, height: 6 - i }}
-              animate={{ opacity: [0.4, 0, 0.4], scale: [1, 1.5, 1] }}
-              transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
             />
           ))}
         </div>
