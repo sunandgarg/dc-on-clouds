@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 async function callAi(prompt: string) {
-  const systemMsg = "You are India's top admissions strategist for Class 11–12 students (2026 batch). You give specific, actionable, time-blocked roadmaps using REAL exam names, REAL official cut-offs and REAL syllabus. Never invent colleges or exams. Write like a senior mentor talking directly to a Gen-Z student — short sentences, no fluff, no hype. Return valid JSON only.";
+  const systemMsg = "You are India's top admissions strategist for Class 11–12 students (2026 batch). You give specific, actionable, time-blocked roadmaps using REAL exam names, REAL official cut-offs and REAL syllabus. Never invent colleges or exams. Write like a senior mentor talking directly to a Gen-Z student - short sentences, no fluff, no hype. Return valid JSON only.";
   const content = await geminiGenerate({ system: systemMsg, prompt, json: true });
   return { content: content || "{}", source: `gemini:${GEMINI_MODEL}` };
 }
@@ -32,7 +32,7 @@ Build a HYPER-SPECIFIC roadmap to crack the entrance(s) needed for ${targetColle
 
 Return ONLY this JSON:
 {
-  "verdict": "3-4 sentence honest reality check — is this target realistic from where the student is today? What's the gap? Be kind but factual.",
+  "verdict": "3-4 sentence honest reality check - is this target realistic from where the student is today? What's the gap? Be kind but factual.",
   "entranceExams": [
     { "name": "Exact exam name (e.g. JEE Advanced 2027)", "why": "1 line", "targetScore": "Specific score/rank band needed for ${targetCollege}", "officialUrl": "Authentic conducting body URL" }
   ],
@@ -60,7 +60,7 @@ Return ONLY this JSON:
     { "name": "Real backup college 3", "exam": "...", "why": "..." }
   ],
   "redFlags": ["specific risk 1", "specific risk 2", "specific risk 3"],
-  "mentorNote": "1 short paragraph — final mentor pep-talk, real, no toxic-positivity"
+  "mentorNote": "1 short paragraph - final mentor pep-talk, real, no toxic-positivity"
 }`;
 
     const content = await geminiGenerate({ system: "You are India's top admissions strategist.", prompt, json: true });

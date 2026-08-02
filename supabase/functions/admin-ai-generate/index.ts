@@ -1,4 +1,4 @@
-// Admin AI bulk content generator — full-column, official-source-first.
+// Admin AI bulk content generator - full-column, official-source-first.
 // Generates rich, SEO/GEO-2026 compliant records for any entity. The schema
 // for each entity covers EVERY column of its table so the AI never leaves
 // a field blank if data is actually verifiable from the official source.
@@ -21,7 +21,7 @@ type EntityType =
 
 type GenOptions = {
   author_id?: string | null;        // content writer (authors.id) to stamp on output
-  author_name?: string | null;      // optional — used as byline text in `author` column
+  author_name?: string | null;      // optional - used as byline text in `author` column
   tone?: string;
   audience?: string;
   depth?: "concise" | "standard" | "in-depth";
@@ -402,12 +402,12 @@ WORKFLOW (must follow in order for every record):
  2. Source every factual field from that official site only. Third-party aggregators are NOT acceptable as primary source.
  3. Cross-validate with at least one other authoritative source (NIRF, UGC list, AICTE list, official notification).
  4. Re-verify once more. If still not 100% certain a field matches the official source, OMIT that field ("" or null).
- 5. Numbers (fees, ranks, year, dates, amounts) must be exact as on the official site — never approximate.
+ 5. Numbers (fees, ranks, year, dates, amounts) must be exact as on the official site - never approximate.
  6. FILL EVERY field defined in the schema; do not leave any column behind unless data is genuinely unavailable on the official source.
 
 ${names?.length ? `EXPLICIT NAMES (one record per name): ${JSON.stringify(names)}` : ""}
 ${topic ? `TOPIC: "${topic}". Expand to ${count || 5} relevant ${entity_type}.` : entity_type === "articles" && opts.automatic_research ? `DISCOVERY MODE: Select the ${count || 5} strongest current education topics from the supplied research signals. Prefer topics with clear Indian student utility, demonstrated search/news momentum and a genuine gap in DekhoCampus coverage.` : ""}
-Existing ${meta.keyField}s already in our DB (regenerate them anyway with the LATEST official data — they will be shown as UPSERT in the admin preflight): ${JSON.stringify([...existingKeys].slice(0, 300))}
+Existing ${meta.keyField}s already in our DB (regenerate them anyway with the LATEST official data - they will be shown as UPSERT in the admin preflight): ${JSON.stringify([...existingKeys].slice(0, 300))}
 ${entity_type === "articles" && opts.check_own_news !== false ? `EXISTING DEKHOCAMPUS NEWS TITLES (hard exclusion list): ${JSON.stringify(existingArticleTitles.slice(0, 1200))}
 Do not generate the same story, a title rewrite, or a substantially overlapping search intent. Choose a different current topic or a meaningfully distinct angle.` : ""}
 
@@ -540,7 +540,7 @@ Return ONLY a JSON array. No markdown, no commentary.`;
       : [];
 
     // Stamp author + status flags after generation. Only the tables that
-    // actually have these columns get them — we let upsert ignore the rest.
+    // actually have these columns get them - we let upsert ignore the rest.
     const HAS_AUTHOR = new Set(["colleges","courses","exams","scholarships","career_profiles","articles","study_subjects"]);
     const HAS_STATUS = new Set(["colleges","courses","exams","career_profiles","articles","promoted_programs"]);
     const stamped = await Promise.all(arr.map(async r => {

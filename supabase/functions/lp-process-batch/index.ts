@@ -1,4 +1,4 @@
-// Bulk batch processor — admin uploads CSV, this pushes each row to one or more universities
+// Bulk batch processor - admin uploads CSV, this pushes each row to one or more universities
 // Body: { batch_id, university_ids: string[], rows: Array<Record<string,string>> }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAndSend } from "../_shared/leadpush.ts";

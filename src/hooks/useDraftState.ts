@@ -18,12 +18,12 @@ export function useDraftState<T>(key: string, initial: T): [T, Dispatch<SetState
 
   const first = useRef(true);
   useEffect(() => {
-    // Skip the initial sync — the value already reflects storage.
+    // Skip the initial sync - the value already reflects storage.
     if (first.current) { first.current = false; return; }
     try {
       if (value === null || value === undefined) sessionStorage.removeItem(key);
       else sessionStorage.setItem(key, JSON.stringify(value));
-    } catch { /* quota / non-serialisable — ignore */ }
+    } catch { /* quota / non-serialisable - ignore */ }
   }, [key, value]);
 
   return [value, setValue];

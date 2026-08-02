@@ -45,15 +45,15 @@ export function LockTargetFloatingPromo() {
 
   return (
     <div
-      className="fixed z-[70] left-3 bottom-24 w-[min(238px,calc(100vw-7.5rem))] animate-in slide-in-from-bottom-2 fade-in md:left-5 md:bottom-40"
+      className="pointer-events-auto fixed z-[120] left-3 bottom-24 w-[min(238px,calc(100vw-7.5rem))] animate-in slide-in-from-bottom-2 fade-in md:left-5 md:bottom-40"
       role="dialog"
       aria-label="Lock your dream college"
     >
-      <div className="relative rounded-2xl border border-slate-200/90 bg-white/95 text-slate-900 shadow-lg backdrop-blur-sm p-2.5 pr-8">
+      <div className="relative isolate rounded-2xl border border-slate-200/90 bg-white text-slate-900 shadow-2xl p-2.5 pr-8">
         <button
           onClick={dismiss}
           aria-label="Dismiss"
-          className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+          className="absolute top-1.5 right-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-200"
         >
           <X className="w-3.5 h-3.5" />
         </button>

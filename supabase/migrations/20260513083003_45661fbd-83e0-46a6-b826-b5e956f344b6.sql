@@ -177,12 +177,12 @@ END $$;
 
 -- Seed: programs
 INSERT INTO public.college_programs (slug, name, short_description, total_semesters, icon_emoji, display_order) VALUES
-('btech','B.Tech','Bachelor of Technology — 4 year engineering degree across CSE, ECE, Mechanical and more',8,'⚙️',1),
-('bca','BCA','Bachelor of Computer Applications — 3 year UG degree in computer applications',6,'💻',2),
-('bba','BBA','Bachelor of Business Administration — 3 year UG management degree',6,'📊',3),
-('mba','MBA','Master of Business Administration — 2 year PG management degree',4,'🎯',4),
-('mtech','M.Tech','Master of Technology — 2 year PG engineering degree',4,'🛠️',5),
-('bsc','B.Sc','Bachelor of Science — 3 year UG science degree',6,'🔬',6);
+('btech','B.Tech','Bachelor of Technology - 4 year engineering degree across CSE, ECE, Mechanical and more',8,'⚙️',1),
+('bca','BCA','Bachelor of Computer Applications - 3 year UG degree in computer applications',6,'💻',2),
+('bba','BBA','Bachelor of Business Administration - 3 year UG management degree',6,'📊',3),
+('mba','MBA','Master of Business Administration - 2 year PG management degree',4,'🎯',4),
+('mtech','M.Tech','Master of Technology - 2 year PG engineering degree',4,'🛠️',5),
+('bsc','B.Sc','Bachelor of Science - 3 year UG science degree',6,'🔬',6);
 
 -- Seed: BTech universities
 INSERT INTO public.college_universities (program_slug, slug, name, short_name, state, city, total_semesters, display_order) VALUES

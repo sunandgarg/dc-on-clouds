@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
  * was being pushed below legacy `featured_colleges` rows on /colleges.
  * The first card under the Engineering filter MUST be the pinned college.
  */
-test.describe("Colleges listing — priority & featured ordering", () => {
+test.describe("Colleges listing - priority & featured ordering", () => {
   test("Engineering filter puts Amity (priority 1, featured #1) first", async ({ page }) => {
     await page.goto("/colleges/top-engineering-colleges-in-india");
     const firstCardTitle = page.locator("article h2").first();

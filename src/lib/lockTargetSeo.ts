@@ -82,8 +82,8 @@ export interface LockTargetSeo {
 export function buildLockTargetSeo(slug?: string): LockTargetSeo {
   if (!slug) {
     return {
-      title: `🎯 Target with AI — Lock Your Dream College ${YEAR} | ${BRAND}`,
-      description: `Tell our AI your dream college. Get a personalised ${YEAR} roadmap PDF — entrance exam, books, weekly plan, mock schedule and backup colleges. Free, GenZ-built.`,
+      title: `🎯 Target with AI - Lock Your Dream College ${YEAR} | ${BRAND}`,
+      description: `Tell our AI your dream college. Get a personalised ${YEAR} roadmap PDF - entrance exam, books, weekly plan, mock schedule and backup colleges. Free, GenZ-built.`,
       keywords: [
         "lock target",
         "dream college roadmap",
@@ -108,7 +108,7 @@ export function buildLockTargetSeo(slug?: string): LockTargetSeo {
         {
           "@context": "https://schema.org",
           "@type": "WebApplication",
-          name: "Target with AI — Lock Your Dream College",
+          name: "Target with AI - Lock Your Dream College",
           applicationCategory: "EducationApplication",
           operatingSystem: "Web",
           description: "AI-powered roadmap to your dream college with downloadable PDF.",
@@ -126,7 +126,7 @@ export function buildLockTargetSeo(slug?: string): LockTargetSeo {
   const target = p.course ? `${p.college} ${p.course}` : p.college;
 
   const title = `${target} Roadmap ${YEAR} 🎯 Cut-off, Exam, Books & PDF | ${BRAND}`;
-  const description = `Free AI roadmap to crack ${target} in ${YEAR}. ${examPhrase} target score, weekly study plan, best books, mock schedule, backup colleges & downloadable PDF — built for GenZ.`;
+  const description = `Free AI roadmap to crack ${target} in ${YEAR}. ${examPhrase} target score, weekly study plan, best books, mock schedule, backup colleges & downloadable PDF - built for GenZ.`;
 
   const seedKeywords = [
     `${target} roadmap`,
@@ -160,7 +160,7 @@ export function buildLockTargetSeo(slug?: string): LockTargetSeo {
     {
       "@context": "https://schema.org",
       "@type": "HowTo",
-      name: `How to crack ${target} in ${YEAR} — AI roadmap`,
+      name: `How to crack ${target} in ${YEAR} - AI roadmap`,
       description,
       totalTime: "P12M",
       step: [
@@ -192,7 +192,7 @@ export function buildLockTargetSeo(slug?: string): LockTargetSeo {
         {
           "@type": "Question",
           name: `Is ${p.college} possible from Class 11 / 12?`,
-          acceptedAnswer: { "@type": "Answer", text: `Yes — with a focused phase-wise plan starting today. The roadmap shows weekly hours, books and mocks to reach the cutoff.` },
+          acceptedAnswer: { "@type": "Answer", text: `Yes - with a focused phase-wise plan starting today. The roadmap shows weekly hours, books and mocks to reach the cutoff.` },
         },
         {
           "@type": "Question",

@@ -17,14 +17,14 @@ import { test, expect } from "@playwright/test";
 const STATE = process.env.E2E_ADMIN_STORAGE_STATE;
 const SLUG  = process.env.E2E_TEST_ARTICLE_SLUG;
 
-test.describe("Article Links — authenticated", () => {
+test.describe("Article Links - authenticated", () => {
   test.skip(!STATE, "E2E_ADMIN_STORAGE_STATE not configured");
   test.use({ storageState: STATE });
 
   test("admin can open article editor Links tab and see entity pickers", async ({ page }) => {
     await page.goto("/admin/articles");
     await expect(page.locator("body")).toContainText(/articles/i, { timeout: 10_000 });
-    // Open the first article in the table (UI varies — adapt selector if the admin re-skins)
+    // Open the first article in the table (UI varies - adapt selector if the admin re-skins)
     const editBtn = page.getByRole("button", { name: /edit/i }).first();
     if (await editBtn.count()) await editBtn.click();
     // Switch to the Links tab

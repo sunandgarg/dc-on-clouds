@@ -67,8 +67,8 @@ export function MergeLeadsDialog({ leads, open, onClose, onMerged }: { leads: an
                     {l.email || "no email"} · {l.city || "no city"}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1">
-                    Source: <span className="font-medium">{l.source || "—"}</span> ·
-                    Created: {l.created_at ? format(new Date(l.created_at), "MMM d, yyyy HH:mm") : "—"}
+                    Source: <span className="font-medium">{l.source || "-"}</span> ·
+                    Created: {l.created_at ? format(new Date(l.created_at), "MMM d, yyyy HH:mm") : "-"}
                   </div>
                 </div>
               </label>

@@ -104,7 +104,7 @@ export default function LockTarget() {
     })();
   }, [searchParams]);
 
-  // Personalize from logged-in profile (silent prefill — user can still edit)
+  // Personalize from logged-in profile (silent prefill - user can still edit)
   useEffect(() => {
     if (!user || readOnlyShare) return;
     (async () => {
@@ -297,7 +297,7 @@ export default function LockTarget() {
               Lock your <span className="underline decoration-orange-400 decoration-4 underline-offset-4">dream college</span> 🔒
             </h1>
             <p className="mt-2 text-[13px] md:text-base text-foreground/70">
-              Built for GenZ. Tell us your dream college — our AI mentor breaks down the exact exam, syllabus, books, mock schedule & backup plan, then ships a downloadable PDF roadmap with your name on it.
+              Built for GenZ. Tell us your dream college - our AI mentor breaks down the exact exam, syllabus, books, mock schedule & backup plan, then ships a downloadable PDF roadmap with your name on it.
             </p>
 
 
@@ -445,7 +445,7 @@ export default function LockTarget() {
                   />
                 </div>
 
-                {/* AI WIDGET — Next 7 days action plan */}
+                {/* AI WIDGET - Next 7 days action plan */}
                 {next7Days.length > 0 && (
                   <Block icon={<Zap className="w-4 h-4" />} title="🤖 AI · Next 7 days action plan">
                     <ul className="space-y-2">
@@ -463,7 +463,7 @@ export default function LockTarget() {
                   </Block>
                 )}
 
-                {/* AI WIDGET — Study plan checkpoints */}
+                {/* AI WIDGET - Study plan checkpoints */}
                 {checkpoints.length > 0 && (
                   <Block icon={<CalendarCheck className="w-4 h-4" />} title="🤖 AI · Study plan checkpoints">
                     <ol className="space-y-2">
@@ -551,7 +551,7 @@ export default function LockTarget() {
                       <ul className="space-y-1">
                         {roadmap.freeResources.map((r, i) => (
                           <li key={i} className="text-xs text-foreground">
-                            <span className="font-bold">{r.name}</span>{r.use ? ` — ${r.use}` : ""}
+                            <span className="font-bold">{r.name}</span>{r.use ? ` - ${r.use}` : ""}
                             {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="ml-1 text-orange-600 underline">link</a>}
                           </li>
                         ))}
@@ -567,7 +567,7 @@ export default function LockTarget() {
                       {roadmap.backupColleges.map((c, i) => (
                         <li key={i} className="text-xs text-foreground">
                           <span className="font-bold">{c.name}</span>{c.exam ? <span className="text-muted-foreground"> · via {c.exam}</span> : ""}
-                          {c.why && <span className="text-foreground/70"> — {c.why}</span>}
+                          {c.why && <span className="text-foreground/70"> - {c.why}</span>}
                         </li>
                       ))}
                     </ul>
@@ -607,7 +607,7 @@ export default function LockTarget() {
         onOpenChange={setShowLead}
         forceShow
         title="🔒 Lock your target & unlock the roadmap"
-        subtitle="Share details once — our mentor will follow up with admission help too."
+        subtitle="Share details once - our mentor will follow up with admission help too."
         source={`lock_target_${targetCollege}`}
         onSuccess={() => {
           setShowLead(false);

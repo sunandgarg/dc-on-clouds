@@ -74,7 +74,7 @@ SET
     p.clean_eligibility,
     'Eligibility depends on the programme and admission cycle. Check the conducting body’s current notification before applying.'
   ),
-  description = p.clean_name || ' is used for admission, eligibility or candidate selection in its applicable programmes. This page organises the key information students usually need—eligibility, application steps, exam format, dates and result access—without treating an old schedule as current. Always confirm cycle-specific details on the conducting body’s website.',
+  description = p.clean_name || ' is used for admission, eligibility or candidate selection in its applicable programmes. This page organises the key information students usually need-eligibility, application steps, exam format, dates and result access-without treating an old schedule as current. Always confirm cycle-specific details on the conducting body’s website.',
   page_summary = p.clean_name || ': a concise guide to eligibility, application, exam format, important dates, results and the official source.',
   summary_content =
     '<h2>About ' || p.clean_name || '</h2><p>' ||

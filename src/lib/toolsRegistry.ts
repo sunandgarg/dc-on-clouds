@@ -9,7 +9,7 @@ export type ToolEntry = {
 };
 
 export const TOOLS_REGISTRY: ToolEntry[] = [
-  { slug: "lock-target", title: "🎯 Target with AI — Lock Your Dream College", desc: "Tell our AI your dream college. Get a personalised roadmap PDF — exam, books, weekly plan & backup colleges. Built for GenZ." },
+  { slug: "lock-target", title: "🎯 Target with AI - Lock Your Dream College", desc: "Tell our AI your dream college. Get a personalised roadmap PDF - exam, books, weekly plan & backup colleges. Built for GenZ." },
   { slug: "compare-colleges", title: "Compare Colleges", desc: "Side-by-side college comparison on fees, placements, and rankings." },
   { slug: "psychometric-test", title: "Psychometric Career Test", desc: "Discover your career personality and best-fit streams in 2 minutes." },
   { slug: "cgpa-converter", title: "CGPA/SGPA Converter", desc: "Convert CGPA or SGPA to percentage easily." },
@@ -25,7 +25,7 @@ export const TOOLS_REGISTRY: ToolEntry[] = [
 
 /**
  * Trending dream-college slugs students search for on Google.
- * Auto-served at /lock-target/:slug — useful for sitemap & SEO.
+ * Auto-served at /lock-target/:slug - useful for sitemap & SEO.
  */
 export const LOCK_TARGET_TRENDING_SLUGS = [
   "iit-bombay-cse","iit-delhi-cse","iit-madras-cse","iit-kanpur-cse","iit-kharagpur-cse",

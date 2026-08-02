@@ -40,10 +40,10 @@ export function LockTargetTool() {
             <Sparkles className="w-3 h-3" /> New · AI Powered
           </div>
           <h3 className="mt-2 text-xl md:text-2xl font-black tracking-tight text-foreground leading-tight">
-            🎯 Target with <span className="text-orange-600">AI</span> — lock your dream college
+            🎯 Target with <span className="text-orange-600">AI</span> - lock your dream college
           </h3>
           <p className="mt-1.5 text-sm text-foreground/70">
-            Tell us your dream college. Our AI mentor ships a personalised roadmap — exam, books, weekly plan & a downloadable PDF. Built for GenZ.
+            Tell us your dream college. Our AI mentor ships a personalised roadmap - exam, books, weekly plan & a downloadable PDF. Built for GenZ.
           </p>
 
           <form onSubmit={go} className="mt-4 space-y-3">
@@ -104,7 +104,7 @@ export function LockTargetTool() {
             </div>
             <ul className="space-y-2 text-sm">
               {[
-                "🎯 AI verdict — can you actually crack it?",
+                "🎯 AI verdict - can you actually crack it?",
                 "📅 Phase-by-phase roadmap till the exam",
                 "📚 Best books, mocks & weekly subject plan",
                 "🛟 Backup college list (no L's allowed)",

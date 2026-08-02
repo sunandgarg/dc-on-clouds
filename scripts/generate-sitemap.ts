@@ -51,7 +51,7 @@ const STATIC: SitemapEntry[] = [
   { path: "/about-us", changefreq: "monthly", priority: "0.4" },
 ];
 
-// SEO sub-slug combos for tool pages — generates thousands of indexable URLs.
+// SEO sub-slug combos for tool pages - generates thousands of indexable URLs.
 function toolComboEntries(): SitemapEntry[] {
   const out: SitemapEntry[] = [];
   for (const s of eligibilityComboSlugs()) {
@@ -193,7 +193,7 @@ function xmlFor(entries: SitemapEntry[]) {
   const unique = all.filter((e) => (seen.has(e.path) ? false : (seen.add(e.path), true)));
 
   writeFileSync(resolve("dist/sitemap.xml"), xmlFor(unique));
-  console.log(`sitemap.xml written — ${unique.length} entries`);
+  console.log(`sitemap.xml written - ${unique.length} entries`);
 })().catch((e) => {
   console.warn("[sitemap] fatal:", e?.message || e);
   // Still emit the static sitemap so the build doesn't fail.

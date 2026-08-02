@@ -121,7 +121,7 @@ export async function buildAndSend(
   // Apply per-rule per-university overrides (last so they win)
   if (fieldOverrides && Object.keys(fieldOverrides).length) {
     if (uni.api_type === "upgrad") {
-      // upgrad payload is structured — only override top-level scalar keys
+      // upgrad payload is structured - only override top-level scalar keys
       Object.entries(fieldOverrides).forEach(([k, v]) => { if (v !== "" && v != null) (payload as any)[k] = v; });
     } else {
       Object.entries(fieldOverrides).forEach(([k, v]) => { if (v !== "" && v != null) (payload as Record<string, string>)[k] = v; });

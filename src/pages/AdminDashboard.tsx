@@ -8,6 +8,7 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
+  CalendarClock,
   ChevronDown,
   FileText,
   GraduationCap,
@@ -86,6 +87,9 @@ export default function AdminDashboard() {
               </Link>
               <Link to="/admin/colleges" className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/15">
                 <GraduationCap className="h-4 w-4" /> Manage colleges
+              </Link>
+              <Link to="/admin/exams" className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/15">
+                <CalendarClock className="h-4 w-4" /> Update exam calendar
               </Link>
             </div>
           </div>

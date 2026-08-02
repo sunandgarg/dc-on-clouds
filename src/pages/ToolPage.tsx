@@ -41,6 +41,7 @@ export default function ToolPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const tool = slug ? toolRegistry[slug] : null;
+  const isPsychometric = slug === "psychometric-test";
   useSEO({ title: tool ? tool.title : "Tool Not Found", description: tool?.description });
 
   if (!tool) {
@@ -85,23 +86,27 @@ export default function ToolPage() {
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        <div className={`grid gap-6 ${isPsychometric ? "mx-auto max-w-4xl" : "lg:grid-cols-3"}`}>
+          <div className={isPsychometric ? "min-w-0" : "lg:col-span-2"}>
             <div className="bg-card rounded-2xl border border-border p-5 md:p-8 mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">{tool.title}</h1>
               <p className="text-muted-foreground mb-6">{tool.description}</p>
               <ToolComponent />
             </div>
             <DynamicAdBanner variant="horizontal" position="mid-page" page="tools" />
-            <div className="mt-6">
-              <LeadCaptureForm variant="inline" title="Need more help? Talk to our experts!" source={`tool_${slug}`} />
-            </div>
+            {!isPsychometric && (
+              <div className="mt-6">
+                <LeadCaptureForm variant="inline" title="Need more help? Talk to our experts!" source={`tool_${slug}`} />
+              </div>
+            )}
           </div>
-          <aside className="space-y-6">
-            <LeadCaptureForm variant="sidebar" title="Get Expert Help" subtitle="Free career counseling" source={`tool_sidebar_${slug}`} />
-            <DynamicAdBanner variant="vertical" position="sidebar" page="tools" />
-            <LeadCaptureForm variant="card" title="Education Updates" subtitle="Stay informed about admissions" source="tool_sidebar_card" />
-          </aside>
+          {!isPsychometric && (
+            <aside className="space-y-6">
+              <LeadCaptureForm variant="sidebar" title="Get Expert Help" subtitle="Free career counseling" source={`tool_sidebar_${slug}`} />
+              <DynamicAdBanner variant="vertical" position="sidebar" page="tools" />
+              <LeadCaptureForm variant="card" title="Education Updates" subtitle="Stay informed about admissions" source="tool_sidebar_card" />
+            </aside>
+          )}
         </div>
       </main>
       <Footer />

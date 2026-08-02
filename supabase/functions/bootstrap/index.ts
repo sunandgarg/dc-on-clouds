@@ -1,4 +1,4 @@
-// Bootstrap edge function — returns ALL initial home/app data in ONE round-trip.
+// Bootstrap edge function - returns ALL initial home/app data in ONE round-trip.
 // Replaces 8–12 separate Supabase queries with a single fetch.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Fan-out all reads in parallel — single network round-trip from client.
+    // Fan-out all reads in parallel - single network round-trip from client.
     const [
       heroBanners,
       heroSettings,

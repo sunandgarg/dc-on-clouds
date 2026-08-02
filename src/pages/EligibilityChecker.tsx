@@ -197,7 +197,7 @@ export default function EligibilityChecker() {
     try {
       setAiLoading(true);
       setAiResult(null);
-      // Reuse the boundary fetch (partners + stream colleges) — no extra DB hit.
+      // Reuse the boundary fetch (partners + stream colleges) - no extra DB hit.
       const cols = boundary?.all ?? [];
       const { data, error } = await supabase.functions.invoke("check-eligibility", {
         body: { stream: streamMeta.label, percent: pct, state: state || null, category, exams: streamMeta.exams, colleges: cols, includeWeb: true },
@@ -370,7 +370,7 @@ export default function EligibilityChecker() {
                     Colleges in your range ({pct}%, {category})
                   </h3>
                   <p className="text-[11px] text-muted-foreground mb-3">
-                    Matched against your stream, score & state — partner colleges get a small boost.
+                    Matched against your stream, score & state - partner colleges get a small boost.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {inRange.map(({ c, fit, band }) => (
@@ -391,7 +391,7 @@ export default function EligibilityChecker() {
                   <Badge variant="secondary" className="text-[10px]">Partner</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Hand-picked DekhoCampus partner colleges accepting applications now — one-tap apply.
+                  Hand-picked DekhoCampus partner colleges accepting applications now - one-tap apply.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {topPartnerPicks.map((c) => (
@@ -401,7 +401,7 @@ export default function EligibilityChecker() {
               </div>
             )}
 
-            {/* Other well-known colleges across India — editorial, non-AI look */}
+            {/* Other well-known colleges across India - editorial, non-AI look */}
             {aiResult?.webColleges && aiResult.webColleges.length > 0 && (() => {
               const list = aiResult.webColleges.slice(0, 9);
               const initials = (n: string) => n.replace(/[^A-Za-z ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "C";
@@ -414,7 +414,7 @@ export default function EligibilityChecker() {
                     <span className="text-[11px] text-muted-foreground shrink-0">{list.length} options</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2 mb-4">
-                    Hand-picked options based on your stream and score. Apply individually — our counsellor follows up for each.
+                    Hand-picked options based on your stream and score. Apply individually - our counsellor follows up for each.
                   </p>
 
                   <ul className="divide-y divide-border">
@@ -457,7 +457,7 @@ export default function EligibilityChecker() {
 
             {!aiLoading && aiResult && ranked.filter(r => r.band !== "Reach").length === 0 && topPartnerPicks.length === 0 && (
               <div className="text-center py-8 bg-card border border-border rounded-2xl text-sm text-muted-foreground">
-                No close matches in our DB right now — the AI picks above are your best starting point.
+                No close matches in our DB right now - the AI picks above are your best starting point.
               </div>
             )}
           </section>
@@ -517,7 +517,7 @@ export default function EligibilityChecker() {
         title={bulkApply.names.length > 1
           ? `🚀 Apply to ${bulkApply.names.length} colleges at once`
           : `🎯 Apply to ${bulkApply.names[0] || "this college"}`}
-        subtitle="Share details once — our counsellors will reach you for each shortlisted college."
+        subtitle="Share details once - our counsellors will reach you for each shortlisted college."
         source={`eligibility_bulk_apply_${stream}`}
         onSuccess={() => {
           setBulkApply({ open: false, names: [] });

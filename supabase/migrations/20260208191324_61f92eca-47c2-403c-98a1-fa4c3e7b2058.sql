@@ -180,4 +180,4 @@ INSERT INTO public.ads (title, subtitle, cta_text, link_url, variant, bg_gradien
   ('Prepare for JEE/NEET 2026', 'Get 50% off on premium courses', 'Enroll Now', '#', 'horizontal', 'from-violet-600 to-purple-600', 'universal', 'mid-page', 0),
   ('Study Abroad', 'Free counseling for top universities', 'Apply Free', '#', 'vertical', 'from-teal-500 to-emerald-500', 'universal', 'sidebar', 0),
   ('MBA Admissions', 'CAT 2026 prep starts now', 'Start Free', '#', 'square', 'from-amber-500 to-orange-500', 'universal', 'sidebar', 0),
-  ('🎓 Admissions Open 2026 — Top Engineering Colleges — Apply Now & Get Scholarship Up to ₹2 Lakhs', '', 'Apply', '#', 'leaderboard', 'from-rose-500 to-pink-500', 'universal', 'leaderboard', 0);
+  ('🎓 Admissions Open 2026 - Top Engineering Colleges - Apply Now & Get Scholarship Up to ₹2 Lakhs', '', 'Apply', '#', 'leaderboard', 'from-rose-500 to-pink-500', 'universal', 'leaderboard', 0);

@@ -35,7 +35,7 @@ async function clickFirstDownloadAndExpectGate(page: any, label: string) {
   }
   await btn.scrollIntoViewIfNeeded();
   await btn.click({ timeout: 5000 });
-  // Gate dialog must appear — Radix Dialog uses role="dialog"
+  // Gate dialog must appear - Radix Dialog uses role="dialog"
   const dialog = page.getByRole("dialog");
   await expect(dialog, `${label}: OTP gate dialog should open`).toBeVisible({ timeout: 6000 });
   await expect(dialog).toContainText(GATE_DIALOG_TEXT);
@@ -43,7 +43,7 @@ async function clickFirstDownloadAndExpectGate(page: any, label: string) {
   await expect(dialog.getByText(/skip otp|continue without|free skip/i)).toHaveCount(0);
 }
 
-test.describe("OTP lead gate — mobile, no free-skip paths", () => {
+test.describe("OTP lead gate - mobile, no free-skip paths", () => {
   test("Subject combined PYQ + year-wise PYQ + tricks + notes all trigger gate", async ({ page }) => {
     // Pick a likely-populated subject; project seeds usually include CBSE class 12 physics
     await page.goto(`${BASE}/study-material/class-12/cbse/physics`);

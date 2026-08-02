@@ -21,7 +21,7 @@ INSERT INTO public.legal_pages (slug, title, content, meta_title, meta_descripti
 ('refund-policy', 'Refund & Payment Policy', '<h2>Payments</h2><p>All paid services are billed upfront via secure gateways.</p><h2>Refund Eligibility</h2><p>Refund requests within 7 days of payment are considered for unused services.</p><h2>How to Request</h2><p>Email billing@dekhocampus.com with your transaction ID.</p>', 'Refund & Payment Policy | DekhoCampus', 'Our refund eligibility, process, and payment terms.'),
 ('cookie-policy', 'Cookie Policy', '<h2>What are cookies</h2><p>Small files stored on your device to remember preferences.</p><h2>How we use them</h2><p>Analytics, login sessions, personalisation.</p>', 'Cookie Policy | DekhoCampus', 'How DekhoCampus uses cookies and similar technologies.'),
 ('accessibility', 'Accessibility', '<h2>Our commitment</h2><p>We aim to make DekhoCampus accessible to everyone, including users with disabilities.</p>', 'Accessibility | DekhoCampus', 'DekhoCampus accessibility commitments and standards.'),
-('about-us', 'About Us', '<h2>Our Mission</h2><p>To help every Indian student find the right college, course, and career path through trusted data and AI guidance.</p>', 'About Us | DekhoCampus', 'Learn about DekhoCampus — India''s AI-powered education platform.')
+('about-us', 'About Us', '<h2>Our Mission</h2><p>To help every Indian student find the right college, course, and career path through trusted data and AI guidance.</p>', 'About Us | DekhoCampus', 'Learn about DekhoCampus - India''s AI-powered education platform.')
 ON CONFLICT (slug) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS public.career_profiles (

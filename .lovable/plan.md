@@ -1,6 +1,6 @@
 ## Plan: Hook Heading + Expanded Tools + Smart Eligibility/Predictor Flow + SEO Sub-Slugs
 
-### 1. AlsoCheck strip — new hook + AI badge + new tiles
+### 1. AlsoCheck strip - new hook + AI badge + new tiles
 File: `src/components/AlsoCheckSection.tsx`
 - Replace heading **"Don't sleep on these · 100% FREE"** with:
   - **"AI tools every Gen-Z student is using 🔥"** + small **"AI • FREE"** chip (gradient `from-violet-500 via-fuchsia-500 to-orange-500`).
@@ -32,25 +32,25 @@ File: `scripts/generate-sitemap.ts`
   - Top college pair list → compare URLs.
 - Append to `all` before dedupe.
 
-### 4. Eligibility Checker — new flow (no AI hit on low marks)
+### 4. Eligibility Checker - new flow (no AI hit on low marks)
 File: `src/components/tools/EligibilityCheckerTool.tsx` (rewrite, keep export name)
 Flow:
 1. Form: `%`, `category`, `exam` (dropdown), `city` (optional).
 2. **On submit, compute eligibility client-side first** (no AI).
 3. **If below threshold for category/exam**:
    - Show lead-capture sheet (`LeadCaptureForm` inline, `source="eligibility_low_score"`).
-   - After lead submit (or skip), show friendly message: *"Your score is below the typical cutoff for X — but here are great colleges in {city} you can still target."* + list city colleges from `colleges` table (query by `city`/`state`, limit 12, with **Apply** CTA opening `LeadCaptureForm`).
+   - After lead submit (or skip), show friendly message: *"Your score is below the typical cutoff for X - but here are great colleges in {city} you can still target."* + list city colleges from `colleges` table (query by `city`/`state`, limit 12, with **Apply** CTA opening `LeadCaptureForm`).
    - **No AI call.**
 4. **If eligible**:
-   - Show **DekhoCampus AI loader** (rocket-launch SVG with orange/rose gradient pulse — matches premium-course theme) while AI generates verdict.
+   - Show **DekhoCampus AI loader** (rocket-launch SVG with orange/rose gradient pulse - matches premium-course theme) while AI generates verdict.
    - Render **short** "AI Personalised Verdict for you" (2-3 lines + 3-5 bullet points, capped).
-   - "Colleges from across India you're eligible for" — pulled from web (via existing AI counselor edge function, or static curated list per exam if no internet result).
-   - "Apply now from DekhoCampus" — colleges from our DB that match category + score range; each row has **Apply** button → `LeadCaptureForm`.
+   - "Colleges from across India you're eligible for" - pulled from web (via existing AI counselor edge function, or static curated list per exam if no internet result).
+   - "Apply now from DekhoCampus" - colleges from our DB that match category + score range; each row has **Apply** button → `LeadCaptureForm`.
 
 New small component: `src/components/tools/DekhoCampusAILoader.tsx`
 - Rocket SVG, animated `translate-y` + flame gradient, "DekhoCampus AI is analysing…" text, shimmer.
 
-### 5. College Predictor — mirror the same flow
+### 5. College Predictor - mirror the same flow
 File: `src/pages/CollegePredictor.tsx`
 - Same pattern: client-side rank check → if rank too low for chosen branch/college tier, lead-gate + show city/state colleges (no AI).
 - If eligible: rocket loader → short AI verdict → web-eligible colleges → our DB colleges with Apply.
@@ -60,9 +60,9 @@ File: `src/pages/CollegePredictor.tsx`
 - Each page writes the canonical sub-slug into the URL via `navigate(/eligibility/${slug}, { replace: true })` whenever the form submits, so every search produces a shareable, indexable URL.
 
 ### Technical notes
-- AI calls: continue using existing `ai-counselor` edge function (Lovable AI / gemini-2.5-flash) — only invoked on the *eligible* branch.
+- AI calls: continue using existing `ai-counselor` edge function (Lovable AI / gemini-2.5-flash) - only invoked on the *eligible* branch.
 - No DB migration needed; reuses `colleges`, `leads`, `also_check_modules` tables.
-- All copy stays in component code (Gen-Z tone, semantic tokens, orange primary — per project memory).
+- All copy stays in component code (Gen-Z tone, semantic tokens, orange primary - per project memory).
 - Lead form uses existing `LeadCaptureForm` with new `source` tags for analytics.
 - Loader uses semantic tokens (`from-primary to-orange-500`), no hardcoded colors.
 

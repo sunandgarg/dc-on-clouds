@@ -138,10 +138,10 @@ INSERT INTO public.landing_pages (
   ]'::jsonb,
   '[
     {"name":"Ananya S.","role":"PGDM, 2025","quote":"The career coach helped me land 3 final-round interviews in a month."},
-    {"name":"Rohit K.","role":"MCA, 2024","quote":"Project-led learning made the difference — recruiters loved my portfolio."}
+    {"name":"Rohit K.","role":"MCA, 2024","quote":"Project-led learning made the difference - recruiters loved my portfolio."}
   ]'::jsonb,
   '[
-    {"q":"Is this an accredited program?","a":"Programs are delivered with university partners. Accreditation varies by track — confirmed during your advisor call."},
+    {"q":"Is this an accredited program?","a":"Programs are delivered with university partners. Accreditation varies by track - confirmed during your advisor call."},
     {"q":"Are EMI options available?","a":"Yes, no-cost EMI on most programs through partner lenders, subject to eligibility."},
     {"q":"What is the refund policy?","a":"7-day no-questions-asked refund from program start. Full policy shared before enrolment."}
   ]'::jsonb,

@@ -144,14 +144,14 @@ export function LeadDetailDrawer({ lead, onClose, onChanged }: { lead: any | nul
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <Field label="Mobile" value={tel ? `+91 ${tel}` : "—"} />
-            <Field label="Email" value={lead.email || "—"} />
-            <Field label="City" value={lead.city || "—"} />
-            <Field label="State" value={lead.state || "—"} />
-            <Field label="Source" value={lead.source || "—"} />
+            <Field label="Mobile" value={tel ? `+91 ${tel}` : "-"} />
+            <Field label="Email" value={lead.email || "-"} />
+            <Field label="City" value={lead.city || "-"} />
+            <Field label="State" value={lead.state || "-"} />
+            <Field label="Source" value={lead.source || "-"} />
             <Field label="Mode" value={(lead.program_mode || "regular")} />
-            <Field label="Interested College" value={lead.interested_college_slug || "—"} />
-            <Field label="Interested Course" value={lead.interested_course_slug || "—"} />
+            <Field label="Interested College" value={lead.interested_college_slug || "-"} />
+            <Field label="Interested Course" value={lead.interested_course_slug || "-"} />
             {lead.page_url && (
               <div className="col-span-2">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Landing Page</div>

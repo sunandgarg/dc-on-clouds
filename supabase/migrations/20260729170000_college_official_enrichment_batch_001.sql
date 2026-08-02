@@ -99,7 +99,7 @@ SET
   fees = '',
   placement = 'See latest official placement report',
   top_recruiters = ARRAY[]::text[],
-  description = 'IIT Bombay is a public technical and research institute located at Powai in Mumbai. Its degree pathways include BTech, BS and BDes programmes, technology, science, design, management and public-policy master''s routes, and doctoral research across engineering, sciences, humanities and management. Admissions are programme-led, so the relevant official academic page—not a generic college form—should determine the test, eligibility and application process.',
+  description = 'IIT Bombay is a public technical and research institute located at Powai in Mumbai. Its degree pathways include BTech, BS and BDes programmes, technology, science, design, management and public-policy master''s routes, and doctoral research across engineering, sciences, humanities and management. Admissions are programme-led, so the relevant official academic page-not a generic college form-should determine the test, eligibility and application process.',
   page_summary = 'IIT Bombay''s Powai campus offers undergraduate, master''s and doctoral programmes across engineering, science, design, management and public policy. Verified course families are shown without inventing a common fee for programmes that follow different official circulars.',
   meta_title = 'IIT Bombay: Courses, Admission, Fees & Ranking 2026',
   meta_description = 'IIT Bombay''s Powai campus offers undergraduate, master''s and doctoral programmes across engineering, science, design, management and public policy. Verifie',

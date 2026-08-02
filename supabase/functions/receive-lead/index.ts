@@ -542,7 +542,7 @@ Deno.serve(async (req) => {
       responseBody = JSON.stringify({ error: String(fetchError) });
     }
 
-    // Update lead + batch — NO API LOG INSERTION
+    // Update lead + batch - NO API LOG INSERTION
     // Duplicates count as "success" for batch tracking
     await Promise.allSettled([
       supabase

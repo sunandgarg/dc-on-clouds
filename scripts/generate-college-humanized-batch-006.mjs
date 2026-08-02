@@ -20,13 +20,13 @@ const cleanText = (value) =>
     .replace(/&quot;/g, '"')
     .replace(/&nbsp;/g, " ")
     .replace(/<[^>]+>/g, " ")
-    .replace(/[–—]/g, "-")
+    .replace(/[\u2013\u2014]/g, "-")
     .replace(/\s+/g, " ")
     .trim();
 
-const sql = (value) => `'${String(value ?? "").replace(/[–—]/g, "-").replace(/'/g, "''")}'`;
+const sql = (value) => `'${String(value ?? "").replace(/[\u2013\u2014]/g, "-").replace(/'/g, "''")}'`;
 const arraySql = (values = []) => `ARRAY[${[...new Set(values.map(cleanText).filter(Boolean))].map(sql).join(", ")}]::text[]`;
-const jsonSql = (value) => `${sql(JSON.stringify(value).replace(/[–—]/g, "-"))}::jsonb`;
+const jsonSql = (value) => `${sql(JSON.stringify(value).replace(/[\u2013\u2014]/g, "-"))}::jsonb`;
 const slugify = (value) =>
   cleanText(value)
     .toLowerCase()
@@ -53,7 +53,7 @@ const extractCourses = () => [];
 const allSources = (record) => {
   const urls = new Set();
   const pushUrl = (value) => {
-    if (typeof value === "string" && /^https?:\/\//i.test(value)) urls.add(value.replace(/[–—]/g, "-"));
+    if (typeof value === "string" && /^https?:\/\//i.test(value)) urls.add(value.replace(/[\u2013\u2014]/g, "-"));
   };
   pushUrl(record.official_website);
   pushUrl(record.official_source_url);
@@ -197,7 +197,7 @@ records.forEach((record, index) => {
 
   [description, pageSummary, admission, eligibility, courseFee, placement, facilityText, hostel, scholarship, ranking].forEach((field, fIndex) => {
     if (/<\/?[a-z][\s\S]*>/i.test(field)) errors.push(`${record.slug}: field ${fIndex} contains HTML`);
-    if (/[–—]/.test(field)) errors.push(`${record.slug}: field ${fIndex} contains big dash`);
+    if (/[\u2013\u2014]/.test(field)) errors.push(`${record.slug}: field ${fIndex} contains big dash`);
     if (![1, 4].includes(fIndex) && field.split(/\s+/).length < 22) errors.push(`${record.slug}: field ${fIndex} is too short`);
   });
 

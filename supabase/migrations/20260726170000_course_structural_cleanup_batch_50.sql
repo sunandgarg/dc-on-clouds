@@ -50,7 +50,7 @@ SET
   duration = coalesce(p.clean_duration, c.duration, ''),
   short_description = p.clean_name || ' course overview, eligibility, subjects, career scope and admission guidance.',
   description = p.clean_name || ' is a ' || lower(p.clean_level) || ' learning pathway in ' ||
-    lower(p.clean_category) || '. The course can differ by institution in duration, curriculum, eligibility and assessment, so students should compare the exact programme—not only the course title—before applying.',
+    lower(p.clean_category) || '. The course can differ by institution in duration, curriculum, eligibility and assessment, so students should compare the exact programme-not only the course title-before applying.',
   eligibility = coalesce(
     left(p.clean_eligibility, 1600),
     'Eligibility depends on the programme level and institution. Confirm the required qualification, subjects, marks, entrance examination and category rules in the institution’s current admission notice.'
@@ -61,7 +61,7 @@ SET
     ' introduces the core knowledge and practical abilities used in ' || lower(p.clean_category) ||
     '. Programme structure varies across universities, so compare curriculum, teaching format, assessment and recognition before choosing a college.</p>',
   scope_content =
-    '<h2>Career and higher-study scope</h2><p>Career outcomes depend on the student’s skills, projects, internships, location and institution—not the degree title alone. Review entry-level roles, required licences or certifications, postgraduate options and actual placement disclosures before deciding.</p>',
+    '<h2>Career and higher-study scope</h2><p>Career outcomes depend on the student’s skills, projects, internships, location and institution-not the degree title alone. Review entry-level roles, required licences or certifications, postgraduate options and actual placement disclosures before deciding.</p>',
   subjects_content =
     '<h2>What students typically study</h2><p>The exact syllabus is institution-specific. It generally progresses from foundational concepts to applied subjects, projects, electives and practical work. Use the latest university syllabus for semester-level subjects and credits.</p>',
   admission_process =

@@ -338,7 +338,7 @@
     color: white;
   }
 
-  /* DekhoCampus AI Chat — Partner Highlight Card */
+  /* DekhoCampus AI Chat - Partner Highlight Card */
   .dc-highlight-card {
     background: hsl(var(--primary) / 0.07);
     border: 1.5px solid hsl(var(--primary) / 0.22);

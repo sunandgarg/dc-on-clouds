@@ -1,5 +1,5 @@
 -- =====================================================================
--- DEKHO CAMPUS — Consolidated Database Schema
+-- DEKHO CAMPUS - Consolidated Database Schema
 -- Generated for fresh Supabase project import
 -- Run this file in the Supabase SQL editor on an EMPTY project.
 -- =====================================================================

@@ -35,14 +35,14 @@ Deno.serve(async (req) => {
       let q = supabase.from(table).delete({ count: "exact" });
       if (universityId !== "__all__") q = q.eq("university_id", universityId);
       if (cutoff) q = q.lt("created_at", cutoff);
-      // If purging ALL with no filters, supabase requires a filter — use a tautology
+      // If purging ALL with no filters, supabase requires a filter - use a tautology
       if (universityId === "__all__" && !cutoff) q = q.not("id", "is", null);
 
       const { error, count } = await q;
       results[table] = error ? `error: ${error.message}` : (count ?? 0);
     }
 
-    // lp_batches has no university_id — only purge when "ALL"
+    // lp_batches has no university_id - only purge when "ALL"
     if (universityId === "__all__") {
       let q = supabase.from("lp_batches").delete({ count: "exact" });
       if (cutoff) q = q.lt("created_at", cutoff);

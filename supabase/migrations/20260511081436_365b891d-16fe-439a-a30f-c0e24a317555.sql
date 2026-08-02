@@ -46,7 +46,7 @@ END $$;
 DROP POLICY IF EXISTS "Public manage featured colleges" ON public.featured_colleges;
 DROP POLICY IF EXISTS "Public read featured_colleges" ON public.featured_colleges;
 
--- 6. Storage: admin-uploads — admin-only writes, public read kept
+-- 6. Storage: admin-uploads - admin-only writes, public read kept
 DO $$
 DECLARE p RECORD;
 BEGIN
@@ -71,7 +71,7 @@ CREATE POLICY "Admins delete admin-uploads"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'admin-uploads' AND public.has_role(auth.uid(), 'admin'::app_role));
 
--- 7. Storage: ad-images — admin-only writes, public read kept
+-- 7. Storage: ad-images - admin-only writes, public read kept
 DO $$
 DECLARE p RECORD;
 BEGIN

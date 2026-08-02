@@ -1,7 +1,7 @@
 select count(*) filter (where data_source_urls::text like '%college-official-content-batch-003%') as batch_rows,
   count(*) filter (where data_source_urls::text like '%college-official-content-batch-003%' and coalesce(description,'') <> '' and coalesce(admission_process,'') <> '' and coalesce(course_fee_content,'') <> '' and coalesce(placement_content,'') <> '' and coalesce(facilities_content,'') <> '' and coalesce(hostel_life,'') <> '' and coalesce(scholarship_details,'') <> '' and coalesce(rankings_content,'') <> '') as complete_content_rows,
   count(*) filter (where data_source_urls::text like '%college-official-content-batch-003%' and official_courses_verified is true) as verified_catalogues,
-  count(*) filter (where data_source_urls::text like '%college-official-content-batch-003%' and (description ~ '[—–]' or admission_process ~ '[—–]' or course_fee_content ~ '[—–]' or placement_content ~ '[—–]' or facilities_content ~ '[—–]' or hostel_life ~ '[—–]' or scholarship_details ~ '[—–]' or rankings_content ~ '[—–]')) as large_dash_rows
+  count(*) filter (where data_source_urls::text like '%college-official-content-batch-003%' and (description ~ '[–]' or admission_process ~ '[–]' or course_fee_content ~ '[–]' or placement_content ~ '[–]' or facilities_content ~ '[–]' or hostel_life ~ '[–]' or scholarship_details ~ '[–]' or rankings_content ~ '[–]')) as large_dash_rows
 from public.colleges;
 
 select college_slug, count(*) as course_rows

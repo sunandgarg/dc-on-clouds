@@ -16,12 +16,12 @@ export function HomeMobileBottomNav() {
   const profileImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || "";
   const [visible, setVisible] = useState(false);
   const lastScrollY = useRef(0);
-  const downSteps = useRef(0);
+  const upSteps = useRef(0);
   const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
-    downSteps.current = 0;
+    upSteps.current = 0;
     setVisible(false);
 
     const media = window.matchMedia("(min-width: 1024px)");
@@ -35,14 +35,14 @@ export function HomeMobileBottomNav() {
       const delta = nextY - lastScrollY.current;
       lastScrollY.current = nextY;
       if (nextY < 80) {
-        downSteps.current = 0;
+        upSteps.current = 0;
         setVisible(false);
       } else if (delta > 8) {
-        downSteps.current += 1;
-        if (downSteps.current >= 2) setVisible(true);
-      } else if (delta < -8) {
-        downSteps.current = 0;
+        upSteps.current = 0;
         setVisible(false);
+      } else if (delta < -8) {
+        upSteps.current += 1;
+        if (upSteps.current >= 2) setVisible(true);
       }
     };
     const onScroll = () => {

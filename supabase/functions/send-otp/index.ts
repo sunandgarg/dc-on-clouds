@@ -390,11 +390,11 @@ async function sendViaAquarite(provider: OtpProvider, phone: string, otp: string
       return { ok: false, detail: `${parsed.state || "ERROR"}: ${parsed.description || JSON.stringify(parsed)}` };
     }
     if (res.status === 404) {
-      return { ok: false, detail: `Aquarite endpoint not found at ${baseUrl}/fe/api/v1/send. Check Base URL in admin — it must be the host from your Aquarite panel's HTTP API page (not nimbusit.biz).` };
+      return { ok: false, detail: `Aquarite endpoint not found at ${baseUrl}/fe/api/v1/send. Check Base URL in admin - it must be the host from your Aquarite panel's HTTP API page (not nimbusit.biz).` };
     }
     // Known plain-text errors from spec
-    if (/Authentication\s*failure/i.test(body)) return { ok: false, detail: "Authentication failure — invalid username/password or expired account." };
-    if (/INVALID_SOURCE_ADDRESS/i.test(body)) return { ok: false, detail: "Invalid Sender ID — must be 6 alpha chars, no special characters." };
+    if (/Authentication\s*failure/i.test(body)) return { ok: false, detail: "Authentication failure - invalid username/password or expired account." };
+    if (/INVALID_SOURCE_ADDRESS/i.test(body)) return { ok: false, detail: "Invalid Sender ID - must be 6 alpha chars, no special characters." };
     if (/5001/.test(body)) return { ok: false, detail: "5001: Template ID missing or not approved." };
     if (/6001/.test(body)) return { ok: false, detail: "6001: Insufficient balance in SMS account." };
     return { ok: false, detail: `HTTP ${res.status}: ${body.slice(0, 200)}` };
@@ -564,7 +564,7 @@ async function sendViaFast2SMSTemplateOtp(provider: OtpProvider, mobile: string,
     return { ok: false, detail: `Network error reaching Fast2SMS template OTP: ${e?.message || e}` };
   }
 }
-// Fast2SMS dedicated OTP route — works 24×7, no DLT, no time restrictions.
+// Fast2SMS dedicated OTP route - works 24×7, no DLT, no time restrictions.
 // POST https://www.fast2sms.com/dev/bulkV2 { authorization, route: "otp", variables_values: OTP, numbers }
 // Sends: "Your OTP: <otp>"
 async function sendViaFast2SMSOtpRoute(provider: OtpProvider, mobile: string, otp: string): Promise<SendResult> {
@@ -630,7 +630,7 @@ async function sendViaFast2SMSDLT(provider: OtpProvider, mobile: string, otp: st
   const approvedMessage = textTemplate
     .replace(/\{\{\s*(otp|code)\s*\}\}/gi, otp)
     .replace(/\{\{\s*(expiry|time|minutes|time_to_exhaust)\s*\}\}/gi, expiryMin);
-  // Variable mapping — admin defines the order of {#var#} placeholders in their DLT template.
+  // Variable mapping - admin defines the order of {#var#} placeholders in their DLT template.
   // Supported tokens: "otp", "expiry". Default = otp|expiry (matches DEKHOCAMPUS template).
   const tokenMap: Record<string, string> = { otp, expiry: expiryMin, time: expiryMin, minutes: expiryMin };
   const order: string[] = Array.isArray(provider.config_json?.variables_order) && provider.config_json.variables_order.length
@@ -863,7 +863,7 @@ Deno.serve(async (req) => {
     const log = newLogger("send-otp");
     await log.info("serve", "Request received", { action, channel_requested: channel, has_phone: !!phone });
 
-    // 🚫 WHATSAPP TEMPORARILY DISABLED — force every request to SMS regardless of caller input.
+    // 🚫 WHATSAPP TEMPORARILY DISABLED - force every request to SMS regardless of caller input.
     if (channel !== "sms") {
       await log.warn("serve", `Channel '${channel}' is disabled; forcing SMS`, { original_channel: channel });
       channel = "sms";
@@ -943,7 +943,7 @@ Deno.serve(async (req) => {
     }
 
 
-    // WhatsApp is disabled — only ever query SMS providers.
+    // WhatsApp is disabled - only ever query SMS providers.
     let channels = ["sms"];
     await log.info("serve", "Loading SMS providers", { channels });
 
@@ -1014,7 +1014,7 @@ Deno.serve(async (req) => {
               case "aquarite":
               case "nimbusit": res = await sendViaAquarite(provider, phone, otp); break;
               case "fast2sms":
-                // WhatsApp disabled — always use SMS path even if provider row says whatsapp.
+                // WhatsApp disabled - always use SMS path even if provider row says whatsapp.
                 res = await sendViaFast2SMS(provider, phone, otp);
                 break;
               default:         res = { ok: await sendViaCustom(provider, phone, otp) };

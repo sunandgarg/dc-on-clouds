@@ -74,7 +74,7 @@ function categorizeResponse(httpStatus: number, responseBody: string, isHttpOk: 
         return "Duplicate";
       }
 
-      // Check isLeadExists / leadAlreadyExists — if lead already exists, treat as Duplicate
+      // Check isLeadExists / leadAlreadyExists - if lead already exists, treat as Duplicate
       if (jr.isLeadExists === true || jr.leadAlreadyExists === true) {
         return "Duplicate";
       }
@@ -389,7 +389,7 @@ Deno.serve(async (req) => {
       status = "Fail";
     }
 
-    // Only increment batch counter — no leads table write, no api_logs
+    // Only increment batch counter - no leads table write, no api_logs
     if (batchId) {
       let batchRpc: string;
       if (status === "Success") {

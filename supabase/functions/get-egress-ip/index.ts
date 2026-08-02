@@ -1,4 +1,4 @@
-// purge-university-cache replaced — kept for purge. This file is get-egress-ip.
+// purge-university-cache replaced - kept for purge. This file is get-egress-ip.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 // Returns full network/runtime metadata about whichever Supabase Edge worker

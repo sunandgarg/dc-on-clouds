@@ -78,7 +78,7 @@ function LogsConsole() {
     <Card className="p-0 overflow-hidden">
       <div className="p-3 flex flex-wrap gap-2 items-center border-b border-border bg-muted/30">
         <Input
-          placeholder="🔎 Command bar — search any method, class, flow, message, context…"
+          placeholder="🔎 Command bar - search any method, class, flow, message, context…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 min-w-[280px]"
@@ -110,7 +110,7 @@ function LogsConsole() {
         <div className="divide-y">
           {filtered.length === 0 && (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              No logs match. Trigger a backend action (send OTP, AI chat, save lead) — they appear here live.
+              No logs match. Trigger a backend action (send OTP, AI chat, save lead) - they appear here live.
             </div>
           )}
           {filtered.map((l) => (
@@ -142,7 +142,7 @@ function DeveloperView() {
         <h3 className="font-bold text-base mb-2">🏗️ Architecture Overview</h3>
         <ul className="list-disc pl-5 space-y-1.5 text-foreground/80">
           <li><b>Frontend:</b> React 18 + Vite + Tailwind + shadcn/ui. Routing via react-router-dom. State via TanStack Query + Context.</li>
-          <li><b>Backend:</b> Lovable Cloud (Supabase) — Postgres + RLS + Edge Functions (Deno).</li>
+          <li><b>Backend:</b> Lovable Cloud (Supabase) - Postgres + RLS + Edge Functions (Deno).</li>
           <li><b>Auth:</b> Mobile-only OTP via <code>send-otp</code> / <code>study-otp</code> edge functions; provider abstraction in <code>ai_providers</code> / <code>otp_providers</code> tables.</li>
           <li><b>AI:</b> <code>ai-counselor</code> edge function → routes through admin-configured provider (Lovable AI Gateway by default) with college-priority context injected per request.</li>
           <li><b>Logging:</b> Shared <code>Logger</code> class (<code>supabase/functions/_shared/logger.ts</code>) writes to console + <code>public.system_logs</code> table. Realtime channel pushes new rows to admin UI.</li>
@@ -160,7 +160,7 @@ function DeveloperView() {
       </Card>
       <Card className="p-5">
         <h3 className="font-bold text-base mb-2">🧱 Tables Worth Knowing</h3>
-        <p className="text-foreground/80"><code>colleges, courses, exams, articles, leads, user_roles, ai_providers, otp_providers, system_logs, user_intent_events, featured_colleges, promoted_programs, hero_banners, also_check_modules, ads, popup_events</code> — all under RLS. Admin = security-definer <code>has_role()</code> check.</p>
+        <p className="text-foreground/80"><code>colleges, courses, exams, articles, leads, user_roles, ai_providers, otp_providers, system_logs, user_intent_events, featured_colleges, promoted_programs, hero_banners, also_check_modules, ads, popup_events</code> - all under RLS. Admin = security-definer <code>has_role()</code> check.</p>
       </Card>
       <Card className="p-5">
         <h3 className="font-bold text-base mb-2">⚙️ Edge Functions (20+)</h3>
@@ -183,7 +183,7 @@ function LaymanView() {
         <h3 className="font-bold text-base mb-2">🎓 What is DekhoCampus, really?</h3>
         <p className="text-foreground/80">
           Think of it as a <b>matchmaker between students and colleges</b>. A student lands on the site, tells us a bit about themselves,
-          and we instantly show colleges, courses, and exams that fit — plus help them apply.
+          and we instantly show colleges, courses, and exams that fit - plus help them apply.
         </p>
       </Card>
       <Card className="p-5">
@@ -191,7 +191,7 @@ function LaymanView() {
         <ol className="list-decimal pl-5 space-y-1.5 text-foreground/80">
           <li><b>Lands</b> on homepage → sees trending colleges, scholarships, exam news.</li>
           <li><b>Asks something</b> (search bar / AI chat) → we politely ask name + course + city → store as a <i>lead</i>.</li>
-          <li><b>Gets answers</b> — AI gives a short universal explanation, then shows options from the internet, then highlights <b>our</b> recommended colleges with a one-click "Apply".</li>
+          <li><b>Gets answers</b> - AI gives a short universal explanation, then shows options from the internet, then highlights <b>our</b> recommended colleges with a one-click "Apply".</li>
           <li><b>Applies</b> → application saved + sent to partner colleges via "Lead Push".</li>
           <li><b>Returns</b> → we remember them, send relevant updates and counsellor calls.</li>
         </ol>
@@ -202,7 +202,7 @@ function LaymanView() {
           <li><b>OTP</b> verifies the student's phone (we pick whichever SMS provider you've turned ON in admin).</li>
           <li><b>AI counselor</b> answers in plain English. Admin chooses the AI brain (Gemini / GPT) from <i>AI Providers</i>.</li>
           <li><b>Lead Push</b> automatically forwards leads to college CRMs based on rules you configured.</li>
-          <li><b>Logs console</b> below shows every backend action live — like a CCTV for the system.</li>
+          <li><b>Logs console</b> below shows every backend action live - like a CCTV for the system.</li>
           <li><b>Featured & Priority</b> lists decide which colleges always show up first.</li>
         </ul>
       </Card>
@@ -225,7 +225,7 @@ export default function AdminExplainSystem() {
         <div>
           <h1 className="text-2xl font-semibold">Explain System</h1>
           <p className="text-sm text-muted-foreground">
-            How DekhoCampus works — for developers, for humans, and a live command bar that shows every backend event.
+            How DekhoCampus works - for developers, for humans, and a live command bar that shows every backend event.
           </p>
         </div>
 

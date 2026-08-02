@@ -24,24 +24,24 @@ Deno.serve(async (req) => {
 
     const prompt = `Student appeared in ${exam} with All India Rank ${rank} (${category} category)${state ? `, preferring colleges in ${state}` : ""}.
 
-TASK A — Write a detailed 4-6 sentence "summary" that:
+TASK A - Write a detailed 4-6 sentence "summary" that:
   (1) States clearly what tier of colleges open up at AIR ${rank} in ${exam} for ${category} based on 2023-2025 closing ranks,
   (2) Names 3-4 SPECIFIC real colleges + branches the student can realistically lock at this rank (e.g. "NIT Patna ECE, IIIT Lucknow IT, BIT Mesra CSE typically close in this range"),
   (3) Mentions which counselling round to target (JoSAA round 1-6, CSAB special, state counselling),
   (4) Flags any home-state quota / domicile / category-specific edge.
-  Tone: confident, counsellor-grade, with real numbers — NOT generic.
+  Tone: confident, counsellor-grade, with real numbers - NOT generic.
 
-TASK B — "advice": 1-2 sentences with the most important next step (choice-filling strategy, mock allotment, branch vs college tradeoff).
+TASK B - "advice": 1-2 sentences with the most important next step (choice-filling strategy, mock allotment, branch vs college tradeoff).
 
-TASK C — "webColleges": List 12 real, well-known Indian colleges that typically admit at this rank/category${state ? ` (prioritise ${state} when sensible)` : ""}. Order strictly best-to-worst by suitability for this rank. For each:
+TASK C - "webColleges": List 12 real, well-known Indian colleges that typically admit at this rank/category${state ? ` (prioritise ${state} when sensible)` : ""}. Order strictly best-to-worst by suitability for this rank. For each:
   - "name" (full official name),
   - "location" (City, State),
   - "exam" (the counselling/exam route, e.g. "JoSAA via JEE Main", "CSAB", "${state || "State"} counselling"),
   - "branch" (typical branches that close in this rank range, e.g. "CSE, ECE, EE"),
-  - "reason" (1 line counsellor advice — why THIS college fits THIS rank),
+  - "reason" (1 line counsellor advice - why THIS college fits THIS rank),
   - "pros" (exactly 3 short phrases, 2-4 words each).
 
-TASK D — Partner picks: From this partner list, group up to 8 into "safe" / "target" / "reach" by 2025-26 cut-offs. If list is empty, return empty buckets.
+TASK D - Partner picks: From this partner list, group up to 8 into "safe" / "target" / "reach" by 2025-26 cut-offs. If list is empty, return empty buckets.
 
 Partner candidate colleges (JSON, may be empty):
 ${JSON.stringify(shortList)}

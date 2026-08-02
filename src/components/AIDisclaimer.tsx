@@ -59,7 +59,7 @@ export function AIDisclaimer({ source, content, excerpt, context, compact }: AID
       <div className={`mt-2 flex items-start gap-2 ${compact ? "text-[10px]" : "text-[11px]"} text-muted-foreground border-t border-dashed border-border pt-2`}>
         <ShieldAlert className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} text-amber-600 shrink-0 mt-0.5`} />
         <p className="leading-snug flex-1">
-          <span className="font-semibold text-foreground/80">Note:</span> This is AI-generated. We do not guarantee accuracy — actual results depend on cut-offs, latest rules, and official guidelines. Please verify on the authentic source.
+          <span className="font-semibold text-foreground/80">Note:</span> This is AI-generated. We do not guarantee accuracy - actual results depend on cut-offs, latest rules, and official guidelines. Please verify on the authentic source.
         </p>
         <button
           type="button"

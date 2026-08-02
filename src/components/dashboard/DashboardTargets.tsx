@@ -121,7 +121,7 @@ export function DashboardTargets() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-extrabold text-foreground truncate">{r.target_college}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{r.target_course || "—"} · Class {r.class_level || "—"}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{r.target_course || "-"} · Class {r.class_level || "-"}</p>
                   </div>
                   <Badge variant="secondary" className="text-[9px] shrink-0">{new Date(r.created_at).toLocaleDateString()}</Badge>
                 </div>
@@ -168,7 +168,7 @@ function PrimaryCard({ row, onCopyShare, onDownload }: {
         <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-1.5">
           {r.target_college}{r.target_course ? <span className="opacity-90 font-extrabold"> · {r.target_course}</span> : null}
         </h2>
-        <p className="text-[12px] text-white/85 mt-1">Class {r.class_level || "—"} · {r.stream || "—"} · {r.board || "—"} {r.state ? `· ${r.state}` : ""}</p>
+        <p className="text-[12px] text-white/85 mt-1">Class {r.class_level || "-"} · {r.stream || "-"} · {r.board || "-"} {r.state ? `· ${r.state}` : ""}</p>
         <div className="grid grid-cols-3 gap-2 mt-4">
           <Stat label="Predicted fit" value={`${fit}%`} icon={<Trophy className="w-3.5 h-3.5" />} />
           <Stat label="Daily hours" value={`${r.hours_per_day || 6}h`} icon={<Calendar className="w-3.5 h-3.5" />} />
@@ -201,7 +201,7 @@ function PrimaryCard({ row, onCopyShare, onDownload }: {
                   <span className="w-1.5 h-1.5 rounded-full bg-white mt-1.5 shrink-0" />
                   <div>
                     <span className="font-bold">{m.phase}</span>
-                    {m.focus && <span className="opacity-85"> — {m.focus}</span>}
+                    {m.focus && <span className="opacity-85"> - {m.focus}</span>}
                   </div>
                 </li>
               ))}

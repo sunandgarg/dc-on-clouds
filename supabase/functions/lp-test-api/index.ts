@@ -1,4 +1,4 @@
-// Send a single sample lead to a single university — admin diagnostics
+// Send a single sample lead to a single university - admin diagnostics
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAndSend } from "../_shared/leadpush.ts";
 

@@ -33,9 +33,9 @@ ON CONFLICT (code) DO NOTHING;
 -- Add per-category YouTube fallback rows
 INSERT INTO public.site_integrations (key, label, value, category, enabled)
 SELECT * FROM (VALUES
-  ('youtube_fallback_college','Fallback YouTube — Colleges','','google',true),
-  ('youtube_fallback_course','Fallback YouTube — Courses','','google',true),
-  ('youtube_fallback_exam','Fallback YouTube — Exams','','google',true),
-  ('youtube_fallback_career','Fallback YouTube — Careers','','google',true)
+  ('youtube_fallback_college','Fallback YouTube - Colleges','','google',true),
+  ('youtube_fallback_course','Fallback YouTube - Courses','','google',true),
+  ('youtube_fallback_exam','Fallback YouTube - Exams','','google',true),
+  ('youtube_fallback_career','Fallback YouTube - Careers','','google',true)
 ) AS v(key,label,value,category,enabled)
 WHERE NOT EXISTS (SELECT 1 FROM public.site_integrations s WHERE s.key=v.key);

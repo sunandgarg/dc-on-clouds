@@ -26,6 +26,7 @@ type ExamRow = {
   result_date: string | null;
   registration_url: string | null;
   logo: string | null;
+  image: string | null;
   mode: string | null;
 };
 
@@ -41,6 +42,42 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 }
 
+function ExamCalendarLogo({ exam }: { exam: ExamRow }) {
+  const sources = useMemo(
+    () => [exam.logo, exam.image].filter((source, index, all): source is string => Boolean(source?.trim()) && all.indexOf(source) === index),
+    [exam.logo, exam.image],
+  );
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  useEffect(() => setSourceIndex(0), [exam.slug, exam.logo, exam.image]);
+
+  const initials = (exam.short_name || exam.name)
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+  const source = sources[sourceIndex];
+
+  return (
+    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+      <span className="px-1 text-center text-[10px] font-black text-primary">{initials || <Calendar className="h-5 w-5" />}</span>
+      {source && (
+        <img
+          key={source}
+          src={source}
+          alt={`${exam.name} logo`}
+          className="entity-logo-safe absolute inset-0 h-full w-full rounded-xl"
+          loading="lazy"
+          decoding="async"
+          onError={() => setSourceIndex((current) => current + 1)}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function ExamCalendar() {
   const year = currentYear();
   const [q, setQ] = useState("");
@@ -52,7 +89,7 @@ export default function ExamCalendar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exams")
-        .select("slug,name,short_name,category,exam_date,application_start_date,application_end_date,result_date,registration_url,logo,mode")
+        .select("slug,name,short_name,category,exam_date,application_start_date,application_end_date,result_date,registration_url,logo,image,mode")
         .eq("is_active", true);
       if (error) throw error;
       return (data ?? []) as ExamRow[];
@@ -252,6 +289,8 @@ export default function ExamCalendar() {
                           <span className="text-[9px] font-bold uppercase opacity-80 leading-none">{MONTHS[mi]}</span>
                           <span className="text-lg font-black leading-none mt-1">{day}</span>
                         </div>
+
+                        <ExamCalendarLogo exam={row} />
 
                         {/* Body */}
                         <div className="min-w-0 flex-1">
