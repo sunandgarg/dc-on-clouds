@@ -5,9 +5,9 @@ import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { AlsoCheckSection } from "@/components/AlsoCheckSection";
-import { LeadCaptureForm } from "@/components/LeadCaptureForm";
+import { LeadGateDialog } from "@/components/LeadGateDialog";
 import { Bell } from "lucide-react";
-import { Calendar, Search, ChevronRight, ExternalLink, Filter } from "lucide-react";
+import { Calendar, Search, ChevronRight, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,10 +36,6 @@ function parseDate(d: string | null | undefined): Date | null {
   if (!d) return null;
   const dt = new Date(d);
   return isNaN(dt.getTime()) ? null : dt;
-}
-
-function formatDate(d: Date): string {
-  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 }
 
 function ExamCalendarLogo({ exam }: { exam: ExamRow }) {
@@ -83,6 +79,7 @@ export default function ExamCalendar() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
   const [monthFilter, setMonthFilter] = useState<number | null>(null);
+  const [updatesOpen, setUpdatesOpen] = useState(false);
 
   const { data: exams = [], isLoading } = useQuery({
     queryKey: ["exam-calendar", year],
@@ -114,7 +111,7 @@ export default function ExamCalendar() {
 
   // Bucket by month using best-available date (exam_date → application_end_date → application_start_date)
   const byMonth = useMemo(() => {
-    const buckets: Record<number, Array<{ row: ExamRow; date: Date; label: string }>> = {};
+    const buckets: Record<number, Array<{ row: ExamRow; date: Date }>> = {};
     for (let i = 0; i < 12; i++) buckets[i] = [];
     filtered.forEach((row) => {
       const d =
@@ -123,12 +120,7 @@ export default function ExamCalendar() {
         parseDate(row.application_start_date);
       if (!d) return;
       if (d.getFullYear() !== year) return;
-      const label = row.exam_date
-        ? `Exam ${formatDate(d)}`
-        : row.application_end_date
-        ? `Apply by ${formatDate(d)}`
-        : `Apply from ${formatDate(d)}`;
-      buckets[d.getMonth()].push({ row, date: d, label });
+      buckets[d.getMonth()].push({ row, date: d });
     });
     Object.values(buckets).forEach((arr) => arr.sort((a, b) => a.date.getTime() - b.date.getTime()));
     return buckets;
@@ -137,6 +129,10 @@ export default function ExamCalendar() {
   const monthsToShow = monthFilter !== null ? [monthFilter] : MONTHS.map((_, i) => i);
 
   const totalCount = Object.values(byMonth).reduce((acc, a) => acc + a.length, 0);
+  const examUpdateOptions = useMemo(
+    () => Array.from(new Set(exams.map((exam) => exam.short_name || exam.name))).sort(),
+    [exams],
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -151,18 +147,16 @@ export default function ExamCalendar() {
 
         <AlsoCheckSection variant="strip" className="mb-5" />
 
-        {/* Hero - Gen Z 2026: bold, sticky search, dopamine chips */}
-        <section className="mt-3 rounded-3xl bg-gradient-to-br from-orange-100 via-amber-50 to-rose-100 border border-orange-200/60 p-5 md:p-7 relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-300/30 rounded-full blur-3xl" />
-          <div className="relative">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 backdrop-blur text-[10px] font-bold text-orange-700 uppercase tracking-wider">
+        <section className="mt-3 rounded-3xl bg-primary p-5 text-primary-foreground md:p-7">
+          <div>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
               <Calendar className="w-3 h-3" /> Live · {year}
             </div>
-            <h1 className="mt-2.5 text-[28px] md:text-4xl font-black tracking-tight text-foreground leading-[1.05]">
-              Every exam date<br/>that decides your <span className="text-orange-600">future</span> 🎯
+            <h1 className="mt-2.5 text-[28px] font-black leading-[1.05] tracking-tight text-white md:text-4xl">
+              Every exam date.<br/>One calm plan for your <span className="text-amber-300">future.</span>
             </h1>
-            <p className="mt-2 text-[13px] md:text-base text-foreground/70 max-w-2xl">
-              No more last-minute panic. Apply on time. Show up ready.
+            <p className="mt-2 max-w-2xl text-[13px] text-blue-100 md:text-base">
+              Track applications, admit cards, exam days and results without the last-minute scramble.
             </p>
 
             {/* Search */}
@@ -172,7 +166,7 @@ export default function ExamCalendar() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search JEE, NEET, CAT…"
-                className="pl-9 h-11 rounded-2xl bg-white/80 backdrop-blur border-white text-sm"
+                className="h-11 rounded-2xl border-white bg-white pl-9 text-sm text-foreground"
               />
             </div>
 
@@ -184,8 +178,8 @@ export default function ExamCalendar() {
                   onClick={() => setCat(c)}
                   className={`shrink-0 snap-start px-3.5 h-9 rounded-full text-[12px] font-semibold whitespace-nowrap border transition ${
                     cat === c
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-white border-border text-foreground/80 hover:border-foreground/40"
+                      ? "bg-amber-400 text-slate-950 border-amber-400"
+                      : "border-white/20 bg-white/10 text-white hover:bg-white/15"
                   }`}
                 >
                   {c}
@@ -198,7 +192,7 @@ export default function ExamCalendar() {
               <button
                 onClick={() => setMonthFilter(null)}
                 className={`shrink-0 snap-start px-3.5 h-9 rounded-full text-[12px] font-semibold whitespace-nowrap border transition ${
-                  monthFilter === null ? "bg-orange-600 text-white border-orange-600" : "bg-white border-border text-foreground/80 hover:border-foreground/40"
+                  monthFilter === null ? "bg-amber-400 text-slate-950 border-amber-400" : "border-white/20 bg-white/10 text-white hover:bg-white/15"
                 }`}
               >
                 All
@@ -208,12 +202,12 @@ export default function ExamCalendar() {
                   key={m}
                   onClick={() => setMonthFilter(monthFilter === i ? null : i)}
                   className={`shrink-0 snap-start inline-flex items-center gap-1 px-3.5 h-9 rounded-full text-[12px] font-semibold whitespace-nowrap border transition ${
-                    monthFilter === i ? "bg-orange-600 text-white border-orange-600" : "bg-white border-border text-foreground/80 hover:border-foreground/40"
+                    monthFilter === i ? "bg-amber-400 text-slate-950 border-amber-400" : "border-white/20 bg-white/10 text-white hover:bg-white/15"
                   }`}
                 >
                   <span>{m}</span>
                   {byMonth[i].length > 0 && (
-                    <span className={`text-[10px] font-bold px-1.5 rounded-full ${monthFilter === i ? "bg-white/25 text-white" : "bg-orange-100 text-orange-700"}`}>
+                    <span className={`rounded-full px-1.5 text-[10px] font-bold ${monthFilter === i ? "bg-slate-950/10 text-slate-950" : "bg-white/15 text-white"}`}>
                       {byMonth[i].length}
                     </span>
                   )}
@@ -221,11 +215,26 @@ export default function ExamCalendar() {
               ))}
             </div>
 
-            <p className="mt-3 text-[11px] text-foreground/60 font-medium">
+            <p className="mt-3 text-[11px] font-medium text-blue-100">
               <Filter className="inline w-3 h-3 mr-1" />
               {totalCount} exam{totalCount !== 1 ? "s" : ""} tracked
             </p>
           </div>
+        </section>
+
+        <section className="mt-4 flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-white md:flex-row md:items-center md:justify-between md:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400 text-slate-950">
+              <Bell className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black">Do not let an important date surprise you.</h2>
+              <p className="mt-0.5 text-sm text-slate-300">Register once, choose your target exam and get the important updates in one place.</p>
+            </div>
+          </div>
+          <Button type="button" onClick={() => setUpdatesOpen(true)} disabled={isLoading || examUpdateOptions.length === 0} className="h-11 shrink-0 rounded-xl bg-amber-400 px-5 font-extrabold text-slate-950 hover:bg-amber-300 disabled:opacity-60">
+            Register for exam updates
+          </Button>
         </section>
 
 
@@ -243,17 +252,15 @@ export default function ExamCalendar() {
 
           {!isLoading && (() => {
             const visibleMonths = monthsToShow.filter((mi) => byMonth[mi].length > 0);
-            const midIdx = Math.floor(visibleMonths.length / 2);
-            return visibleMonths.map((mi, idx) => {
+            return visibleMonths.map((mi) => {
               const items = byMonth[mi];
-              const showLeadAfter = idx === midIdx - 1 && visibleMonths.length >= 2;
             const now = new Date();
             const isCurrentMonth = now.getMonth() === mi && now.getFullYear() === year;
             return (
               <FragmentWithKey key={mi}>
               <section>
                 {/* Month header - full-width sticky divider */}
-                <div className="sticky top-14 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-md border-y border-border/60 mb-3">
+                <div className="sticky top-14 z-10 -mx-4 mb-3 border-y border-border/60 bg-background px-4 py-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-2">
                       <h2 className="text-lg font-black tracking-tight text-foreground">
@@ -277,13 +284,13 @@ export default function ExamCalendar() {
                       <Link
                         key={row.slug}
                         to={`/exams/${row.slug}`}
-                        className="group flex items-center gap-3 p-3 rounded-2xl border border-border bg-card hover:border-orange-400 hover:shadow-sm active:scale-[0.99] transition"
+                        className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/50 hover:bg-primary/[0.02]"
                       >
                         {/* Date tile */}
-                        <div className={`w-12 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                        <div className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-full ${
                           isExamDate
-                            ? "bg-gradient-to-br from-orange-500 to-rose-500 text-white"
-                            : "bg-muted text-foreground"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-slate-100 text-slate-800"
                         }`}>
                           <span className="text-[9px] font-bold uppercase opacity-80 leading-none">{MONTHS[mi]}</span>
                           <span className="text-lg font-black leading-none mt-1">{day}</span>
@@ -293,7 +300,7 @@ export default function ExamCalendar() {
 
                         {/* Body */}
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-foreground truncate group-hover:text-orange-600">
+                          <p className="truncate text-sm font-bold text-foreground group-hover:text-primary">
                             {row.short_name || row.name}
                           </p>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -308,36 +315,12 @@ export default function ExamCalendar() {
                           </div>
                         </div>
 
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-orange-600 shrink-0" />
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
                       </Link>
                     );
                   })}
                 </div>
               </section>
-              {showLeadAfter && (
-                <section key={`lead-${mi}`} className="my-6 rounded-3xl overflow-hidden border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-rose-50">
-                  <div className="px-5 pt-5 pb-2">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-600 text-white text-[10px] font-bold uppercase tracking-wider">
-                      <Bell className="w-3 h-3" /> Free Updates
-                    </div>
-                    <h3 className="mt-2 text-xl md:text-2xl font-black tracking-tight text-foreground leading-tight">
-                      Apply now & never miss an exam date 🔔
-                    </h3>
-                    <p className="mt-1 text-[13px] text-foreground/70">
-                      Get full updates on application dates, admit cards, results & syllabus - straight to your phone.
-                    </p>
-                  </div>
-                  <div className="px-2 pb-2">
-                    <LeadCaptureForm
-                      variant="inline"
-                      source="exam_calendar_inline"
-                      title=""
-                      subtitle=""
-                      simple
-                    />
-                  </div>
-                </section>
-              )}
               </FragmentWithKey>
               );
             });
@@ -348,6 +331,17 @@ export default function ExamCalendar() {
       </main>
 
       <Footer />
+      <LeadGateDialog
+        open={updatesOpen}
+        onOpenChange={setUpdatesOpen}
+        title="Get exam-date updates"
+        subtitle="Choose your target exam and register for application, admit-card, exam-day and result updates."
+        source="exam_calendar_updates"
+        forceShow
+        simple
+        interestLabel="Target exam"
+        interestOptions={examUpdateOptions}
+      />
     </div>
   );
 }

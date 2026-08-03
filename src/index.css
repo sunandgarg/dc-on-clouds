@@ -201,6 +201,14 @@
   contain-intrinsic-size: auto 720px;
 }
 
+/* Each directory result gets its own paint/layout boundary. Off-screen cards
+   no longer force the browser to style and paint the entire results grid. */
+.college-directory-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 430px;
+  height: 100%;
+}
+
 @media (max-width: 767px), (prefers-reduced-motion: reduce) {
   .dc-mobile-static-marquee {
     animation: none !important;

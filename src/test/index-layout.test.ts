@@ -12,6 +12,9 @@ describe("Index page layout (static source assertions)", () => {
   const navbarSrc = readFileSync(resolve(process.cwd(), "src/components/Navbar.tsx"), "utf8");
   const trustSrc = readFileSync(resolve(process.cwd(), "src/components/TrustedBySection.tsx"), "utf8");
   const collegeCardSrc = readFileSync(resolve(process.cwd(), "src/components/CollegeCard.tsx"), "utf8");
+  const allCollegesSrc = readFileSync(resolve(process.cwd(), "src/pages/AllColleges.tsx"), "utf8");
+  const directoryHookSrc = readFileSync(resolve(process.cwd(), "src/hooks/useCollegeDirectory.ts"), "utf8");
+  const examCalendarSrc = readFileSync(resolve(process.cwd(), "src/pages/ExamCalendar.tsx"), "utf8");
 
   it("does NOT import or render the LoanReferStrip below scholarships", () => {
     expect(indexSrc).not.toMatch(/LoanReferStrip/);
@@ -74,5 +77,20 @@ describe("Index page layout (static source assertions)", () => {
 
   it("does not render the removed global third-party disclaimer", () => {
     expect(navbarSrc).not.toMatch(/ThirdPartyNotice|third-party information platform|official documents and official websites/i);
+  });
+
+  it("keeps the college directory scroll path lightweight", () => {
+    expect(directoryHookSrc).toMatch(/COLLEGE_DIRECTORY_PAGE_SIZE = 24/);
+    expect(allCollegesSrc).not.toMatch(/new IntersectionObserver/);
+    expect(collegeCardSrc).not.toMatch(/framer-motion|<motion\./);
+    expect(collegeCardSrc).toMatch(/college-directory-card/);
+  });
+
+  it("uses a solid exam calendar with compact date circles and a targeted update CTA", () => {
+    expect(examCalendarSrc).toMatch(/bg-primary p-5 text-primary-foreground/);
+    expect(examCalendarSrc).toMatch(/rounded-full/);
+    expect(examCalendarSrc).toMatch(/Register for exam updates/);
+    expect(examCalendarSrc).toMatch(/interestLabel="Target exam"/);
+    expect(examCalendarSrc).not.toMatch(/bg-gradient-to-br from-orange-100/);
   });
 });

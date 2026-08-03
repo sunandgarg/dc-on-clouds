@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,9 +66,8 @@ function feeRangeMatches(value: unknown, range: string) {
 /**
  * AllColleges - College listing page with:
  * - SEO-optimized dynamic headings based on active filters
- * - Infinite scroll with cursor-based pagination (12 items per batch)
+ * - Explicit lightweight pagination (24 items per batch)
  * - Sidebar filters with search, checkboxes, and mobile sheet
- * - Inline ads every 6 cards
  * - Featured college priority ordering
  */
 export default function AllColleges() {
@@ -78,7 +77,6 @@ export default function AllColleges() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Parse SEO slug from URL like /colleges/top-btech-colleges-in-delhi
   const seoSlugFilters = useMemo(() => {
@@ -209,19 +207,6 @@ export default function AllColleges() {
     });
   }, [colleges, debouncedSearch, selectedStreams, selectedCourseGroups, selectedState, selectedCity, selectedTypes, selectedApprovals, selectedNaac, selectedFeeRanges, selectedExams]);
 
-  useEffect(() => {
-    const target = loadMoreRef.current;
-    if (!target || !hasNextPage) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isFetchingNextPage) void fetchNextPage();
-      },
-      { rootMargin: "500px 0px" },
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
   // SEO-optimized heading
   const heading = useMemo(() => getCollegeHeading({
     courseGroup: selectedCourseGroups[0],
@@ -272,7 +257,7 @@ export default function AllColleges() {
         <PageBreadcrumb items={[{ label: "Colleges" }]} />
         <header className="mb-4">
           <h1 className="text-xl md:text-2xl font-bold text-primary mb-1">{heading}</h1>
-          <p className="text-sm text-muted-foreground">Top-ranked colleges load first. More results appear as you scroll.</p>
+          <p className="text-sm text-muted-foreground">Top-ranked colleges load first. Load another lightweight batch whenever you are ready.</p>
         </header>
 
         <AlsoCheckSection variant="strip" className="mb-4" />
@@ -341,7 +326,7 @@ export default function AllColleges() {
             {!isLoading && !directoryError && filtered.length === 0 && (
               <p className="text-center text-sm text-muted-foreground py-8">No colleges match these filters yet.</p>
             )}
-            <div ref={loadMoreRef} className="flex justify-center py-5 min-h-16">
+            <div className="flex justify-center py-5 min-h-16">
               {hasNextPage && (
                 <button
                   type="button"
@@ -349,7 +334,7 @@ export default function AllColleges() {
                   disabled={isFetchingNextPage}
                   className="rounded-xl border border-primary/25 bg-card px-5 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-60"
                 >
-                  {isFetchingNextPage ? "Loading next colleges…" : "Load 50 more colleges"}
+                  {isFetchingNextPage ? "Loading more colleges…" : "Load more colleges"}
                 </button>
               )}
             </div>

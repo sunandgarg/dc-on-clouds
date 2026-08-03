@@ -29,6 +29,9 @@ interface LeadCaptureFormProps {
   interestedCourseSlug?: string;
   interestedExamSlug?: string;
   onSuccess?: () => void;
+  /** Optional context-specific replacement for the default course interest. */
+  interestLabel?: string;
+  interestOptions?: string[];
   /** Strip urgency hooks (slots/counselling pitch) and tagline. Used for high-intent Apply/Brochure CTAs. */
   simple?: boolean;
 }
@@ -57,8 +60,11 @@ export function LeadCaptureForm({
   interestedCourseSlug,
   interestedExamSlug,
   onSuccess,
+  interestLabel = "Course",
+  interestOptions = courseOptions,
   simple = false,
 }: LeadCaptureFormProps) {
+  const interestPrompt = interestLabel === "Course" ? "Interested Course" : interestLabel;
   const [formData, setFormData] = useState({
     name: "", email: "", phone: "", course: "", state: "", city: "",
   });
@@ -182,7 +188,7 @@ export function LeadCaptureForm({
       newErrors.email = "Please enter a valid email address";
     }
     if (!formData.course?.trim()) {
-      newErrors.course = "Please select an interested course";
+      newErrors.course = `Please select your ${interestLabel.toLowerCase()}`;
     }
     if (!formData.state?.trim()) {
       newErrors.state = "Please select your state";
@@ -307,8 +313,8 @@ export function LeadCaptureForm({
             <div className="relative">
               <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <select value={formData.course} onChange={e => update("course", e.target.value)} className={`${selectCls} pl-10 ${errors.course ? "border-destructive" : ""}`} required>
-                <option value="">Interested Course *</option>
-                {courseOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">{interestPrompt} *</option>
+                {interestOptions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             {errors.course && <p className="text-xs text-destructive pl-1">{errors.course}</p>}
@@ -369,7 +375,7 @@ export function LeadCaptureForm({
               <Input value={formData.name} onChange={e => update("name", e.target.value)} placeholder="Your name *" className="h-11 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-white/55" required />
               <Input value={formData.email} onChange={e => update("email", e.target.value)} placeholder="Email address *" type="email" className="h-11 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-white/55" required />
               <div className="flex items-stretch gap-2"><Input value={formData.phone} onChange={e => update("phone", sanitizeIndianMobile(e.target.value))} placeholder="Mobile number *" type="tel" maxLength={15} className="h-11 flex-1 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-white/55" required /><div className="[&_button]:!h-11 [&_button]:!bg-white [&_button]:!text-slate-900">{otp.getOtpButton}</div></div>
-              <select value={formData.course} onChange={e => update("course", e.target.value)} className="h-11 rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none [&>option]:text-slate-900" required><option value="">Course interest *</option>{courseOptions.map(c => <option key={c} value={c}>{c}</option>)}</select>
+              <select value={formData.course} onChange={e => update("course", e.target.value)} className="h-11 rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none [&>option]:text-slate-900" required><option value="">{interestLabel} interest *</option>{interestOptions.map(c => <option key={c} value={c}>{c}</option>)}</select>
               {otp.verifyBlock && <div className="rounded-xl bg-white p-2 text-slate-900 sm:col-span-2">{otp.verifyBlock}</div>}
               <SearchableSelect options={locations?.states || []} value={formData.state} onChange={(v) => { update("state", v); update("city", ""); }} placeholder="State *" />
               <SearchableSelect options={formData.state ? (locations?.citiesByState[formData.state] || []) : []} value={formData.city} onChange={(v) => update("city", v)} placeholder={formData.state ? "City *" : "Select state first"} />
@@ -416,8 +422,8 @@ export function LeadCaptureForm({
               </div>
             )}
             <select value={formData.course} onChange={e => update("course", e.target.value)} className="px-3 h-11 rounded-xl bg-primary-foreground/10 border border-primary-foreground/20 text-primary-foreground text-sm focus:outline-none [&>option]:text-foreground min-w-0" required>
-              <option value="">Course *</option>
-              {courseOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="">{interestLabel} *</option>
+              {interestOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             {formData.phone.length > 0 && !isValidIndianMobile(formData.phone) && (
               <p className="sm:col-span-2 text-xs text-primary-foreground bg-destructive/80 rounded-lg px-3 py-1.5 text-center">{PHONE_HINT}</p>
@@ -494,8 +500,8 @@ export function LeadCaptureForm({
 
           <div className="space-y-1">
             <select value={formData.course} onChange={e => update("course", e.target.value)} className={`${selectCls} h-9 text-xs ${errors.course ? "border-destructive" : ""}`} required>
-              <option value="">Select Course *</option>
-              {courseOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="">Select {interestLabel} *</option>
+              {interestOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             {errors.course && <p className="text-[11px] text-destructive">{errors.course}</p>}
           </div>
@@ -568,8 +574,8 @@ export function LeadCaptureForm({
         {/* Row 3: Course */}
         <div className="space-y-1">
           <select value={formData.course} onChange={e => update("course", e.target.value)} className={`px-3 py-2 rounded-lg border bg-card text-sm focus:outline-none h-10 w-full min-w-0 ${errors.course ? "border-destructive" : "border-border"}`} required>
-            <option value="">Course *</option>
-            {courseOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="">{interestLabel} *</option>
+            {interestOptions.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           {errors.course && <p className="text-[11px] text-destructive">{errors.course}</p>}
         </div>

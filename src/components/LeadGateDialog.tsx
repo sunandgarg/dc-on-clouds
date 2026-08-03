@@ -23,6 +23,8 @@ interface LeadGateDialogProps {
   forceShow?: boolean;
   /** Strip counselling/slots urgency for clean Apply/Brochure forms. */
   simple?: boolean;
+  interestLabel?: string;
+  interestOptions?: string[];
 }
 
 
@@ -36,6 +38,8 @@ export function LeadGateDialog({
   onSuccess,
   forceShow = false,
   simple = false,
+  interestLabel,
+  interestOptions,
 }: LeadGateDialogProps) {
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
@@ -119,6 +123,8 @@ export function LeadGateDialog({
           source={source}
           onSuccess={handleSuccess}
           simple={simple}
+          interestLabel={interestLabel}
+          interestOptions={interestOptions}
         />
       </DialogContent>
     </Dialog>

@@ -3,7 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { DbCollege } from "@/hooks/useCollegesData";
 
 export const COLLEGE_DIRECTORY_SELECT = "id,short_id,slug,name,short_name,location,city,state,type,category,rating,reviews,fees,image,logo,tags,approvals,naac_grade,established,priority,featured_rank,affiliation_kind,parent_university_slug";
-export const COLLEGE_DIRECTORY_PAGE_SIZE = 50;
+// Keep the first paint and every subsequent "load more" interaction small.
+// Fifty rich cards created thousands of DOM nodes and dozens of composited
+// layers at once, which caused visible hitching while the directory scrolled.
+export const COLLEGE_DIRECTORY_PAGE_SIZE = 24;
 
 export type CollegeDirectoryItem = Pick<DbCollege, "id" | "slug" | "name" | "short_name" | "location" | "city" | "state" | "type" | "category" | "rating" | "reviews" | "fees" | "image" | "logo" | "tags" | "approvals" | "naac_grade" | "established" | "priority" | "featured_rank" | "affiliation_kind" | "parent_university_slug"> & { short_id?: number | null };
 
@@ -58,7 +61,7 @@ async function fetchDirectoryPage(filters: CollegeDirectoryFilters, page: number
  */
 export function useCollegeDirectory(filters: CollegeDirectoryFilters = {}) {
   return useInfiniteQuery({
-    queryKey: ["colleges-directory", "v2", filters],
+    queryKey: ["colleges-directory", "v3", filters],
     initialPageParam: 0,
     queryFn: ({ pageParam }) => fetchDirectoryPage(filters, pageParam),
     getNextPageParam: (lastPage, pages) => lastPage.length === COLLEGE_DIRECTORY_PAGE_SIZE ? pages.length : undefined,

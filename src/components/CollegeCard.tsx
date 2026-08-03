@@ -1,6 +1,6 @@
+import { memo } from "react";
 import { buildCollegeHref } from "@/lib/entityUrls";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Star, MapPin, Calendar, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,9 @@ interface CollegeCardProps {
   index: number;
 }
 
-export function CollegeCard({ college, index }: CollegeCardProps) {
+function CollegeCardComponent({ college, index }: CollegeCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index, 5) * 0.04, duration: 0.3 }}
-    >
+    <div className="college-directory-card">
       <article className="bg-card rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
         {/* Image - clickable, with overlaid compare toggle */}
         <div className="relative h-48 flex-shrink-0 overflow-hidden">
@@ -28,8 +24,10 @@ export function CollegeCard({ college, index }: CollegeCardProps) {
             <img
               src={college.image}
               alt={college.name}
-              className="w-full h-full object-cover object-center scale-110"
+              className="w-full h-full object-cover object-center"
               loading="lazy"
+              decoding="async"
+              fetchPriority={index < 6 ? "high" : "low"}
             />
             <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
               <Badge className="bg-foreground/80 text-background border-0 text-xs">
@@ -48,7 +46,7 @@ export function CollegeCard({ college, index }: CollegeCardProps) {
             </div>
           </Link>
           <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-            <FavoriteButton collegeSlug={college.slug} />
+            <FavoriteButton collegeSlug={college.slug} className="backdrop-blur-none" />
             <CompareToggleButton
               variant="icon"
               college={{ slug: college.slug, name: college.name, short_name: college.short_name, image: college.image, city: college.city, state: college.state }}
@@ -134,6 +132,8 @@ export function CollegeCard({ college, index }: CollegeCardProps) {
           </div>
         </div>
       </article>
-    </motion.div>
+    </div>
   );
 }
+
+export const CollegeCard = memo(CollegeCardComponent);
