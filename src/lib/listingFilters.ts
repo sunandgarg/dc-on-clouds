@@ -6,6 +6,15 @@ export type SearchGroup = {
 export const uniqueValues = (values: Array<string | undefined | null>) =>
   Array.from(new Set(values.map((value) => (value ?? "").trim()).filter(Boolean)));
 
+export function sameStringList(a: string[] = [], b: string[] = []) {
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
+}
+
+export function lastSelected(values: string[] = []) {
+  return values.length ? [values[values.length - 1]] : [];
+}
+
 export function readMultiParam(params: URLSearchParams, key: string, fallback: string[] = []) {
   const values = params.getAll(key).flatMap((value) => value.split(","));
   return uniqueValues(values.length > 0 ? values : fallback);

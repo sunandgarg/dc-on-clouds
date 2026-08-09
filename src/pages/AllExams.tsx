@@ -19,7 +19,7 @@ import { getExamHeading, examSeoRoutes } from "@/lib/seoSlugs";
 import { useSEO } from "@/hooks/useSEO";
 import { parseExamSlug } from "@/lib/seoSlugRoutes";
 import { useCanonical } from "@/hooks/useCanonical";
-import { getCourseGroupSearchTerms, normalizeCollegeCourseGroup, readMultiParam, resolveFacetCategories, uniqueValues, writeMultiParam } from "@/lib/listingFilters";
+import { getCourseGroupSearchTerms, lastSelected, normalizeCollegeCourseGroup, readMultiParam, resolveFacetCategories, sameStringList, uniqueValues, writeMultiParam } from "@/lib/listingFilters";
 import { useSearchParams, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   examCategories, examStreams, examCourseGroups, examLevels,
@@ -53,10 +53,14 @@ export default function AllExams() {
   const [selectedLevels, setSelectedLevels] = useState<string[]>(() => readMultiParam(searchParams, "level", seoSlugFilters.level ? [seoSlugFilters.level] : []));
 
   useEffect(() => {
-    setSelectedCategories(readMultiParam(searchParams, "category"));
-    setSelectedStreams(readMultiParam(searchParams, "stream", seoSlugFilters.stream ? [seoSlugFilters.stream] : []));
-    setSelectedCourseGroups(readMultiParam(searchParams, "group").map(normalizeCollegeCourseGroup));
-    setSelectedLevels(readMultiParam(searchParams, "level", seoSlugFilters.level ? [seoSlugFilters.level] : []));
+    const categories = readMultiParam(searchParams, "category");
+    const streams = readMultiParam(searchParams, "stream", seoSlugFilters.stream ? [seoSlugFilters.stream] : []);
+    const groups = readMultiParam(searchParams, "group").map(normalizeCollegeCourseGroup);
+    const levels = readMultiParam(searchParams, "level", seoSlugFilters.level ? [seoSlugFilters.level] : []);
+    setSelectedCategories((prev) => (sameStringList(prev, categories) ? prev : categories));
+    setSelectedStreams((prev) => (sameStringList(prev, streams) ? prev : streams));
+    setSelectedCourseGroups((prev) => (sameStringList(prev, groups) ? prev : groups));
+    setSelectedLevels((prev) => (sameStringList(prev, levels) ? prev : levels));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search]);
 
@@ -131,10 +135,10 @@ export default function AllExams() {
   };
 
   const filterConfigs = [
-    { title: "Category of Exams", items: examCategories, selected: selectedCategories, onChange: setSelectedCategories },
-    { title: "Streams of Exams", items: examStreams, selected: selectedStreams, onChange: setSelectedStreams },
-    { title: "Course Groups", items: examCourseGroups, selected: selectedCourseGroups, onChange: (v: string[]) => setSelectedCourseGroups(uniqueValues(v.map(normalizeCollegeCourseGroup))) },
-    { title: "Level of Exams", items: examLevels, selected: selectedLevels, onChange: setSelectedLevels },
+    { title: "Category of Exams", items: examCategories, selected: selectedCategories, onChange: (v: string[]) => setSelectedCategories(lastSelected(v)), singleSelect: true },
+    { title: "Streams of Exams", items: examStreams, selected: selectedStreams, onChange: (v: string[]) => setSelectedStreams(lastSelected(v)), singleSelect: true },
+    { title: "Course Groups", items: examCourseGroups, selected: selectedCourseGroups, onChange: (v: string[]) => setSelectedCourseGroups(lastSelected(uniqueValues(v.map(normalizeCollegeCourseGroup)))), singleSelect: true },
+    { title: "Level of Exams", items: examLevels, selected: selectedLevels, onChange: (v: string[]) => setSelectedLevels(lastSelected(v)), singleSelect: true },
   ];
 
   const ITEMS_PER_AD = 6;
@@ -245,13 +249,14 @@ export default function AllExams() {
   );
 }
 
-function FilterSection({ title, items, selected, onChange }: { title: string; items: string[]; selected: string[]; onChange: (v: string[]) => void }) {
+function FilterSection({ title, items, selected, onChange, singleSelect }: { title: string; items: string[]; selected: string[]; onChange: (v: string[]) => void; singleSelect?: boolean }) {
   const [expanded, setExpanded] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const displayItems = showAll ? items : items.slice(0, 4);
 
   const toggle = (item: string) => {
-    onChange(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item]);
+    if (singleSelect) onChange(selected.includes(item) ? [] : [item]);
+    else onChange(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item]);
   };
 
   return (

@@ -21,9 +21,11 @@ import { parseCollegeSlug } from "@/lib/seoSlugRoutes";
 import { useCanonical } from "@/hooks/useCanonical";
 import {
   getCourseGroupSearchTerms,
+  lastSelected,
   normalizeCollegeCourseGroup,
   readMultiParam,
   resolveFacetCategories,
+  sameStringList,
   uniqueValues,
   writeMultiParam,
 } from "@/lib/listingFilters";
@@ -112,15 +114,18 @@ export default function AllColleges() {
     const ci = searchParams.get("city") || seoSlugFilters.city || "";
     const ty = readMultiParam(searchParams, "type", seoSlugFilters.type ? [seoSlugFilters.type] : []);
     const ex = readMultiParam(searchParams, "exam");
-    setSelectedStreams(stream);
-    setSelectedCourseGroups(group);
-    setSelectedState(st);
-    setSelectedCity(ci);
-    setSelectedTypes(ty);
-    setSelectedApprovals(readMultiParam(searchParams, "approval"));
-    setSelectedNaac(readMultiParam(searchParams, "naac"));
-    setSelectedFeeRanges(readMultiParam(searchParams, "fee"));
-    setSelectedExams(ex);
+    const approvals = readMultiParam(searchParams, "approval");
+    const naac = readMultiParam(searchParams, "naac");
+    const fees = readMultiParam(searchParams, "fee");
+    setSelectedStreams((prev) => (sameStringList(prev, stream) ? prev : stream));
+    setSelectedCourseGroups((prev) => (sameStringList(prev, group) ? prev : group));
+    setSelectedState((prev) => (prev === st ? prev : st));
+    setSelectedCity((prev) => (prev === ci ? prev : ci));
+    setSelectedTypes((prev) => (sameStringList(prev, ty) ? prev : ty));
+    setSelectedApprovals((prev) => (sameStringList(prev, approvals) ? prev : approvals));
+    setSelectedNaac((prev) => (sameStringList(prev, naac) ? prev : naac));
+    setSelectedFeeRanges((prev) => (sameStringList(prev, fees) ? prev : fees));
+    setSelectedExams((prev) => (sameStringList(prev, ex) ? prev : ex));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search]);
   const { data: locations } = useStatesAndCities();
@@ -239,8 +244,8 @@ export default function AllColleges() {
   };
 
   const filterConfigs = [
-    { title: "Streams", items: collegeStreams, selected: selectedStreams, onChange: setSelectedStreams },
-    { title: "Course Groups", items: collegeCourseGroups, selected: selectedCourseGroups, onChange: (v: string[]) => setSelectedCourseGroups(uniqueValues(v.map(normalizeCollegeCourseGroup))) },
+    { title: "Streams", items: collegeStreams, selected: selectedStreams, onChange: (v: string[]) => setSelectedStreams(lastSelected(v)), singleSelect: true },
+    { title: "Course Groups", items: collegeCourseGroups, selected: selectedCourseGroups, onChange: (v: string[]) => setSelectedCourseGroups(lastSelected(uniqueValues(v.map(normalizeCollegeCourseGroup)))), singleSelect: true },
     { title: "States", items: locations?.states || [], selected: selectedState ? [selectedState] : [], onChange: (v: string[]) => { setSelectedState(v[v.length - 1] || ""); setSelectedCity(""); }, singleSelect: true },
     ...(cities.length > 0 ? [{ title: "Cities", items: cities, selected: selectedCity ? [selectedCity] : [], onChange: (v: string[]) => setSelectedCity(v[v.length - 1] || ""), singleSelect: true }] : []),
     { title: "Exams", items: collegeExams, selected: selectedExams, onChange: setSelectedExams },

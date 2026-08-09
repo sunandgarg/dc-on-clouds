@@ -19,7 +19,7 @@ import { getCourseHeading, courseSeoRoutes } from "@/lib/seoSlugs";
 import { useSEO } from "@/hooks/useSEO";
 import { parseCourseSlug } from "@/lib/seoSlugRoutes";
 import { useCanonical } from "@/hooks/useCanonical";
-import { getCourseGroupSearchTerms, normalizeCourseGroup, readMultiParam, resolveFacetCategories, uniqueValues, writeMultiParam } from "@/lib/listingFilters";
+import { getCourseGroupSearchTerms, lastSelected, normalizeCourseGroup, readMultiParam, resolveFacetCategories, sameStringList, uniqueValues, writeMultiParam } from "@/lib/listingFilters";
 import { useSearchParams, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   courseStreams, courseCourseGroups, courseSpecializations,
@@ -56,11 +56,16 @@ export default function AllCourses() {
 
   // Hydrate from URL whenever it changes
   useEffect(() => {
-    setSelectedStreams(readMultiParam(searchParams, "stream", seoSlugFilters.stream ? [seoSlugFilters.stream] : []));
-    setSelectedCourseGroups(readMultiParam(searchParams, "group", seoSlugFilters.group ? [normalizeCourseGroup(seoSlugFilters.group)] : []).map(normalizeCourseGroup));
-    setSelectedModes(readMultiParam(searchParams, "mode", seoSlugFilters.mode ? [seoSlugFilters.mode] : []));
-    setSelectedSpecializations(readMultiParam(searchParams, "specialization"));
-    setSelectedDurations(readMultiParam(searchParams, "duration"));
+    const streams = readMultiParam(searchParams, "stream", seoSlugFilters.stream ? [seoSlugFilters.stream] : []);
+    const groups = readMultiParam(searchParams, "group", seoSlugFilters.group ? [normalizeCourseGroup(seoSlugFilters.group)] : []).map(normalizeCourseGroup);
+    const modes = readMultiParam(searchParams, "mode", seoSlugFilters.mode ? [seoSlugFilters.mode] : []);
+    const specializations = readMultiParam(searchParams, "specialization");
+    const durations = readMultiParam(searchParams, "duration");
+    setSelectedStreams((prev) => (sameStringList(prev, streams) ? prev : streams));
+    setSelectedCourseGroups((prev) => (sameStringList(prev, groups) ? prev : groups));
+    setSelectedModes((prev) => (sameStringList(prev, modes) ? prev : modes));
+    setSelectedSpecializations((prev) => (sameStringList(prev, specializations) ? prev : specializations));
+    setSelectedDurations((prev) => (sameStringList(prev, durations) ? prev : durations));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search]);
 
@@ -139,8 +144,8 @@ export default function AllCourses() {
   };
 
   const filterConfigs = [
-    { title: "Streams", items: courseStreams, selected: selectedStreams, onChange: setSelectedStreams },
-    { title: "Course Groups", items: courseCourseGroups, selected: selectedCourseGroups, onChange: (v: string[]) => setSelectedCourseGroups(uniqueValues(v.map(normalizeCourseGroup))) },
+    { title: "Streams", items: courseStreams, selected: selectedStreams, onChange: (v: string[]) => setSelectedStreams(lastSelected(v)), singleSelect: true },
+    { title: "Course Groups", items: courseCourseGroups, selected: selectedCourseGroups, onChange: (v: string[]) => setSelectedCourseGroups(lastSelected(uniqueValues(v.map(normalizeCourseGroup)))), singleSelect: true },
     { title: "Specializations", items: courseSpecializations, selected: selectedSpecializations, onChange: setSelectedSpecializations },
     { title: "Course Modes", items: courseModes, selected: selectedModes, onChange: setSelectedModes },
     { title: "Duration", items: courseDurations, selected: selectedDurations, onChange: setSelectedDurations },
@@ -254,7 +259,7 @@ export default function AllCourses() {
   );
 }
 
-function FilterSection({ title, items, selected, onChange }: { title: string; items: string[]; selected: string[]; onChange: (v: string[]) => void }) {
+function FilterSection({ title, items, selected, onChange, singleSelect }: { title: string; items: string[]; selected: string[]; onChange: (v: string[]) => void; singleSelect?: boolean }) {
   const [expanded, setExpanded] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [filterSearch, setFilterSearch] = useState("");
@@ -262,7 +267,8 @@ function FilterSection({ title, items, selected, onChange }: { title: string; it
   const displayItems = showAll ? filteredItems : filteredItems.slice(0, 4);
 
   const toggle = (item: string) => {
-    onChange(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item]);
+    if (singleSelect) onChange(selected.includes(item) ? [] : [item]);
+    else onChange(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item]);
   };
 
   return (
