@@ -102,6 +102,14 @@ function stripHtml(input: string) {
     .trim();
 }
 
+function stripArticleSourceSection(value: string) {
+  return String(value || "")
+    .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources|references|citations)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>(.|\n|\r)*$/i, "")
+    .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources|references|citations)\s*(?:<\/strong>|<\/b>)?\s*<\/p>(.|\n|\r)*$/i, "")
+    .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources|references|citations)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)(.|\n|\r)*$/i, "")
+    .trim();
+}
+
 function esc(value: string) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -395,6 +403,8 @@ ${opts.author_name ? `- Byline / author display name: ${opts.author_name}` : ""}
 ${entity_type === "articles" ? `- Target article length: around ${wordLimit} words
 - Editorial style: original, natural, plain Indian education guidance. Use normal small hyphen '-' only. Do not use em dash.
 - Optimise for SEO, GEO and AEO with useful headings, concise definitions, FAQ-ready answers and internal links.
+- Use official and reliable research context only to verify facts. Do not add any visible Sources, References, Citations, bibliography or competitor-credit section in article content.
+- Do not mention competitor publication names in the article body. Keep source notes only inside research_notes for internal editorial review.
 - Do not claim "0 AI" or "human-written". Make the article genuinely useful and editor-review ready.` : ""}
 
 WORKFLOW (must follow in order for every record):
@@ -548,6 +558,8 @@ Return ONLY a JSON array. No markdown, no commentary.`;
       if (meta.table === "articles") {
         const title = String(out.title || out.name || topic || "DekhoCampus update");
         const slug = String(out.slug || title).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 90);
+        out.content = stripArticleSourceSection(out.content || out.content_html || "");
+        delete out.content_html;
         if (blogAi) {
           await applyImageRuntimeControl(sb, blogAi);
           out.featured_image = await generateAndUploadBlogCover(sb, blogAi, slug, out.hero_hook || title);

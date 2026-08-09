@@ -7,6 +7,11 @@ const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const COMPETITORS = ["https://www.shiksha.com/news", "https://www.careers360.com/articles", "https://news.kollegeapply.com", "https://collegedunia.com/news", "https://www.collegedekho.com/news", "https://www.pagalguy.com/mba/articles"];
 const stripHtml = (input: string) => input.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const slugify = (value: string) => value.toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 90);
+const stripArticleSourceSection = (value: unknown) => String(value || "")
+  .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources|references|citations)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>(.|\n|\r)*$/i, "")
+  .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources|references|citations)\s*(?:<\/strong>|<\/b>)?\s*<\/p>(.|\n|\r)*$/i, "")
+  .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources|references|citations)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)(.|\n|\r)*$/i, "")
+  .trim();
 
 async function competitorSignals() {
   const results = await Promise.allSettled(COMPETITORS.map(async (url) => {
@@ -45,10 +50,11 @@ Deno.serve(async (req) => {
     const signals = await competitorSignals();
     const config = await loadBlogAiConfig(admin, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await applyBlogTextRuntimeControl(admin, "blog-studio", config);
-    const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Create one original, fact-conscious education news article about: ${topic}\nAudience: ${audience}\nTarget length: ${word_limit} words.\nDiscovery goals: ${JSON.stringify(content_goals)}.\nResearch signals - use only for trend awareness and never copy wording, structure, titles, claims or images:\n${JSON.stringify(signals)}\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker,hero_hook}.\nRules: open with a concise direct answer; use natural plain language, descriptive headings, comparison-ready facts, short paragraphs, FAQs, named entities, and only the small hyphen '-'. Never use an em dash. Include current official sources in a final Sources section, avoid unverifiable claims and keyword stuffing, and optimise for the configured search, answer-engine, geographic and AI-discovery goals. This is AI-assisted and requires editor review. Never claim human authorship, undetectability, a detector score or '0 AI'.`;
+    const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Create one original, fact-conscious education news article about: ${topic}\nAudience: ${audience}\nTarget length: ${word_limit} words.\nDiscovery goals: ${JSON.stringify(content_goals)}.\nResearch signals - use only for trend awareness and never copy wording, structure, titles, claims or images:\n${JSON.stringify(signals)}\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker,hero_hook}.\nRules: open with a concise direct answer; use natural plain language, descriptive headings, comparison-ready facts, short paragraphs, FAQs, named entities, and only the small hyphen '-'. Never use an em dash. Use official and reliable research context to verify facts, but do not include any visible Sources, References, Citations, bibliography or competitor-credit section in content_html. Do not mention competitor publication names in the article body. Keep source notes only inside research_notes for internal editorial review. Avoid unverifiable claims and keyword stuffing, and optimise for the configured search, answer-engine, geographic and AI-discovery goals. This is AI-assisted and requires editor review. Never claim human authorship, undetectability, a detector score or '0 AI'.`;
     const raw = await generateBlogJson(config, prompt, { admin, feature: "blog-studio", operation: "draft" });
     const draft = JSON.parse(raw.replace(/^```json|```$/g, "").trim());
     draft.slug = slugify(draft.slug || draft.title || topic);
+    draft.content_html = stripArticleSourceSection(draft.content_html || "");
     draft.featured_image = "";
     if (image?.mode !== "none") {
       await applyImageRuntimeControl(admin, config);

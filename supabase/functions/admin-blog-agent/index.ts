@@ -41,7 +41,7 @@ function cleanControlNote(value: unknown) {
 }
 
 function normalizeArticleLinks(html: unknown) {
-  return String(html || "")
+  return stripArticleSourceSection(String(html || ""))
     .replace(/<a\s+([^>]*href=["']https?:\/\/([^"']+)["'][^>]*)>/gi, (match, attrs, host) => {
       const internal = /(^|\.)dekhocampus\.(in|com)(\/|$)/i.test(String(host));
       if (internal) return match.replace(/\srel=["'][^"']*["']/i, "");
@@ -49,6 +49,14 @@ function normalizeArticleLinks(html: unknown) {
       return `<a ${attrs} rel="nofollow noopener noreferrer">`;
     })
     .replace(/[\u2013\u2014]/g, "-");
+}
+
+function stripArticleSourceSection(value: unknown) {
+  return String(value || "")
+    .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources|references|citations)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>(.|\n|\r)*$/i, "")
+    .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources|references|citations)\s*(?:<\/strong>|<\/b>)?\s*<\/p>(.|\n|\r)*$/i, "")
+    .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources|references|citations)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)(.|\n|\r)*$/i, "")
+    .trim();
 }
 
 function slugify(value: string) {
@@ -401,7 +409,7 @@ Deno.serve(async (req) => {
       audience: "Indian students and parents",
       tone: "Clear, practical, trustworthy",
       content_goals: ["SEO", "AEO", "GEO", "AIO", "LLMO", "LLM"],
-      required_sections: ["Quick answer", "Key facts", "Step-by-step guidance", "FAQs", "Sources"],
+      required_sections: ["Quick answer", "Key facts", "Step-by-step guidance", "FAQs"],
       minimum_sources: 2,
       editorial_quality_target: 80,
       human_review_required: true,
@@ -538,7 +546,7 @@ Deno.serve(async (req) => {
         required_sections: settings.required_sections,
         minimum_sources: settings.minimum_sources,
         editorial_quality_target: settings.editorial_quality_target,
-      })}\n\nTarget length: ${settings.word_limit} words.\n\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker}.\n\nRules: optimise for the configured search, answer-engine, geographic and AI-discovery goals while prioritising student usefulness. Open with a concise direct answer, use descriptive headings, short paragraphs, comparison-ready facts, FAQs, named entities, and small hyphen '-' only. Write naturally with varied sentence length and concrete student-facing explanations; do not claim a human or detector score. Never copy source wording or structure. Avoid fake certainty on dates, fees, cutoffs or rules. Cite at least ${settings.minimum_sources} independent sources and prefer current official sources. Add useful internal links only when a matching DekhoCampus college, course, exam, job profile, scholarship, tool or news page is present in the supplied context. Add a final Sources section. External citations are automatically published as nofollow.`;
+      })}\n\nTarget length: ${settings.word_limit} words.\n\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker}.\n\nRules: optimise for the configured search, answer-engine, geographic and AI-discovery goals while prioritising student usefulness. Open with a concise direct answer, use descriptive headings, short paragraphs, comparison-ready facts, FAQs, named entities, and small hyphen '-' only. Write naturally with varied sentence length and concrete student-facing explanations; do not claim a human or detector score. Never copy source wording or structure. Avoid fake certainty on dates, fees, cutoffs or rules. Use official and reliable research context only to verify facts, but do not add any visible Sources, References, Citations, bibliography or competitor-credit section in content_html. Do not mention competitor publication names in the article body. Keep source notes only inside research_notes for internal editorial review. Add useful internal links only when a matching DekhoCampus college, course, exam, job profile, scholarship, tool or news page is present in the supplied context.`;
       const articleRaw = await generateBlogJsonResilient(admin, blogAi, articlePrompt + "\nThis is AI-assisted content that requires editorial review. Never claim human authorship, undetectability, a detector score or 0 AI.", "article-generation");
       await assertRunActive(admin, runId);
       const draft = await parseOrRepairJson(blogAi, articleRaw, admin);
