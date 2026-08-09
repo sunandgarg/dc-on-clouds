@@ -707,7 +707,7 @@ export default function CollegeDetail() {
             </section>
 
             <RelatedCoursesExamsStrip
-              courseSlugs={(college as any).related_courses || []}
+              courseSlugs={coursesOfficiallyVerified ? ((college as any).related_courses || []) : []}
               examSlugs={(college as any).related_exams || []}
               collegeName={college.short_name || college.name}
             />
