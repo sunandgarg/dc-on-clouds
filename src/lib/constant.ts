@@ -1,9 +1,9 @@
 export const SITE_CONFIG = {
   name: "DekhoCampus",
-  domain: "dekhocampus.com",
+  domain: "dekhocampus.in",
   scheme: "https",
   supportEmail: "outreach@dekhocampus.com",
-  searchPath: "/search",
+  searchPath: "/colleges",
   ogImagePath: "/og-image.jpg",
   logoPath: "/logo.png",
 } as const;

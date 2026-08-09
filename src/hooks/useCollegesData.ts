@@ -59,6 +59,7 @@ export type DbCollege = {
   featured_rank?: number | null;
   apply_cta_mode?: string | null;
   apply_url?: string | null;
+  admission_deadline?: string | null;
   admission_criteria_points?: string[] | null;
   affiliation_kind?: "university" | "affiliated" | "standalone" | null;
   parent_university_slug?: string | null;

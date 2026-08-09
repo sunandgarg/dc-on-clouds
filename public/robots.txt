@@ -21,10 +21,39 @@ Disallow: /dashboard
 Disallow: /auth
 Disallow: /onboarding
 
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /onboarding
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-AdsBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
 
-Sitemap: https://dekhocampus.com/sitemap.xml
+Sitemap: https://dekhocampus.in/sitemap.xml
+Sitemap: https://dekhocampus.in/sitemap-index.xml

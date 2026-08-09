@@ -2,17 +2,17 @@ import { useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { useAllFeaturedColleges } from "@/hooks/useFeaturedColleges";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, X, GripVertical } from "lucide-react";
-import { colleges } from "@/data/colleges";
+import { Plus, Trash2, X, GripVertical, Save } from "lucide-react";
 import { collegeCategories, collegeStates } from "@/data/colleges";
 import { CSVTools } from "@/components/CSVTools";
+import { AdEntitySearchSelect } from "@/components/admin/AdEntitySearchSelect";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,7 @@ const emptyForm: FeaturedForm = {
   college_slug: "",
   category: "",
   state: "",
-  display_order: 0,
+  display_order: 50,
   is_active: true,
 };
 
@@ -44,10 +44,26 @@ export default function AdminFeatured() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FeaturedForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [priorityDraft, setPriorityDraft] = useState<Record<string, number>>({});
+
+  const featuredSlugs = (featured || []).map((item) => item.college_slug);
+  const { data: collegeNames = {} } = useQuery<Record<string, string>>({
+    queryKey: ["admin-featured-college-names", featuredSlugs],
+    enabled: featuredSlugs.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("colleges").select("slug,name,short_name").in("slug", featuredSlugs);
+      if (error) throw error;
+      return Object.fromEntries((data || []).map((college) => [college.slug, college.short_name || college.name]));
+    },
+  });
 
   const handleSave = async () => {
     if (!form.college_slug) {
       toast({ title: "Select a college", variant: "destructive" });
+      return;
+    }
+    if (!Number.isInteger(form.display_order) || form.display_order < 1 || form.display_order > 999) {
+      toast({ title: "Priority must be a whole number from 1 to 999", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -91,8 +107,29 @@ export default function AdminFeatured() {
     queryClient.invalidateQueries({ queryKey: ["featured-colleges"] });
   };
 
+  const handlePrioritySave = async (id: string, current: number) => {
+    const next = priorityDraft[id] ?? current;
+    if (!Number.isInteger(next) || next < 1 || next > 999) {
+      toast({ title: "Priority must be a whole number from 1 to 999", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("featured_colleges").update({ display_order: next }).eq("id", id);
+    if (error) {
+      toast({ title: "Could not save priority", description: error.message, variant: "destructive" });
+      return;
+    }
+    setPriorityDraft((currentDraft) => {
+      const updated = { ...currentDraft };
+      delete updated[id];
+      return updated;
+    });
+    queryClient.invalidateQueries({ queryKey: ["admin-featured-colleges"] });
+    queryClient.invalidateQueries({ queryKey: ["featured-colleges"] });
+    toast({ title: "Featured priority saved" });
+  };
+
   const getCollegeName = (slug: string) => {
-    return colleges.find((c) => c.slug === slug)?.shortName || slug;
+    return collegeNames[slug] || slug;
   };
 
   // Filter categories/states without "All"
@@ -106,8 +143,8 @@ export default function AdminFeatured() {
       </div>
 
       <p className="text-sm text-muted-foreground mb-4">
-        Control which colleges appear first when filtering by category or state.
-        Higher display order = shown first. If a category filter is selected and featured colleges exist for it, they'll appear at the top.
+        Select from the complete live college database and control homepage/listing order.
+        Priority 1 appears first. Category and state can optionally create targeted featured lists.
       </p>
 
       <div className="flex justify-end mb-4">
@@ -126,14 +163,9 @@ export default function AdminFeatured() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs">College *</Label>
-              <Select value={form.college_slug} onValueChange={(v) => setForm({ ...form, college_slug: v })}>
-                <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="Select college" /></SelectTrigger>
-                <SelectContent>
-                  {colleges.map((c) => (
-                    <SelectItem key={c.slug} value={c.slug}>{c.shortName} - {c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="mt-1">
+                <AdEntitySearchSelect page="colleges" value={form.college_slug} onChange={(college_slug) => setForm({ ...form, college_slug })} />
+              </div>
             </div>
 
             <div>
@@ -159,11 +191,14 @@ export default function AdminFeatured() {
             </div>
 
             <div>
-              <Label className="text-xs">Display Order (higher = first)</Label>
+              <Label className="text-xs">Featured Priority (1 = first)</Label>
               <Input
                 type="number"
+                min={1}
+                max={999}
+                step={1}
                 value={form.display_order}
-                onChange={(e) => setForm({ ...form, display_order: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setForm({ ...form, display_order: parseInt(e.target.value, 10) || 1 })}
                 className="rounded-xl mt-1"
               />
             </div>
@@ -195,7 +230,7 @@ export default function AdminFeatured() {
                   <th className="text-left p-3 font-medium text-muted-foreground">College</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Category</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">State</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Order</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Priority</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
                   <th className="text-right p-3 font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -207,7 +242,31 @@ export default function AdminFeatured() {
                     <td className="p-3 font-medium text-foreground">{getCollegeName(f.college_slug)}</td>
                     <td className="p-3">{f.category ? <Badge variant="outline" className="text-xs">{f.category}</Badge> : <span className="text-xs text-muted-foreground">Any</span>}</td>
                     <td className="p-3">{f.state ? <Badge variant="outline" className="text-xs">{f.state}</Badge> : <span className="text-xs text-muted-foreground">Any</span>}</td>
-                    <td className="p-3 font-mono text-xs">{f.display_order}</td>
+                    <td className="p-3">
+                      <div className="flex min-w-[130px] items-center gap-1.5">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={999}
+                          step={1}
+                          value={priorityDraft[f.id] ?? f.display_order}
+                          onChange={(event) => setPriorityDraft((current) => ({ ...current, [f.id]: Number(event.target.value) }))}
+                          className="h-8 w-20 rounded-lg font-mono text-xs"
+                          aria-label={`Priority for ${getCollegeName(f.college_slug)}`}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          disabled={priorityDraft[f.id] === undefined || priorityDraft[f.id] === f.display_order}
+                          onClick={() => handlePrioritySave(f.id, f.display_order)}
+                          aria-label={`Save priority for ${getCollegeName(f.college_slug)}`}
+                        >
+                          <Save className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
                     <td className="p-3">
                       <Switch checked={f.is_active} onCheckedChange={(v) => handleToggle(f.id, v)} className="scale-75" />
                     </td>

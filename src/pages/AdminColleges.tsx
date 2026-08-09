@@ -121,6 +121,11 @@ export default function AdminColleges() {
       toast.error("Priority must be between 1 and 100");
       return;
     }
+    const rating = Number(editing.rating);
+    if (!Number.isFinite(rating) || rating < 0 || rating > 5) {
+      toast.error("Rating must be a number between 0 and 5 (decimals are allowed)");
+      return;
+    }
     const desiredRank = (editing as any).featured_rank ?? null;
     if (desiredRank != null && (desiredRank < 1 || desiredRank > 4)) {
       toast.error("Featured slot must be 1-4 or empty");
@@ -128,6 +133,7 @@ export default function AdminColleges() {
     }
     const { featured_rank: _omit, ...payload } = editing as any;
     payload.priority = priorityNum;
+    payload.rating = rating;
     saveCollege.mutate(payload, {
       onSuccess: async () => {
         let id = (editing as any).id;
@@ -187,7 +193,7 @@ export default function AdminColleges() {
                 { key: "category", label: "Category", width: 120 },
                 { key: "type", label: "Type", type: "select", options: ["Government","Private","Deemed","Autonomous"], width: 110 },
                 { key: "priority", label: "Priority", type: "number", width: 90 },
-                { key: "rating", label: "Rating", type: "number", width: 80 },
+                { key: "rating", label: "Rating", type: "number", step: 0.01, width: 80 },
                 { key: "status", label: "Status", type: "select", options: ["Draft","Published"], width: 110 },
                 { key: "show_in_explore_by_category", label: "Homepage Explore", type: "boolean", width: 120 },
                 { key: "is_active", label: "Active", type: "boolean", width: 80 },
@@ -370,7 +376,22 @@ export default function AdminColleges() {
                       {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div><label className="text-xs font-medium text-muted-foreground">Rating</label><Input value={editing.rating ?? ""} onChange={(e) => update("rating", parseFloat(e.target.value) || 0)} className="rounded-lg h-9 text-sm" /></div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="college-rating-input">Rating (0-5)</label>
+                    <Input
+                      id="college-rating-input"
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      max="5"
+                      step="0.01"
+                      value={editing.rating ?? ""}
+                      onChange={(e) => update("rating", e.target.value)}
+                      placeholder="4.5"
+                      className="rounded-lg h-9 text-sm"
+                    />
+                    <p className="mt-1 text-[10.5px] text-muted-foreground">Decimal ratings such as 4.2 or 4.75 are accepted.</p>
+                  </div>
                   <div><label className="text-xs font-medium text-muted-foreground">Rating Count</label><Input value={editing.reviews ?? ""} onChange={(e) => update("reviews", parseInt(e.target.value) || 0)} className="rounded-lg h-9 text-sm" /></div>
                   <div className="sm:col-span-2 pt-1 border-t border-border mt-1">
                     <label className="text-xs font-medium text-muted-foreground">University Affiliation</label>

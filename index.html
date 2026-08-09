@@ -17,23 +17,23 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://dekhocampus.com/" />
+    <link rel="canonical" href="https://dekhocampus.in/" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://dekhocampus.com/" />
+    <meta property="og:url" content="https://dekhocampus.in/" />
     
     
-    <meta property="og:image" content="https://dekhocampus.com/og-image.jpg">
+    <meta property="og:image" content="https://dekhocampus.in/og-image.jpg">
     <meta property="og:site_name" content="DekhoCampus" />
     <meta property="og:locale" content="en_IN" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://dekhocampus.com/" />
+    <meta name="twitter:url" content="https://dekhocampus.in/" />
     
     
-    <meta name="twitter:image" content="https://dekhocampus.com/og-image.jpg">
+    <meta name="twitter:image" content="https://dekhocampus.in/og-image.jpg">
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png">
@@ -56,8 +56,8 @@
         "@context": "https://schema.org",
         "@type": "EducationalOrganization",
         "name": "DekhoCampus",
-        "url": "https://dekhocampus.com",
-        "logo": "https://dekhocampus.com/logo.png",
+        "url": "https://dekhocampus.in",
+        "logo": "https://dekhocampus.in/logo.png",
         "description": "AI-powered education platform helping students aged 16-24 find their perfect college and career path.",
         "sameAs": [
           "https://www.facebook.com/dekhocampus",
@@ -70,7 +70,7 @@
           "@type": "ContactPoint",
           "telephone": "+91-9990109797",
           "contactType": "customer service",
-          "email": "hello@dekhocampus.com",
+          "email": "outreach@dekhocampus.com",
           "areaServed": "IN",
           "availableLanguage": ["English", "Hindi"]
         }
@@ -83,7 +83,12 @@
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "DekhoCampus",
-        "url": "https://dekhocampus.com"
+        "url": "https://dekhocampus.in",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://dekhocampus.in/colleges?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
       }
     </script>
     <meta property="og:title" content="DekhoCampus - Find Your College, Course &amp; Career (Built for Gen Z)">
@@ -96,6 +101,20 @@
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5PF56SJF" height="0" width="0" style="display:none;visibility:hidden" title="Google Tag Manager"></iframe></noscript>
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>Discover colleges, courses and entrance exams with DekhoCampus</h1>
+        <p>Explore education information, admissions guidance, scholarships, careers and news for students in India.</p>
+        <nav aria-label="Public directories">
+          <a href="/colleges">Colleges</a>
+          <a href="/courses">Courses</a>
+          <a href="/exams">Exams</a>
+          <a href="/scholarships">Scholarships</a>
+          <a href="/careers">Careers</a>
+          <a href="/news">News</a>
+        </nav>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

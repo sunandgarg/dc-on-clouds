@@ -11,6 +11,14 @@ import { useFeaturedColleges } from "@/hooks/useFeaturedColleges";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ApplyButton } from "@/components/ApplyButton";
+
+function formatAdmissionDeadline(value?: string | null) {
+  if (!value) return "";
+  const deadline = new Date(value);
+  if (Number.isNaN(deadline.getTime())) return "";
+  return deadline.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export function FeaturedColleges() {
   const { data: dbColleges } = useDbColleges();
@@ -19,7 +27,7 @@ export function FeaturedColleges() {
     queryKey: ["homepage-featured-college-cards", featuredSlugs],
     enabled: !!featuredSlugs?.length,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("colleges").select("id,slug,name,short_name,location,city,state,type,category,rating,reviews,fees,image,logo,tags,established,approvals,naac_grade,is_active,status,priority,featured_rank").in("slug", featuredSlugs!).eq("is_active", true);
+      const { data, error } = await (supabase as any).from("colleges").select("id,slug,name,short_name,location,city,state,type,category,rating,reviews,fees,image,logo,tags,established,approvals,naac_grade,is_active,status,priority,featured_rank,apply_cta_mode,apply_url,admission_deadline").in("slug", featuredSlugs!).eq("is_active", true);
       if (error) throw error;
       const order = new Map(featuredSlugs!.map((slug, index) => [slug, index]));
       return (data || []).sort((a: any, b: any) => (order.get(a.slug) || 0) - (order.get(b.slug) || 0));
@@ -28,7 +36,11 @@ export function FeaturedColleges() {
   });
 
   const topColleges = useMemo(() => {
-    const allColleges = [...featuredRows, ...(dbColleges ?? [])];
+    const uniqueBySlug = new Map<string, any>();
+    [...featuredRows, ...(dbColleges ?? [])].forEach((college) => {
+      if (!uniqueBySlug.has(college.slug)) uniqueBySlug.set(college.slug, college);
+    });
+    const allColleges = [...uniqueBySlug.values()];
     const slugs = featuredSlugs ?? [];
     if (slugs.length > 0) {
       const slugSet = new Set(slugs);
@@ -88,7 +100,14 @@ export function FeaturedColleges() {
 
                 <div className="p-4 space-y-3 flex-1 flex flex-col">
                   <div>
-                    <Badge variant="outline" className="text-[10px] mb-1.5">{college.type}</Badge>
+                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline" className="text-[10px]">{college.type}</Badge>
+                      {formatAdmissionDeadline((college as any).admission_deadline) && (
+                        <Badge className="border-0 bg-orange-50 text-[10px] text-orange-700 hover:bg-orange-50">
+                          Apply by {formatAdmissionDeadline((college as any).admission_deadline)}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground line-clamp-1">{college.name}, {college.city || college.location.split(",")[0]}</p>
                   </div>
 
@@ -125,7 +144,15 @@ export function FeaturedColleges() {
                     <Link to={buildCollegeHref(college)}>
                       <Button variant="outline" size="sm" className="w-full rounded-xl text-xs h-9">Know More</Button>
                     </Link>
-                    <Button size="sm" className="w-full rounded-xl text-xs h-9 gradient-accent text-white border-0">Apply Now</Button>
+                    <ApplyButton
+                      collegeSlug={college.slug}
+                      collegeName={college.name}
+                      label="Apply Now"
+                      applyMode={(college as any).apply_cta_mode}
+                      applyUrl={(college as any).apply_url}
+                      size="sm"
+                      className="w-full rounded-xl text-xs h-9 gradient-accent text-white border-0"
+                    />
                   </div>
                 </div>
               </motion.article>

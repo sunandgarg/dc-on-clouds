@@ -23,6 +23,8 @@ export type BulkColumn = {
   width?: number;
   readOnly?: boolean;
   defaultVisible?: boolean;
+  /** Decimal increment for numeric fields, e.g. 0.1 for ratings. */
+  step?: number;
 };
 
 interface Props {
@@ -250,6 +252,7 @@ export function BulkEditGrid({
                           ) : (
                             <input
                               type={c.type === "number" ? "number" : "text"}
+                              step={c.type === "number" ? (c.step ?? 1) : undefined}
                               value={value ?? ""}
                               onChange={(e) =>
                                 setCell(

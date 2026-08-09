@@ -63,10 +63,19 @@ Allow: /
 User-agent: OAI-SearchBot
 Allow: /
 
+User-agent: OAI-AdsBot
+Allow: /
+
 User-agent: PerplexityBot
 Allow: /
 
 User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Claude-SearchBot
 Allow: /
 
 User-agent: Twitterbot
