@@ -3,9 +3,18 @@ import { writeFileSync } from "fs";
 import { resolve } from "path";
 import { createClient } from "@supabase/supabase-js";
 import { loadEnv } from "vite";
+import { buildCollegeHref, buildCourseHref, buildExamHref } from "../src/lib/entityUrls";
 import { eligibilityComboSlugs, predictorComboSlugs } from "../src/lib/seoSubSlugs";
 import { LOCK_TARGET_TRENDING_SLUGS, TOOL_SLUGS } from "../src/lib/toolsRegistry";
 import { STRATEGY_SLUGS } from "../src/lib/examStrategies";
+import {
+  COLLEGE_DETAIL_TABS,
+  COURSE_DETAIL_TABS,
+  EXAM_DETAIL_TABS,
+  SITEMAP_CHUNK_SIZE,
+  STATIC_SITEMAP_ROUTES,
+  sitemapPriority,
+} from "../src/lib/sitemapConfig";
 import {
   citiesByState,
   collegeCourseGroups,
@@ -30,14 +39,13 @@ import { SITE_URL } from "../src/lib/constant";
 const fileEnv = loadEnv(process.env.NODE_ENV || "production", process.cwd(), "");
 const env = { ...fileEnv, ...process.env };
 const BASE_URL = (env.SITEMAP_BASE_URL || SITE_URL).replace(/\/+$/, "");
-const SUPABASE_URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL || "";
+const SUPABASE_URL = env.SUPABASE_URL || env.VITE_SUPABASE_URL || "";
 // CI should provide a server-only key so RLS cannot silently remove public
 // detail pages from the generated sitemap. Local builds still fall back to the
 // publishable key and emit an explicit warning when no live rows are visible.
-const SUPABASE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "";
+const SUPABASE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY || env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 const SITEMAP_SEED_URL = env.SITEMAP_SEED_URL || "https://dekhocampus.in/sitemap.xml";
 const PAGE_SIZE = 1000;
-const SITEMAP_CHUNK_SIZE = 45_000;
 
 interface SitemapEntry {
   path: string;
@@ -46,34 +54,7 @@ interface SitemapEntry {
   priority?: string;
 }
 
-const STATIC: SitemapEntry[] = [
-  { path: "/", changefreq: "daily", priority: "1.0" },
-  { path: "/colleges", changefreq: "daily", priority: "0.9" },
-  { path: "/courses", changefreq: "daily", priority: "0.9" },
-  { path: "/exams", changefreq: "daily", priority: "0.9" },
-  { path: "/premium-programs", changefreq: "daily", priority: "0.9" },
-  { path: "/news", changefreq: "daily", priority: "0.85" },
-  { path: "/careers", changefreq: "weekly", priority: "0.8" },
-  { path: "/jobs", changefreq: "daily", priority: "0.8" },
-  { path: "/vacancies", changefreq: "daily", priority: "0.8" },
-  { path: "/scholarships", changefreq: "weekly", priority: "0.8" },
-  { path: "/study-material", changefreq: "weekly", priority: "0.75" },
-  { path: "/college-study-material", changefreq: "weekly", priority: "0.75" },
-  { path: "/resources", changefreq: "weekly", priority: "0.7" },
-  { path: "/tools", changefreq: "weekly", priority: "0.7" },
-  { path: "/cat-universe", changefreq: "daily", priority: "0.8" },
-  { path: "/compare", changefreq: "weekly", priority: "0.6" },
-  { path: "/eligibility-checker", changefreq: "weekly", priority: "0.7" },
-  { path: "/college-predictor", changefreq: "weekly", priority: "0.7" },
-  { path: "/exam-calendar", changefreq: "daily", priority: "0.75" },
-  { path: "/exam-calendar-2026", changefreq: "daily", priority: "0.75" },
-  { path: "/lock-target", changefreq: "weekly", priority: "0.7" },
-  { path: "/achieve-target", changefreq: "weekly", priority: "0.65" },
-  { path: "/roadmap", changefreq: "weekly", priority: "0.65" },
-  { path: "/dream-college-roadmap", changefreq: "weekly", priority: "0.65" },
-  { path: "/about-us", changefreq: "monthly", priority: "0.5" },
-  { path: "/about", changefreq: "monthly", priority: "0.4" },
-];
+const STATIC: SitemapEntry[] = STATIC_SITEMAP_ROUTES;
 
 function supabaseServerFetch(input: RequestInfo | URL, init?: RequestInit) {
   const headers = new Headers(init?.headers);
@@ -116,6 +97,28 @@ function detailEntries(prefix: string, rows: any[], priority = "0.7"): SitemapEn
     changefreq: "weekly",
     priority,
   }));
+}
+
+function canonicalDetailEntries(rows: any[], buildHref: (row: any) => string, priority = "0.7"): SitemapEntry[] {
+  return rows.filter((row) => row.slug).map((row) => ({
+    path: buildHref(row),
+    lastmod: changed(row.updated_at),
+    changefreq: "weekly",
+    priority,
+  }));
+}
+
+function nestedDetailEntries(rows: any[], buildHref: (row: any) => string, tabs: readonly string[], priority = "0.62"): SitemapEntry[] {
+  return rows.flatMap((row) => {
+    if (!row.slug) return [];
+    const base = buildHref(row);
+    return tabs.map((tab) => ({
+      path: `${base}/${tab}`,
+      lastmod: changed(row.updated_at),
+      changefreq: "weekly" as const,
+      priority,
+    }));
+  });
 }
 
 function filteredPath(base: string, values: Record<string, string>) {
@@ -329,9 +332,9 @@ function writeSitemaps(entries: SitemapEntry[]) {
 
 (async () => {
   const [colleges, courses, exams, careers, scholarships, articles, landing, catModules, premiumPrograms, jobs, authors, legalPages, study] = await Promise.all([
-    fetchRows("colleges", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
-    fetchRows("courses", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
-    fetchRows("exams", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("colleges", "slug,short_id,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("courses", "slug,short_id,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
+    fetchRows("exams", "slug,short_id,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
     fetchRows("career_profiles", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
     fetchRows("scholarships", "slug,updated_at", (q) => q.eq("is_active", true).not("slug", "is", null)),
     fetchRows("articles", "slug,updated_at,tags", (q) => q.eq("is_active", true).not("slug", "is", null)),
@@ -352,10 +355,13 @@ function writeSitemaps(entries: SitemapEntry[]) {
   }
   const all: SitemapEntry[] = [
     ...STATIC,
-    ...detailEntries("/colleges", colleges, "0.88"),
-    ...detailEntries("/courses", courses, "0.85"),
-    ...detailEntries("/exams", exams, "0.85"),
-    ...exams.flatMap((exam) => STRATEGY_SLUGS.map((strategy) => ({ path: `/exams/${exam.slug}/${strategy}`, lastmod: changed(exam.updated_at), changefreq: "weekly" as const, priority: "0.64" }))),
+    ...canonicalDetailEntries(colleges, buildCollegeHref, "0.88"),
+    ...nestedDetailEntries(colleges, buildCollegeHref, COLLEGE_DETAIL_TABS, sitemapPriority("0.88", -0.12)),
+    ...canonicalDetailEntries(courses, buildCourseHref, "0.85"),
+    ...nestedDetailEntries(courses, buildCourseHref, COURSE_DETAIL_TABS, sitemapPriority("0.85", -0.12)),
+    ...canonicalDetailEntries(exams, buildExamHref, "0.85"),
+    ...nestedDetailEntries(exams, buildExamHref, EXAM_DETAIL_TABS, sitemapPriority("0.85", -0.12)),
+    ...exams.flatMap((exam) => STRATEGY_SLUGS.map((strategy) => ({ path: `${buildExamHref(exam)}/${strategy}`, lastmod: changed(exam.updated_at), changefreq: "weekly" as const, priority: "0.64" }))),
     ...detailEntries("/careers", careers, "0.72"),
     ...detailEntries("/scholarships", scholarships, "0.72"),
     ...detailEntries("/news", articles, "0.7"),
@@ -379,5 +385,5 @@ function writeSitemaps(entries: SitemapEntry[]) {
   console.log(`sitemap written - ${unique.length} URLs across ${files.length} file(s)`);
 })().catch((error) => {
   console.warn("[sitemap] fatal:", error?.message || error);
-  writeSitemaps(STATIC);
+    writeSitemaps(STATIC);
 });
