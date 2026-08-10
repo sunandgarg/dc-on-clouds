@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Landmark, ArrowRight, ShieldCheck, Building2 } from "lucide-react";
@@ -8,6 +9,59 @@ import type { DbCollege } from "@/hooks/useCollegesData";
 
 interface Props {
   college: DbCollege;
+}
+
+function AffiliationLogo({
+  logo,
+  image,
+  name,
+  size = "child",
+}: {
+  logo?: string | null;
+  image?: string | null;
+  name: string;
+  size?: "parent" | "child";
+}) {
+  const [src, setSrc] = useState(logo || image || "");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setSrc(logo || image || "");
+    setFailed(false);
+  }, [logo, image]);
+
+  const isParent = size === "parent";
+  const fallbackClass = isParent
+    ? "w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-border"
+    : "w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center border border-border shrink-0";
+
+  if (!src || failed) {
+    return (
+      <div className={fallbackClass} aria-label={`${name} logo unavailable`}>
+        <Landmark className={isParent ? "w-6 h-6 text-primary" : "w-4 h-4 text-primary"} />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${name} logo`}
+      className={
+        isParent
+          ? "w-12 h-12 rounded-xl object-contain bg-background border border-border p-1.5 shrink-0"
+          : "entity-logo-safe w-8 h-8 rounded-md border border-border bg-background p-1 object-contain shrink-0"
+      }
+      loading="lazy"
+      onError={() => {
+        if (image && src !== image) {
+          setSrc(image);
+          return;
+        }
+        setFailed(true);
+      }}
+    />
+  );
 }
 
 /**
@@ -68,22 +122,12 @@ export function CollegeAffiliationCard({ college }: Props) {
         className="group block bg-gradient-to-br from-primary/5 via-card to-card border border-primary/20 rounded-2xl p-4 hover:border-primary/40 transition-colors"
       >
         <div className="flex items-center gap-3">
-          {parent.logo || parent.image ? (
-            <img
-              src={parent.logo || parent.image}
-              alt={`${parent.name} logo`}
-              className="w-12 h-12 rounded-xl object-contain bg-background border border-border p-1.5 shrink-0"
-              loading="lazy"
-              onError={(event) => {
-                event.currentTarget.onerror = null;
-                if (parent.image) event.currentTarget.src = parent.image;
-              }}
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Landmark className="w-6 h-6 text-primary" />
-            </div>
-          )}
+          <AffiliationLogo
+            logo={parent.logo}
+            image={parent.image}
+            name={parent.name}
+            size="parent"
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary font-semibold mb-0.5">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -125,22 +169,7 @@ export function CollegeAffiliationCard({ college }: Props) {
             className="snap-start shrink-0 w-44 group rounded-xl border border-border p-3 hover:border-primary/40 hover:bg-primary/5 transition-colors"
           >
             <div className="flex items-center gap-2 mb-1.5">
-              {c.logo || c.image ? (
-                <img
-                  src={c.logo || c.image}
-                  alt={`${c.name} logo`}
-                  className="entity-logo-safe w-8 h-8 rounded-md border border-border"
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.onerror = null;
-                    if (c.image) event.currentTarget.src = c.image;
-                  }}
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-                  <Landmark className="w-4 h-4 text-primary" />
-                </div>
-              )}
+              <AffiliationLogo logo={c.logo} image={c.image} name={c.name} />
             </div>
             <div className="text-xs font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
               {c.short_name || c.name}
