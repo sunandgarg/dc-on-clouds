@@ -43,7 +43,14 @@ const SUPABASE_URL = env.SUPABASE_URL || env.VITE_SUPABASE_URL || "";
 // CI should provide a server-only key so RLS cannot silently remove public
 // detail pages from the generated sitemap. Local builds still fall back to the
 // publishable key and emit an explicit warning when no live rows are visible.
-const SUPABASE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY || env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const SUPABASE_KEY =
+  env.SUPABASE_SERVICE_ROLE_KEY ||
+  env.SUPABASE_SECRET_KEY ||
+  env.SUPABASE_ANON_KEY ||
+  env.SUPABASE_PUBLISHABLE_KEY ||
+  env.SUPABASE_PUBLISHER_KEY ||
+  env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  "";
 const SITEMAP_SEED_URL = env.SITEMAP_SEED_URL || "https://dekhocampus.in/sitemap.xml";
 const PAGE_SIZE = 1000;
 
