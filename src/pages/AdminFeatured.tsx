@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, X, GripVertical, Save } from "lucide-react";
+import { Eye, GraduationCap, Plus, Save, Trash2, X, GripVertical } from "lucide-react";
 import { collegeCategories, collegeStates } from "@/data/colleges";
 import { CSVTools } from "@/components/CSVTools";
 import { AdEntitySearchSelect } from "@/components/admin/AdEntitySearchSelect";
@@ -27,6 +27,17 @@ interface FeaturedForm {
   state: string;
   display_order: number;
   is_active: boolean;
+}
+
+interface CollegeMeta {
+  name: string;
+  short_name?: string | null;
+  city?: string | null;
+  state?: string | null;
+  logo?: string | null;
+  image?: string | null;
+  status?: string | null;
+  is_active?: boolean | null;
 }
 
 const emptyForm: FeaturedForm = {
@@ -47,13 +58,16 @@ export default function AdminFeatured() {
   const [priorityDraft, setPriorityDraft] = useState<Record<string, number>>({});
 
   const featuredSlugs = (featured || []).map((item) => item.college_slug);
-  const { data: collegeNames = {} } = useQuery<Record<string, string>>({
+  const { data: collegeMeta = {} } = useQuery<Record<string, CollegeMeta>>({
     queryKey: ["admin-featured-college-names", featuredSlugs],
     enabled: featuredSlugs.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase.from("colleges").select("slug,name,short_name").in("slug", featuredSlugs);
+      const { data, error } = await supabase
+        .from("colleges")
+        .select("slug,name,short_name,city,state,logo,image,status,is_active")
+        .in("slug", featuredSlugs);
       if (error) throw error;
-      return Object.fromEntries((data || []).map((college) => [college.slug, college.short_name || college.name]));
+      return Object.fromEntries((data || []).map((college: any) => [college.slug, college]));
     },
   });
 
@@ -69,15 +83,28 @@ export default function AdminFeatured() {
     setSaving(true);
 
     try {
-      const { error } = await supabase.from("featured_colleges").insert({
+      const { data: existing, error: lookupError } = await supabase
+        .from("featured_colleges")
+        .select("id")
+        .eq("college_slug", form.college_slug)
+        .order("display_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+
+      const payload = {
         college_slug: form.college_slug,
         category: form.category || null,
         state: form.state || null,
         display_order: form.display_order,
         is_active: form.is_active,
-      });
+      };
+
+      const { error } = existing?.id
+        ? await supabase.from("featured_colleges").update(payload).eq("id", existing.id)
+        : await supabase.from("featured_colleges").insert(payload);
       if (error) throw error;
-      toast({ title: "Featured college added" });
+      toast({ title: existing?.id ? "Featured college updated" : "Featured college added" });
       queryClient.invalidateQueries({ queryKey: ["admin-featured-colleges"] });
       queryClient.invalidateQueries({ queryKey: ["featured-colleges"] });
       setShowForm(false);
@@ -128,9 +155,9 @@ export default function AdminFeatured() {
     toast({ title: "Featured priority saved" });
   };
 
-  const getCollegeName = (slug: string) => {
-    return collegeNames[slug] || slug;
-  };
+  const getCollegeName = (slug: string) => collegeMeta[slug]?.short_name || collegeMeta[slug]?.name || slug;
+  const getCollegeLocation = (slug: string) => [collegeMeta[slug]?.city, collegeMeta[slug]?.state].filter(Boolean).join(", ");
+  const getCollegeLogo = (slug: string) => collegeMeta[slug]?.logo || collegeMeta[slug]?.image || "";
 
   // Filter categories/states without "All"
   const categories = collegeCategories.filter((c) => c !== "All");
@@ -142,10 +169,13 @@ export default function AdminFeatured() {
         <CSVTools table="featured_colleges" filename="featured_colleges.csv" columns="*" upsertKey="id" />
       </div>
 
-      <p className="text-sm text-muted-foreground mb-4">
-        Select from the complete live college database and control homepage/listing order.
-        Priority 1 appears first. Category and state can optionally create targeted featured lists.
-      </p>
+      <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-sm text-blue-950">
+        <p className="font-semibold">Production rule</p>
+        <p className="mt-1 text-blue-900/80">
+          Search and select a real college from the live database. Saving the same college again updates its featured slot instead of creating a duplicate.
+          Priority 1 appears first. Category and state are optional targeting filters.
+        </p>
+      </div>
 
       <div className="flex justify-end mb-4">
         <Button onClick={() => { setForm(emptyForm); setShowForm(true); }} className="rounded-xl gradient-primary text-primary-foreground gap-2">
@@ -239,7 +269,25 @@ export default function AdminFeatured() {
                 {featured?.map((f) => (
                   <tr key={f.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                     <td className="p-3 text-muted-foreground"><GripVertical className="w-4 h-4" /></td>
-                    <td className="p-3 font-medium text-foreground">{getCollegeName(f.college_slug)}</td>
+                    <td className="p-3">
+                      <div className="flex min-w-[260px] items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background">
+                          {getCollegeLogo(f.college_slug) ? (
+                            <img src={getCollegeLogo(f.college_slug)} alt="" className="h-full w-full object-contain p-1" loading="lazy" />
+                          ) : (
+                            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-foreground">{getCollegeName(f.college_slug)}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {getCollegeLocation(f.college_slug) || f.college_slug}
+                            {collegeMeta[f.college_slug]?.status && ` · ${collegeMeta[f.college_slug]?.status}`}
+                            {collegeMeta[f.college_slug]?.is_active === false && " · inactive"}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
                     <td className="p-3">{f.category ? <Badge variant="outline" className="text-xs">{f.category}</Badge> : <span className="text-xs text-muted-foreground">Any</span>}</td>
                     <td className="p-3">{f.state ? <Badge variant="outline" className="text-xs">{f.state}</Badge> : <span className="text-xs text-muted-foreground">Any</span>}</td>
                     <td className="p-3">
@@ -271,9 +319,16 @@ export default function AdminFeatured() {
                       <Switch checked={f.is_active} onCheckedChange={(v) => handleToggle(f.id, v)} className="scale-75" />
                     </td>
                     <td className="p-3 text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(f.id)} className="w-8 h-8 text-destructive">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                          <a href={`/colleges/${f.college_slug}`} target="_blank" rel="noreferrer" aria-label={`Preview ${getCollegeName(f.college_slug)}`}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(f.id)} className="w-8 h-8 text-destructive">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

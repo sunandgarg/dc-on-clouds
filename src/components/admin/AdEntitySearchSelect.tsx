@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, Search, X } from "lucide-react";
+import { Check, GraduationCap, Loader2, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 
 type AdEntityPage = "colleges" | "courses" | "exams" | "articles";
 
 const ENTITY_META: Record<AdEntityPage, { table: string; labelColumn: string; select: string }> = {
-  colleges: { table: "colleges", labelColumn: "name", select: "slug,name,city,state" },
+  colleges: { table: "colleges", labelColumn: "name", select: "slug,name,short_name,city,state,logo,image,is_active,status" },
   courses: { table: "courses", labelColumn: "name", select: "slug,name,category" },
   exams: { table: "exams", labelColumn: "name", select: "slug,name,category" },
   articles: { table: "articles", labelColumn: "title", select: "slug,title,category" },
@@ -16,6 +16,9 @@ interface EntityOption {
   slug: string;
   label: string;
   secondary: string;
+  image?: string | null;
+  status?: string | null;
+  isActive?: boolean | null;
 }
 
 interface Props {
@@ -54,10 +57,10 @@ export function AdEntitySearchSelect({ page, value, onChange, error }: Props) {
     void (async () => {
       const { data } = await (supabase as any)
         .from(meta.table)
-        .select(`slug,${meta.labelColumn}`)
+        .select(page === "colleges" ? `slug,${meta.labelColumn},short_name,city,state,logo,is_active,status` : `slug,${meta.labelColumn}`)
         .eq("slug", value)
         .maybeSingle();
-      if (!cancelled && data) setSelectedLabel(data[meta.labelColumn] || value);
+      if (!cancelled && data) setSelectedLabel(data.short_name || data[meta.labelColumn] || value);
     })();
     return () => { cancelled = true; };
   }, [meta.labelColumn, meta.table, value]);
@@ -71,13 +74,32 @@ export function AdEntitySearchSelect({ page, value, onChange, error }: Props) {
         .select(meta.select)
         .order(meta.labelColumn, { ascending: true })
         .range(pageIndex * 100, pageIndex * 100 + 99);
-      const term = query.trim().replace(/[(),]/g, " ");
+      const term = query.trim().replace(/[(),]/g, " ").replace(/\s+/g, " ");
       if (term) request = request.or(`${meta.labelColumn}.ilike.%${term}%,slug.ilike.%${term}%`);
-      const { data } = await request;
+      let { data } = await request;
+      if ((!data || data.length === 0) && term.includes(" ")) {
+        const fallbackTerm = term
+          .split(" ")
+          .map((part) => part.trim())
+          .filter((part) => part.length >= 3 && !["college", "university", "institute", "school", "of", "and", "the"].includes(part.toLowerCase()))
+          .sort((a, b) => b.length - a.length)[0];
+        if (fallbackTerm) {
+          const fallback = await (supabase as any)
+            .from(meta.table)
+            .select(meta.select)
+            .or(`${meta.labelColumn}.ilike.%${fallbackTerm}%,slug.ilike.%${fallbackTerm}%`)
+            .order(meta.labelColumn, { ascending: true })
+            .range(0, 99);
+          data = fallback.data;
+        }
+      }
       const next = ((data || []) as any[]).map((row) => ({
         slug: row.slug,
-        label: row[meta.labelColumn] || row.slug,
+        label: row.short_name || row[meta.labelColumn] || row.slug,
         secondary: row.category || [row.city, row.state].filter(Boolean).join(", ") || row.slug,
+        image: row.logo || row.image || null,
+        status: row.status || null,
+        isActive: typeof row.is_active === "boolean" ? row.is_active : null,
       }));
       setRows((current) => pageIndex === 0 ? next : [...current, ...next.filter((row) => !current.some((item) => item.slug === row.slug))]);
       setHasMore(next.length === 100);
@@ -125,9 +147,22 @@ export function AdEntitySearchSelect({ page, value, onChange, error }: Props) {
               onClick={() => { onChange(row.slug); setSelectedLabel(row.label); setOpen(false); setQuery(""); }}
               className="flex w-full items-center gap-3 border-b border-border/60 px-3 py-2.5 text-left last:border-0 hover:bg-muted/70"
             >
+              {page === "colleges" && (
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background">
+                  {row.image ? (
+                    <img src={row.image} alt="" className="h-full w-full object-contain p-1" loading="lazy" />
+                  ) : (
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </span>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground">{row.label}</p>
-                <p className="truncate text-xs text-muted-foreground">{row.secondary} · {row.slug}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {row.secondary} · {row.slug}
+                  {page === "colleges" && row.status && ` · ${row.status}`}
+                  {page === "colleges" && row.isActive === false && " · inactive"}
+                </p>
               </div>
               {value === row.slug && <Check className="h-4 w-4 shrink-0 text-primary" />}
             </button>
