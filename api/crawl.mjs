@@ -81,10 +81,19 @@ function apiHeaders() {
   return headers;
 }
 
+function parseSlugWithId(param = "") {
+  const value = decodeURIComponent(String(param || "")).trim();
+  const match = value.match(/^(.*?)-(\d+)$/);
+  if (!match) return { slug: value };
+  return { slug: match[1], shortId: Number(match[2]) };
+}
+
 async function fetchRows(config, slug, limit = 1) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
+  const parsed = slug ? parseSlugWithId(slug) : { slug: "" };
   const query = new URLSearchParams({ select: slug ? config.detailSelect : config.listSelect, is_active: "eq.true", limit: String(limit) });
-  if (slug) query.set("slug", `eq.${slug}`);
+  if (slug && parsed.shortId) query.set("or", `(short_id.eq.${parsed.shortId},slug.eq.${parsed.slug})`);
+  else if (slug) query.set("slug", `eq.${parsed.slug}`);
   else query.set("order", `${config.name}.asc`);
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${config.table}?${query}`, { headers: apiHeaders() });
   if (!response.ok) return [];

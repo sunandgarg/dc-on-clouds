@@ -6,9 +6,12 @@ import { backendFetch, backendTarget, invokeAwsFunction } from '@/lib/backendMod
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+if (typeof SUPABASE_PUBLISHABLE_KEY === 'string' && SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')) {
+  throw new Error('VITE_SUPABASE_PUBLISHABLE_KEY must use a publishable key, not a Supabase secret key.');
+}
 
 function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
+  return value.startsWith('sb_publishable_');
 }
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
