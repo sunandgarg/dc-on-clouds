@@ -95,6 +95,7 @@ export function useSaveArticle() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["db-articles"] });
+      qc.invalidateQueries({ queryKey: ["db-articles-all"] });
       toast.success("Article saved!");
     },
     onError: (e) => toast.error(`Failed: ${e.message}`),
@@ -110,6 +111,7 @@ export function useDeleteArticle() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["db-articles"] });
+      qc.invalidateQueries({ queryKey: ["db-articles-all"] });
       toast.success("Article deleted!");
     },
     onError: (e) => toast.error(`Failed: ${e.message}`),

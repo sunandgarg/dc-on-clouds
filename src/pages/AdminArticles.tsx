@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Search, Newspaper, Info, FileText, Settings, ExternalLink, HelpCircle, CheckSquare2, Square } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Newspaper, Info, FileText, Settings, ExternalLink, HelpCircle, CheckSquare2, Square, Loader2, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { CSVTools } from "@/components/CSVTools";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,6 +68,9 @@ export default function AdminArticles() {
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkVertical, setBulkVertical] = useState("");
 
   const filtered = (articles ?? []).filter((a) =>
     a.title.toLowerCase().includes(search.toLowerCase()) || a.slug.toLowerCase().includes(search.toLowerCase())
@@ -78,6 +81,9 @@ export default function AdminArticles() {
 
   const bulkUpdate = async (updates: Record<string, unknown>, label: string, ids = Array.from(selectedIds)) => {
     if (!ids.length) return toast.error("Select at least one article");
+    if ("status" in updates && updates.status === "Published" && !canPublish) {
+      return toast.error("You do not have permission to publish articles.");
+    }
     setBulkBusy(true);
     const { error } = await (supabase as any).from("articles").update(updates).in("id", ids);
     setBulkBusy(false);
@@ -85,6 +91,22 @@ export default function AdminArticles() {
     toast.success(`${label}: ${ids.length} article(s)`);
     setSelectedIds(new Set());
     void refetchArticles();
+  };
+
+  const bulkApplyFields = async () => {
+    const updates: Record<string, unknown> = {};
+    if (bulkStatus) {
+      if (bulkStatus === "Published" && !canPublish) return toast.error("You do not have permission to publish articles.");
+      updates.status = bulkStatus;
+      if (bulkStatus === "Published") updates.is_active = true;
+    }
+    if (bulkCategory) updates.category = bulkCategory === "__clear__" ? "" : bulkCategory;
+    if (bulkVertical) updates.vertical = bulkVertical === "__clear__" ? "" : bulkVertical;
+    if (!Object.keys(updates).length) return toast.error("Choose at least one bulk field to update");
+    await bulkUpdate(updates, "Bulk updated");
+    setBulkStatus("");
+    setBulkCategory("");
+    setBulkVertical("");
   };
 
   const bulkDelete = async (ids = Array.from(selectedIds)) => {
@@ -152,14 +174,51 @@ export default function AdminArticles() {
         />
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5">
-        <Button size="sm" variant="outline" onClick={() => setSelectedIds(selectedIds.size === filtered.length ? new Set() : new Set(filtered.map((article) => article.id)))} className="gap-2">
-          {selectedIds.size === filtered.length && filtered.length ? <CheckSquare2 className="h-4 w-4" /> : <Square className="h-4 w-4" />} {selectedIds.size === filtered.length && filtered.length ? "Clear all" : `Select all filtered (${filtered.length})`}
-        </Button>
-        <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
-        <Button size="sm" disabled={bulkBusy || !selectedIds.size || !canPublish} onClick={() => bulkUpdate({ status: "Published", is_active: true }, "Published")}>Publish selected</Button>
-        <Button size="sm" variant="outline" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkUpdate({ status: "Draft" }, "Moved to Draft")}>Draft selected</Button>
-        <Button size="sm" variant="destructive" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkDelete()}>Delete selected</Button>
+      <div className="mb-3 space-y-3 rounded-2xl border bg-card p-3 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setSelectedIds(selectedIds.size === filtered.length ? new Set() : new Set(filtered.map((article) => article.id)))} className="gap-2">
+            {selectedIds.size === filtered.length && filtered.length ? <CheckSquare2 className="h-4 w-4" /> : <Square className="h-4 w-4" />} {selectedIds.size === filtered.length && filtered.length ? "Clear all" : `Select all filtered (${filtered.length})`}
+          </Button>
+          <span className="text-xs font-medium text-muted-foreground">{selectedIds.size} selected</span>
+          {bulkBusy && <span className="inline-flex items-center gap-1 text-xs text-primary"><Loader2 className="h-3 w-3 animate-spin" /> Updating...</span>}
+          <Button size="sm" disabled={bulkBusy || !selectedIds.size || !canPublish} onClick={() => bulkUpdate({ status: "Published", is_active: true }, "Published")} className="gap-1">
+            <Eye className="h-3.5 w-3.5" /> Publish
+          </Button>
+          <Button size="sm" variant="outline" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkUpdate({ status: "Draft" }, "Moved to Draft")} className="gap-1">
+            <RotateCcw className="h-3.5 w-3.5" /> Move to Draft
+          </Button>
+          <Button size="sm" variant="outline" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkUpdate({ is_active: false, status: "Draft" }, "Unpublished")} className="gap-1">
+            <EyeOff className="h-3.5 w-3.5" /> Unpublish
+          </Button>
+          <Button size="sm" variant="outline" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkUpdate({ is_active: true }, "Activated")}>Activate</Button>
+          <Button size="sm" variant="outline" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkUpdate({ is_active: false }, "Deactivated")}>Deactivate</Button>
+          <Button size="sm" variant="destructive" disabled={bulkBusy || !selectedIds.size} onClick={() => bulkDelete()}>Delete</Button>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
+          <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="h-9 rounded-lg border border-border bg-background px-3 text-sm">
+            <option value="">Bulk status - keep unchanged</option>
+            {STATUSES.map((status) => (
+              <option key={status} value={status} disabled={status === "Published" && !canPublish}>{status}</option>
+            ))}
+          </select>
+          <select value={bulkCategory} onChange={(e) => setBulkCategory(e.target.value)} className="h-9 rounded-lg border border-border bg-background px-3 text-sm">
+            <option value="">Bulk category - keep unchanged</option>
+            <option value="__clear__">Clear category</option>
+            {CATEGORIES.map((category) => <option key={category.slug} value={category.name}>{category.name}</option>)}
+          </select>
+          <select value={bulkVertical} onChange={(e) => setBulkVertical(e.target.value)} className="h-9 rounded-lg border border-border bg-background px-3 text-sm">
+            <option value="">Bulk vertical - keep unchanged</option>
+            <option value="__clear__">Clear vertical</option>
+            {VERTICALS.map((vertical) => <option key={vertical} value={vertical}>{vertical}</option>)}
+          </select>
+          <Button size="sm" disabled={bulkBusy || !selectedIds.size} onClick={bulkApplyFields} className="h-9 rounded-lg">
+            Apply bulk edit
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Publish makes articles visible and active. Unpublish moves them to Draft and hides them from public article/news listings.
+        </p>
       </div>
 
       <div className="mb-4">
