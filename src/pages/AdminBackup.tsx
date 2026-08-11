@@ -1,38 +1,18 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Upload, Database, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Download, Upload, Database, AlertTriangle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { downloadJSON } from "@/lib/adminIO";
 
-// Full export: include EVERY public table. Nothing skipped.
-const SKIP_TABLES = new Set<string>([]);
-
-async function listTables(): Promise<string[]> {
-  const { data, error } = await supabase.rpc("list_public_tables");
+async function fetchPinnedFullDatabaseExport(pin: string) {
+  const { data, error } = await (supabase.rpc as any)("admin_full_database_export", {
+    input_pin: pin,
+  });
   if (error) throw error;
-  return ((data as { table_name: string }[]) || [])
-    .map((r) => r.table_name)
-    .filter((t) => !SKIP_TABLES.has(t));
-}
-
-async function fetchAll(table: string): Promise<any[]> {
-  const all: any[] = [];
-  const pageSize = 1000;
-  let from = 0;
-  // paginate to bypass 1000-row default cap
-  while (true) {
-    const { data, error } = await supabase
-      .from(table as any)
-      .select("*")
-      .range(from, from + pageSize - 1);
-    if (error) throw new Error(`${table}: ${error.message}`);
-    if (!data || data.length === 0) break;
-    all.push(...data);
-    if (data.length < pageSize) break;
-    from += pageSize;
-  }
-  return all;
+  return data;
 }
 
 export default function AdminBackup() {
@@ -40,6 +20,7 @@ export default function AdminBackup() {
   const [importing, setImporting] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [mode, setMode] = useState<"merge" | "replace">("merge");
+  const [exportPin, setExportPin] = useState("");
 
   const append = (line: string) => setLog((p) => [...p, line]);
 
@@ -47,45 +28,22 @@ export default function AdminBackup() {
     setExporting(true);
     setLog([]);
     try {
-      append("Discovering tables...");
-      const tables = await listTables();
-      append(`Found ${tables.length} tables.`);
-
-      const payload: Record<string, any[]> = {};
-      let totalRows = 0;
-      for (const t of tables) {
-        append(`Exporting ${t}...`);
-        try {
-          payload[t] = await fetchAll(t);
-          totalRows += payload[t].length;
-          append(`  ✓ ${t}: ${payload[t].length} rows`);
-        } catch (e: any) {
-          append(`  ✗ ${t}: ${e.message}`);
-        }
+      if (!exportPin.trim()) {
+        throw new Error("Enter the database export PIN before downloading.");
       }
-      append(`Total: ${totalRows.toLocaleString()} rows across ${Object.keys(payload).length} tables.`);
 
-      const blob = new Blob(
-        [
-          JSON.stringify(
-            {
-              version: 1,
-              exportedAt: new Date().toISOString(),
-              tableCount: Object.keys(payload).length,
-              data: payload,
-            },
-            null,
-            2
-          ),
-        ],
-        { type: "application/json" }
+      append("Requesting admin PIN-gated full export...");
+      const payload = await fetchPinnedFullDatabaseExport(exportPin.trim());
+      append(
+        `Ready: ${(payload?.total_rows ?? 0).toLocaleString()} rows across ${
+          payload?.table_count ?? Object.keys(payload?.tables || {}).length
+        } public tables.`
       );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `dekhocampus-backup-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+
+      downloadJSON(
+        `dekhocampus-full-database-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`,
+        payload
+      );
       toast.success("Backup downloaded");
     } catch (e: any) {
       toast.error(e.message || "Export failed");
@@ -102,7 +60,15 @@ export default function AdminBackup() {
       append(`Reading ${file.name}...`);
       const text = await file.text();
       const json = JSON.parse(text);
-      const data: Record<string, any[]> = json.data || json;
+      const data: Record<string, any[]> = json.tables
+        ? Object.fromEntries(
+            Object.entries(json.tables).map(([table, value]: [string, any]) => [
+              table,
+              Array.isArray(value) ? value : value?.rows || [],
+            ])
+          )
+        : json.data || json;
+      const SKIP_TABLES = new Set(["version", "schema", "exported_at", "table_count", "total_rows"]);
       const tableNames = Object.keys(data).filter((t) => !SKIP_TABLES.has(t));
       append(`File contains ${tableNames.length} tables.`);
 
@@ -176,20 +142,34 @@ export default function AdminBackup() {
             <h2 className="text-lg font-bold text-foreground">Full Database Export</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Downloads every row from every table in a single JSON file. New tables you create
-            later are automatically included.
+            Downloads every row and every column from every public table in a single JSON file.
+            New tables you create later are automatically included. Admin login and the export PIN
+            are both required.
           </p>
-          <Button onClick={handleExport} disabled={exporting} className="rounded-xl">
-            {exporting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" /> Export All Data (JSON)
-              </>
-            )}
-          </Button>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="relative">
+              <ShieldCheck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={exportPin}
+                onChange={(event) => setExportPin(event.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="Enter download PIN"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                className="h-11 rounded-xl pl-10"
+              />
+            </div>
+            <Button onClick={handleExport} disabled={exporting || exportPin.trim().length === 0} className="h-11 rounded-xl">
+              {exporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" /> Export Full Database
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="bg-card rounded-2xl border border-border p-6">

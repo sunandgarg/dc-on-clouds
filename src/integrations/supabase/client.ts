@@ -5,9 +5,25 @@ import { backendFetch, backendTarget, invokeAwsFunction } from '@/lib/backendMod
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const FALLBACK_SUPABASE_URL = 'https://kozdctbbvrnyddlftmvf.supabase.co';
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_XeGGxsGIdsWpU0u3L3xSTg_I775axzd';
+
+const resolvedSupabaseUrl =
+  typeof SUPABASE_URL === 'string' && SUPABASE_URL.trim()
+    ? SUPABASE_URL.trim()
+    : FALLBACK_SUPABASE_URL;
+
+const resolvedSupabaseKey =
+  typeof SUPABASE_PUBLISHABLE_KEY === 'string' &&
+  SUPABASE_PUBLISHABLE_KEY.trim() &&
+  !SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')
+    ? SUPABASE_PUBLISHABLE_KEY.trim()
+    : FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 
 if (typeof SUPABASE_PUBLISHABLE_KEY === 'string' && SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')) {
-  throw new Error('VITE_SUPABASE_PUBLISHABLE_KEY must use a publishable key, not a Supabase secret key.');
+  console.error(
+    'VITE_SUPABASE_PUBLISHABLE_KEY is configured with a secret key. Using the public publishable fallback to avoid a blank site. Fix the production env variable.',
+  );
 }
 
 function isNewSupabaseApiKey(value: string): boolean {
@@ -37,9 +53,9 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-const supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+const supabaseClient = createClient<Database>(resolvedSupabaseUrl, resolvedSupabaseKey, {
   global: {
-    fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
+    fetch: createSupabaseFetch(resolvedSupabaseKey),
   },
   auth: {
     storage: localStorage,
