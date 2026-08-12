@@ -24,6 +24,7 @@ import { DocumentViewer } from "@/components/detail/DocumentViewer";
 import { RichText } from "@/components/detail/RichText";
 import { absoluteCanonical, absoluteSiteUrl } from "@/lib/constant";
 import { lazyRetry } from "@/lib/lazyRetry";
+import { stripVisibleArticleSources } from "@/lib/articleContentSanitizer";
 
 // Heavy below-the-fold components - lazy loaded for faster initial paint
 const AlsoCheckSection = lazyRetry(() => import("@/components/AlsoCheckSection").then(m => ({ default: m.AlsoCheckSection })), "AlsoCheckSection");
@@ -69,7 +70,7 @@ export default function ArticleDetail() {
         slug: dbArticle.slug,
         title: dbArticle.title,
         excerpt: (dbArticle.description || "").replace(/<[^>]+>/g, " ").slice(0, 240) || text.slice(0, 240),
-        content: dbArticle.content || dbArticle.description || "",
+        content: stripVisibleArticleSources(dbArticle.content || dbArticle.description || ""),
         category: dbArticle.category || "General",
         image: dbArticle.featured_image || "/placeholder.svg",
         readTime: `${mins} min read`,
@@ -80,7 +81,7 @@ export default function ArticleDetail() {
         author_id: (dbArticle as any).author_id as string | undefined,
       };
     }
-    return staticArticle ? { ...staticArticle, views: 0, author_id: undefined as string | undefined } : null;
+    return staticArticle ? { ...staticArticle, content: stripVisibleArticleSources(staticArticle.content), views: 0, author_id: undefined as string | undefined } : null;
   }, [dbArticle, staticArticle]);
 
   const navigate = useNavigate();

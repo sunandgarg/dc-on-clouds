@@ -11,14 +11,12 @@ const cors = {
 };
 
 const DEFAULT_SOURCES = [
-  { name: "Shiksha", url: "https://www.shiksha.com/news", source_type: "competitor" },
-  { name: "Careers360", url: "https://www.careers360.com/articles", source_type: "competitor" },
-  { name: "KollegeApply", url: "https://news.kollegeapply.com", source_type: "competitor" },
-  { name: "CollegeDunia", url: "https://collegedunia.com/news", source_type: "competitor" },
-  { name: "CollegeDekho", url: "https://www.collegedekho.com/news", source_type: "competitor" },
-  { name: "PaGaLGuY", url: "https://www.pagalguy.com/mba/articles", source_type: "competitor" },
+  { name: "Google News Education", url: "https://news.google.com/rss/search?q=education+OR+college+OR+admission+OR+exam+India&hl=en-IN&gl=IN&ceid=IN:en", source_type: "public_signal" },
+  { name: "Google News Exams", url: "https://news.google.com/rss/search?q=JEE+OR+NEET+OR+CUET+OR+CAT+OR+board+exam+India&hl=en-IN&gl=IN&ceid=IN:en", source_type: "public_signal" },
   { name: "DekhoCampus", url: "https://dekhocampus.com/news", source_type: "own" },
 ];
+
+const BLOCKED_ARTICLE_COMPETITOR_PATTERN = /(collegedekho|college\s*dekho|collegedunia|college\s*dunia|shiksha|careers\s*360|careers360|kollege\s*apply|kollegeapply|getmyuni|pagalguy)/i;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -53,9 +51,12 @@ function normalizeArticleLinks(html: unknown) {
 
 function stripArticleSourceSection(value: unknown) {
   return String(value || "")
-    .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources|references|citations)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>(.|\n|\r)*$/i, "")
-    .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources|references|citations)\s*(?:<\/strong>|<\/b>)?\s*<\/p>(.|\n|\r)*$/i, "")
-    .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources|references|citations)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)(.|\n|\r)*$/i, "")
+    .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources?|references?|citations?|bibliography|source\s+links?|credits?)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>[\s\S]*$/i, "")
+    .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources?|references?|citations?|bibliography|source\s+links?|credits?)\s*(?:<\/strong>|<\/b>)?(?:\s*<br\s*\/?>)?[\s\S]*$/i, "")
+    .replace(/<div[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources?|references?|citations?|bibliography|source\s+links?|credits?)\s*(?:<\/strong>|<\/b>)?(?:\s*<br\s*\/?>)?[\s\S]*$/i, "")
+    .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources?|references?|citations?|bibliography|source\s+links?|credits?)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)[\s\S]*$/i, "")
+    .replace(/<p[^>]*>(?:(?!<\/p>)[\s\S])*(?:collegedekho|college\s*dekho|collegedunia|college\s*dunia|shiksha|careers\s*360|careers360|kollege\s*apply|kollegeapply|getmyuni|pagalguy)(?:(?!<\/p>)[\s\S])*<\/p>\s*$/gi, "")
+    .replace(/(?:^|\n)\s*(?:[-*]\s*)?(?:\*\*)?[^\n]*(?:collegedekho|college\s*dekho|collegedunia|college\s*dunia|shiksha|careers\s*360|careers360|kollege\s*apply|kollegeapply|getmyuni|pagalguy)[^\n]*(?:\*\*)?\s*$/gim, "")
     .trim();
 }
 
@@ -97,7 +98,8 @@ async function requireAccess(req: Request, admin: any) {
 }
 
 async function fetchSignals(sources: any[]) {
-  const results = await Promise.allSettled(sources.map(async (source) => {
+  const safeSources = sources.filter((source) => !BLOCKED_ARTICLE_COMPETITOR_PATTERN.test(`${source?.name || ""} ${source?.url || ""}`));
+  const results = await Promise.allSettled(safeSources.map(async (source) => {
     const response = await fetch(source.url, {
       headers: {
         "User-Agent": "DekhoCampus editorial research bot/1.0",
@@ -108,7 +110,7 @@ async function fetchSignals(sources: any[]) {
     const signal = stripHtml((await response.text()).slice(0, 160000)).slice(0, 4500);
     return { ...source, ok: true, signal };
   }));
-  return results.map((result, index) => result.status === "fulfilled" ? result.value : { ...sources[index], ok: false, signal: "Fetch failed" });
+  return results.map((result, index) => result.status === "fulfilled" ? result.value : { ...safeSources[index], ok: false, signal: "Fetch failed" });
 }
 
 async function loadInternalLinkContext(admin: any, topic: any) {
@@ -510,7 +512,7 @@ Deno.serve(async (req) => {
     const existingTitleList = existingArticles.map((article: any) => normalizedTitle(article.title));
     const existingTitles = new Set(existingTitleList);
 
-    const topicPrompt = `You are the DekhoCampus education-news editor. Today is ${new Date().toISOString().slice(0, 10)} in India.\n\nResearch signals from competitor and own website pages:\n${JSON.stringify(signals)}\n\nRecent DekhoCampus article titles and slugs to avoid duplicates:\n${JSON.stringify(existingArticles.slice(0, 1500).map((a: any) => ({ title: a.title, slug: a.slug })))}\n\nPick the best ${Math.max(settings.posts_per_run * 2, 4)} article opportunities for Indian students and parents. Prioritise timely admissions, exams, counselling, scholarships, careers and college decisions. Reject anything already covered by DekhoCampus. Do not copy competitors. Return JSON only: {topics:[{title,angle,primary_keyword,geo_focus,reason,category,tags:[...]}]}.`;
+    const topicPrompt = `You are the DekhoCampus education-news editor. Today is ${new Date().toISOString().slice(0, 10)} in India.\n\nResearch signals from official, public, Google News/trend and own website pages only:\n${JSON.stringify(signals)}\n\nRecent DekhoCampus article titles and slugs to avoid duplicates:\n${JSON.stringify(existingArticles.slice(0, 1500).map((a: any) => ({ title: a.title, slug: a.slug })))}\n\nPick the best ${Math.max(settings.posts_per_run * 2, 4)} article opportunities for Indian students and parents. Prioritise timely admissions, exams, counselling, scholarships, careers and college decisions. Reject anything already covered by DekhoCampus. Do not use, cite, mention or link competitor publishers. Return JSON only: {topics:[{title,angle,primary_keyword,geo_focus,reason,category,tags:[...]}]}.`;
     const generatedTopics = entityResearchMode
       ? selectedEntityTopics
       : ((await parseOrRepairJson(blogAi, await generateBlogJsonResilient(admin, blogAi, topicPrompt + "\nUse natural plain language, never use an em dash, and return JSON only.", "topic-research"), admin)).topics || []);
@@ -546,7 +548,7 @@ Deno.serve(async (req) => {
         required_sections: settings.required_sections,
         minimum_sources: settings.minimum_sources,
         editorial_quality_target: settings.editorial_quality_target,
-      })}\n\nTarget length: ${settings.word_limit} words.\n\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker}.\n\nRules: optimise for the configured search, answer-engine, geographic and AI-discovery goals while prioritising student usefulness. Open with a concise direct answer, use descriptive headings, short paragraphs, comparison-ready facts, FAQs, named entities, and small hyphen '-' only. Write naturally with varied sentence length and concrete student-facing explanations; do not claim a human or detector score. Never copy source wording or structure. Avoid fake certainty on dates, fees, cutoffs or rules. Use official and reliable research context only to verify facts, but do not add any visible Sources, References, Citations, bibliography or competitor-credit section in content_html. Do not mention competitor publication names in the article body. Keep source notes only inside research_notes for internal editorial review. Add useful internal links only when a matching DekhoCampus college, course, exam, job profile, scholarship, tool or news page is present in the supplied context.`;
+      })}\n\nTarget length: ${settings.word_limit} words.\n\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker}.\n\nRules: optimise for the configured search, answer-engine, geographic and AI-discovery goals while prioritising student usefulness. Open with a concise direct answer, use descriptive headings, short paragraphs, comparison-ready facts, FAQs, named entities, and small hyphen '-' only. Write naturally with varied sentence length and concrete student-facing explanations; do not claim a human or detector score. Never copy source wording or structure. Avoid fake certainty on dates, fees, cutoffs or rules. Use official, first-party, regulator, authority, government, university, exam-authority, Google News/trend and DekhoCampus internal context only. Do not use competitor sites as research sources. Do not add any visible Sources, References, Citations, bibliography, source links, credits or competitor-credit section in content_html. Never mention or link competitor publication names/domains such as CollegeDekho, Collegedunia, Shiksha, Careers360, KollegeApply, GetMyUni or PaGaLGuY in the article body. Keep source notes only inside research_notes for internal editorial review. Add useful internal links only when a matching DekhoCampus college, course, exam, job profile, scholarship, tool or news page is present in the supplied context.`;
       const articleRaw = await generateBlogJsonResilient(admin, blogAi, articlePrompt + "\nThis is AI-assisted content that requires editorial review. Never claim human authorship, undetectability, a detector score or 0 AI.", "article-generation");
       await assertRunActive(admin, runId);
       const draft = await parseOrRepairJson(blogAi, articleRaw, admin);

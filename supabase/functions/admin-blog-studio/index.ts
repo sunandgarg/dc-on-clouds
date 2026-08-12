@@ -4,17 +4,23 @@ import { blogTextProviderLabel, generateAndUploadBlogCover, generateBlogJson, lo
 import { applyBlogTextRuntimeControl, applyImageRuntimeControl } from "../_shared/ai-control.ts";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
-const COMPETITORS = ["https://www.shiksha.com/news", "https://www.careers360.com/articles", "https://news.kollegeapply.com", "https://collegedunia.com/news", "https://www.collegedekho.com/news", "https://www.pagalguy.com/mba/articles"];
+const RESEARCH_SOURCES = [
+  "https://news.google.com/rss/search?q=education+OR+college+OR+admission+OR+exam+India&hl=en-IN&gl=IN&ceid=IN:en",
+  "https://news.google.com/rss/search?q=JEE+OR+NEET+OR+CUET+OR+CAT+OR+board+exam+India&hl=en-IN&gl=IN&ceid=IN:en",
+  "https://dekhocampus.com/news",
+];
 const stripHtml = (input: string) => input.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const slugify = (value: string) => value.toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 90);
 const stripArticleSourceSection = (value: unknown) => String(value || "")
-  .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources|references|citations)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>(.|\n|\r)*$/i, "")
-  .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources|references|citations)\s*(?:<\/strong>|<\/b>)?\s*<\/p>(.|\n|\r)*$/i, "")
-  .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources|references|citations)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)(.|\n|\r)*$/i, "")
+  .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources?|references?|citations?|bibliography|source\s+links?|credits?)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>[\s\S]*$/i, "")
+  .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources?|references?|citations?|bibliography|source\s+links?|credits?)\s*(?:<\/strong>|<\/b>)?(?:\s*<br\s*\/?>)?[\s\S]*$/i, "")
+  .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources?|references?|citations?|bibliography|source\s+links?|credits?)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)[\s\S]*$/i, "")
+  .replace(/<p[^>]*>(?:(?!<\/p>)[\s\S])*(?:collegedekho|college\s*dekho|collegedunia|college\s*dunia|shiksha|careers\s*360|careers360|kollege\s*apply|kollegeapply|getmyuni|pagalguy)(?:(?!<\/p>)[\s\S])*<\/p>\s*$/gi, "")
+  .replace(/(?:^|\n)\s*(?:[-*]\s*)?(?:\*\*)?[^\n]*(?:collegedekho|college\s*dekho|collegedunia|college\s*dunia|shiksha|careers\s*360|careers360|kollege\s*apply|kollegeapply|getmyuni|pagalguy)[^\n]*(?:\*\*)?\s*$/gim, "")
   .trim();
 
-async function competitorSignals() {
-  const results = await Promise.allSettled(COMPETITORS.map(async (url) => {
+async function researchSignals() {
+  const results = await Promise.allSettled(RESEARCH_SOURCES.map(async (url) => {
     const response = await fetch(url, { headers: { "User-Agent": "DekhoCampus editorial research bot/1.0" } });
     if (!response.ok) return { url, signal: "unavailable" };
     return { url, signal: stripHtml((await response.text()).slice(0, 120000)).slice(0, 3000) };
@@ -47,10 +53,10 @@ Deno.serve(async (req) => {
     } = await req.json();
     if (!String(topic || "").trim()) throw new Error("A blog topic is required");
     const admin = await requireAdmin(req);
-    const signals = await competitorSignals();
+    const signals = await researchSignals();
     const config = await loadBlogAiConfig(admin, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await applyBlogTextRuntimeControl(admin, "blog-studio", config);
-    const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Create one original, fact-conscious education news article about: ${topic}\nAudience: ${audience}\nTarget length: ${word_limit} words.\nDiscovery goals: ${JSON.stringify(content_goals)}.\nResearch signals - use only for trend awareness and never copy wording, structure, titles, claims or images:\n${JSON.stringify(signals)}\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker,hero_hook}.\nRules: open with a concise direct answer; use natural plain language, descriptive headings, comparison-ready facts, short paragraphs, FAQs, named entities, and only the small hyphen '-'. Never use an em dash. Use official and reliable research context to verify facts, but do not include any visible Sources, References, Citations, bibliography or competitor-credit section in content_html. Do not mention competitor publication names in the article body. Keep source notes only inside research_notes for internal editorial review. Avoid unverifiable claims and keyword stuffing, and optimise for the configured search, answer-engine, geographic and AI-discovery goals. This is AI-assisted and requires editor review. Never claim human authorship, undetectability, a detector score or '0 AI'.`;
+    const prompt = `Today is ${new Date().toISOString().slice(0, 10)}. Create one original, fact-conscious education news article about: ${topic}\nAudience: ${audience}\nTarget length: ${word_limit} words.\nDiscovery goals: ${JSON.stringify(content_goals)}.\nResearch signals - use only for trend awareness and never copy wording, structure, titles, claims or images:\n${JSON.stringify(signals)}\nReturn JSON only: {title,slug,description,content_html,meta_title,meta_description,meta_keywords,tags,entity_suggestions:[{entity_type,entity_slug,label}],research_notes,cover_kicker,hero_hook}.\nRules: open with a concise direct answer; use natural plain language, descriptive headings, comparison-ready facts, short paragraphs, FAQs, named entities, and only the small hyphen '-'. Never use an em dash. Use official, first-party, regulator, authority, government, university, exam-authority, Google News/trend and DekhoCampus internal context only. Do not use competitor sites as research sources. Do not include any visible Sources, References, Citations, bibliography, source links, credits or competitor-credit section in content_html. Never mention or link competitor publication names/domains such as CollegeDekho, Collegedunia, Shiksha, Careers360, KollegeApply, GetMyUni or PaGaLGuY in the article body. Keep private source notes only inside research_notes for internal editorial review. Avoid unverifiable claims and keyword stuffing, and optimise for the configured search, answer-engine, geographic and AI-discovery goals. This is AI-assisted and requires editor review. Never claim human authorship, undetectability, a detector score or '0 AI'.`;
     const raw = await generateBlogJson(config, prompt, { admin, feature: "blog-studio", operation: "draft" });
     const draft = JSON.parse(raw.replace(/^```json|```$/g, "").trim());
     draft.slug = slugify(draft.slug || draft.title || topic);

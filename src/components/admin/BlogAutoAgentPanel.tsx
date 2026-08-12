@@ -89,8 +89,8 @@ const DEFAULT_SETTINGS: Settings = {
   audience: "Indian students and parents",
   tone: "Clear, practical, trustworthy",
   content_goals: ["SEO", "AEO", "GEO", "AIO", "LLMO", "LLM"],
-  required_sections: ["Quick answer", "Key facts", "Step-by-step guidance", "FAQs", "Sources"],
-  minimum_sources: 2,
+  required_sections: ["Quick answer", "Key facts", "Step-by-step guidance", "FAQs"],
+  minimum_sources: 1,
   editorial_quality_target: 80,
   human_review_required: true,
   image_mode: "generated",
@@ -106,12 +106,8 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 const DEFAULT_SOURCES: Source[] = [
-  { name: "Shiksha", url: "https://www.shiksha.com/news", source_type: "competitor", is_active: true },
-  { name: "Careers360", url: "https://www.careers360.com/articles", source_type: "competitor", is_active: true },
-  { name: "KollegeApply", url: "https://news.kollegeapply.com", source_type: "competitor", is_active: true },
-  { name: "CollegeDunia", url: "https://collegedunia.com/news", source_type: "competitor", is_active: true },
-  { name: "CollegeDekho", url: "https://www.collegedekho.com/news", source_type: "competitor", is_active: true },
-  { name: "PaGaLGuY", url: "https://www.pagalguy.com/mba/articles", source_type: "competitor", is_active: true },
+  { name: "Google News Education", url: "https://news.google.com/rss/search?q=education%20admission%20India", source_type: "own", is_active: true },
+  { name: "Google News Exams", url: "https://news.google.com/rss/search?q=exam%20counselling%20admission%20India", source_type: "own", is_active: true },
   { name: "DekhoCampus", url: "https://dekhocampus.com/news", source_type: "own", is_active: true },
 ];
 

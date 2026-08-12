@@ -42,15 +42,10 @@ type GenOptions = {
 };
 
 const DEFAULT_ARTICLE_RESEARCH_SOURCES = [
-  "https://www.shiksha.com/news",
-  "https://www.careers360.com/articles",
-  "https://news.kollegeapply.com",
-  "https://collegedunia.com/news",
-  "https://www.collegedekho.com/news",
-  "https://www.pagalguy.com/mba/articles",
-  "https://dekhocampus.com/news",
   "https://dekhocampus.com/news",
 ];
+
+const BLOCKED_ARTICLE_COMPETITOR_PATTERN = /(collegedekho|college\s*dekho|collegedunia|college\s*dunia|shiksha|careers\s*360|careers360|kollege\s*apply|kollegeapply|getmyuni|pagalguy)/i;
 
 const GOOGLE_TRENDS_EDUCATION_SOURCE = "https://trends.google.com/trending/rss?geo=IN";
 const VIRAL_EDUCATION_SOURCES = [
@@ -103,10 +98,16 @@ function stripHtml(input: string) {
 }
 
 function stripArticleSourceSection(value: string) {
+  const labels = "(?:sources?|references?|citations?|bibliography|source\\s+links?|credits?)";
+  const competitors = "(?:collegedekho|college\\s*dekho|collegedunia|college\\s*dunia|shiksha|careers\\s*360|careers360|kollege\\s*apply|kollegeapply|getmyuni|pagalguy)";
   return String(value || "")
-    .replace(/<h[1-6][^>]*>\s*(?:<[^>]+>\s*)*(?:sources|references|citations)(?:\s*<\/[^>]+>)*\s*<\/h[1-6]>(.|\n|\r)*$/i, "")
-    .replace(/<p[^>]*>\s*(?:<strong>|<b>)?\s*(?:sources|references|citations)\s*(?:<\/strong>|<\/b>)?\s*<\/p>(.|\n|\r)*$/i, "")
-    .replace(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:sources|references|citations)\s*(?:\*\*)?\s*(?:\n|<br\s*\/?>)(.|\n|\r)*$/i, "")
+    .replace(new RegExp(`<h[1-6][^>]*>\\s*(?:<[^>]+>\\s*)*${labels}(?:\\s*<\\/[^>]+>)*\\s*<\\/h[1-6]>[\\s\\S]*$`, "i"), "")
+    .replace(new RegExp(`<p[^>]*>\\s*(?:<strong>|<b>)?\\s*${labels}\\s*(?:<\\/strong>|<\\/b>)?(?:\\s*<br\\s*\\/?>)?[\\s\\S]*$`, "i"), "")
+    .replace(new RegExp(`<div[^>]*>\\s*(?:<strong>|<b>)?\\s*${labels}\\s*(?:<\\/strong>|<\\/b>)?(?:\\s*<br\\s*\\/?>)?[\\s\\S]*$`, "i"), "")
+    .replace(new RegExp(`(?:^|\\n)\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?\\s*${labels}\\s*(?:\\*\\*)?\\s*(?:\\n|<br\\s*\\/?>)[\\s\\S]*$`, "i"), "")
+    .replace(new RegExp(`<p[^>]*>(?:(?!<\\/p>)[\\s\\S])*${competitors}(?:(?!<\\/p>)[\\s\\S])*<\\/p>\\s*$`, "gi"), "")
+    .replace(new RegExp(`<li[^>]*>(?:(?!<\\/li>)[\\s\\S])*${competitors}(?:(?!<\\/li>)[\\s\\S])*<\\/li>\\s*$`, "gi"), "")
+    .replace(new RegExp(`(?:^|\\n)\\s*(?:[-*]\\s*)?(?:\\*\\*)?[^\\n]*${competitors}[^\\n]*(?:\\*\\*)?\\s*$`, "gim"), "")
     .trim();
 }
 
@@ -125,7 +126,7 @@ function coverSvg(title: string, kicker: string) {
 }
 
 async function fetchArticleResearchSignals(sources: string[]) {
-  const uniqueSources = [...new Set(sources.map((source) => String(source || "").trim()).filter((source) => /^https:\/\//i.test(source)))].slice(0, 10);
+  const uniqueSources = [...new Set(sources.map((source) => String(source || "").trim()).filter((source) => /^https:\/\//i.test(source) && !BLOCKED_ARTICLE_COMPETITOR_PATTERN.test(source)))].slice(0, 10);
   const results = await Promise.allSettled(uniqueSources.map(async (source) => {
     const response = await fetch(source, {
       headers: {
@@ -403,8 +404,9 @@ ${opts.author_name ? `- Byline / author display name: ${opts.author_name}` : ""}
 ${entity_type === "articles" ? `- Target article length: around ${wordLimit} words
 - Editorial style: original, natural, plain Indian education guidance. Use normal small hyphen '-' only. Do not use em dash.
 - Optimise for SEO, GEO and AEO with useful headings, concise definitions, FAQ-ready answers and internal links.
-- Use official and reliable research context only to verify facts. Do not add any visible Sources, References, Citations, bibliography or competitor-credit section in article content.
-- Do not mention competitor publication names in the article body. Keep source notes only inside research_notes for internal editorial review.
+- Use official, first-party, regulator, authority, government, university, exam-authority, Google News/trend and DekhoCampus internal context only. Do not use competitor sites as research sources.
+- Do not add any visible Sources, References, Citations, bibliography, source links, credits or competitor-credit section in article content.
+- Never mention or link competitor publication names/domains such as CollegeDekho, Collegedunia, Shiksha, Careers360, KollegeApply, GetMyUni or PaGaLGuY in the article body. Keep any private source notes only inside research_notes for internal editorial review.
 - Do not claim "0 AI" or "human-written". Make the article genuinely useful and editor-review ready.` : ""}
 
 WORKFLOW (must follow in order for every record):
