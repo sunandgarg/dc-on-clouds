@@ -39,16 +39,53 @@ export function useDbArticles() {
   });
 }
 
-export function useAllDbArticles() {
+const normalizeArticleSearch = (value: string | undefined) =>
+  (value || "")
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export function useAllDbArticles(search?: string) {
+  const normalizedSearch = normalizeArticleSearch(search);
+
   return useQuery({
-    queryKey: ["db-articles-all"],
+    queryKey: ["db-articles-all", normalizedSearch],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("articles")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as DbArticle[];
+      const pageSize = 1000;
+      const rows: DbArticle[] = [];
+
+      for (let from = 0; ; from += pageSize) {
+        let query = supabase
+          .from("articles")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (normalizedSearch) {
+          const ilikeTerm = `%${normalizedSearch.replace(/\s+/g, "%")}%`;
+          query = query.or(
+            [
+              `title.ilike.${ilikeTerm}`,
+              `slug.ilike.${ilikeTerm}`,
+              `author.ilike.${ilikeTerm}`,
+              `category.ilike.${ilikeTerm}`,
+              `content.ilike.${ilikeTerm}`,
+            ].join(",")
+          );
+        }
+
+        const { data, error } = await query
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+        rows.push(...((data || []) as DbArticle[]));
+
+        if (!data || data.length < pageSize) break;
+      }
+
+      return rows;
     },
     staleTime: 2 * 60 * 1000,
   });

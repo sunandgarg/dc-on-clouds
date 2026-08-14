@@ -3,7 +3,7 @@ import { AIGenerateDialog } from "@/components/admin/AIGenerateDialog";
 import { BlogStudioDialog } from "@/components/admin/BlogStudioDialog";
 import { BlogAutoAgentPanel } from "@/components/admin/BlogAutoAgentPanel";
 import { EntityResearchBlogPanel } from "@/components/admin/EntityResearchBlogPanel";
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { useAllDbArticles, useSaveArticle, useDeleteArticle, type DbArticle } from "@/hooks/useArticlesData";
 import { AdminFormSection } from "@/components/AdminFormSection";
@@ -59,22 +59,37 @@ const emptyArticle: Partial<DbArticle> = {
   is_active: true, status: "Draft",
 };
 
+const normalizeAdminArticleSearch = (value: unknown) =>
+  String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
 export default function AdminArticles() {
-  const { data: articles, isLoading, refetch: refetchArticles } = useAllDbArticles();
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const { data: articles, isLoading, refetch: refetchArticles } = useAllDbArticles(deferredSearch);
   const { data: CATEGORIES = [] } = useArticleCategories();
   const saveArticle = useSaveArticle();
   const deleteArticle = useDeleteArticle();
   const [editing, setEditing] = useDraftState<Partial<DbArticle> | null>('admin.articles.editing.v1', null);
-  const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkCategory, setBulkCategory] = useState("");
   const [bulkVertical, setBulkVertical] = useState("");
 
-  const filtered = (articles ?? []).filter((a) =>
-    a.title.toLowerCase().includes(search.toLowerCase()) || a.slug.toLowerCase().includes(search.toLowerCase())
-  );
+  const normalizedSearch = normalizeAdminArticleSearch(deferredSearch);
+  const filtered = useMemo(() => {
+    // useAllDbArticles performs server-side search when a query is present.
+    // Do not re-filter locally, otherwise admin search can look limited to the
+    // currently prefetched rows instead of the complete articles table.
+    return articles ?? [];
+  }, [articles, normalizedSearch]);
 
   const { can, isAdmin } = useAuth();
   const canPublish = isAdmin || can("articles", "publish") || can("articles", "edit");
@@ -126,7 +141,12 @@ export default function AdminArticles() {
       toast.error("You don't have permission to publish. Save as Draft - an editor will review it.");
       return;
     }
-    const desiredRank = (editing as any).featured_rank ?? null;
+    const rawRank = (editing as any).featured_rank ?? null;
+    const desiredRank = rawRank == null ? null : Number(rawRank);
+    if (desiredRank != null && (!Number.isInteger(desiredRank) || desiredRank < 1 || desiredRank > 5)) {
+      toast.error("Featured slot must be empty or between #1 and #5.");
+      return;
+    }
     const { featured_rank: _omit, ...payload } = editing as any;
     saveArticle.mutate(payload, {
       onSuccess: async () => {

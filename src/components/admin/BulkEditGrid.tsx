@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,16 @@ export type BulkColumn = {
   /** Decimal increment for numeric fields, e.g. 0.1 for ratings. */
   step?: number;
 };
+
+const normalizeBulkSearch = (value: unknown) =>
+  String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 
 interface Props {
   table: string;
@@ -55,6 +65,8 @@ export function BulkEditGrid({
 }: Props) {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const deferredQ = useDeferredValue(q);
+  const normalizedQ = normalizeBulkSearch(deferredQ);
   const [draft, setDraft] = useState<Record<string, Record<string, any>>>({});
   const [saving, setSaving] = useState(false);
   const [visible, setVisible] = useState<Record<string, boolean>>(
@@ -64,25 +76,30 @@ export function BulkEditGrid({
   const selectCols = Array.from(new Set(["id", ...columns.map((c) => c.key), ...selectExtra]));
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["bulk-edit", table, pageSize],
+    queryKey: ["bulk-edit", table, pageSize, normalizedQ, searchKeys.join("|")],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      let query = (supabase as any)
         .from(table)
         .select(selectCols.join(","))
-        .order(orderBy.column, { ascending: orderBy.ascending ?? false })
-        .limit(pageSize);
+        .order(orderBy.column, { ascending: orderBy.ascending ?? false });
+
+      if (normalizedQ) {
+        const ilikeTerm = `%${normalizedQ.replace(/\s+/g, "%")}%`;
+        query = query.or(searchKeys.map((key) => `${key}.ilike.${ilikeTerm}`).join(","));
+      }
+
+      const { data, error } = await query.limit(normalizedQ ? Math.max(pageSize, 1000) : pageSize);
       if (error) throw error;
       return (data ?? []) as any[];
     },
   });
 
   const filtered = useMemo(() => {
-    const ql = q.trim().toLowerCase();
-    if (!ql) return rows;
+    if (!normalizedQ) return rows;
     return rows.filter((r) =>
-      searchKeys.some((k) => String(r[k] ?? "").toLowerCase().includes(ql))
+      searchKeys.some((k) => normalizeBulkSearch(r[k]).includes(normalizedQ))
     );
-  }, [rows, q, searchKeys]);
+  }, [rows, normalizedQ, searchKeys]);
 
   const dirtyIds = useMemo(
     () => Object.keys(draft).filter((id) => Object.keys(draft[id] || {}).length > 0),
