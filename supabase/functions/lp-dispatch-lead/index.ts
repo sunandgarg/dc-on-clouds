@@ -16,7 +16,39 @@ function inAny(v: string | null | undefined, list: string[] | null): boolean {
   if (!list || list.length === 0) return true;
   if (!v) return false;
   const x = norm(v);
-  return list.some((y) => norm(y) === x);
+  return list.some((y) => {
+    const needle = norm(y);
+    return needle === x || (needle.length >= 2 && x.includes(needle));
+  });
+}
+function getLeadFieldValue(lead: any, field: string): string {
+  if (!field) return "";
+  const direct = lead[field];
+  if (direct !== undefined && direct !== null) return String(direct);
+  const aliases: Record<string, string[]> = {
+    mobile: ["phone", "mobile"],
+    phone: ["phone", "mobile"],
+    course: ["interested_course_slug", "course", "initial_query", "cta"],
+    college: ["interested_college_slug", "college", "university"],
+    exam: ["interested_exam_slug", "exam"],
+    campaign: ["campaign", "cta"],
+  };
+  for (const candidate of aliases[norm(field)] || []) {
+    if (lead[candidate] !== undefined && lead[candidate] !== null) return String(lead[candidate]);
+  }
+  return "";
+}
+function genericFieldChecks(rule: any, lead: any): Array<[string[] | null, string | undefined]> {
+  const matchFields = rule?.match_fields || {};
+  if (!matchFields || typeof matchFields !== "object" || Array.isArray(matchFields)) return [];
+  return Object.entries(matchFields)
+    .map(([field, values]) => {
+      const list = Array.isArray(values)
+        ? values.map((v) => String(v)).filter(Boolean)
+        : String(values || "").split(",").map((v) => v.trim()).filter(Boolean);
+      return [list, getLeadFieldValue(lead, field)] as [string[] | null, string | undefined];
+    })
+    .filter(([list]) => list && list.length > 0);
 }
 function ruleMatches(rule: any, lead: any): boolean {
   const checks: Array<[string[] | null, string | undefined]> = [
@@ -25,10 +57,30 @@ function ruleMatches(rule: any, lead: any): boolean {
     [rule.match_courses, lead.interested_course_slug || lead.initial_query || lead.cta],
     [rule.match_sources, lead.source],
     [rule.match_ctas, lead.cta],
+    ...genericFieldChecks(rule, lead),
   ];
   const active = checks.filter(([l]) => l && l.length > 0);
   if (!active.length) return true;
   return rule.match_all ? active.every(([l, v]) => inAny(v, l)) : active.some(([l, v]) => inAny(v, l));
+}
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  let next = 0;
+  const safeConcurrency = Math.max(1, Math.min(concurrency, items.length || 1));
+  await Promise.all(
+    Array.from({ length: safeConcurrency }, async () => {
+      while (next < items.length) {
+        const index = next++;
+        results[index] = await worker(items[index], index);
+      }
+    }),
+  );
+  return results;
 }
 
 async function isRateLimited(uni: any): Promise<boolean> {
@@ -129,8 +181,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: uniError.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const results: any[] = [];
-    for (const uni of unis || []) {
+    const automationConcurrency = Math.min(
+      5,
+      Math.max(
+        1,
+        ...(unis || []).map((uni: any) => Number(uni.default_push_concurrency || uni.defaultPushConcurrency || 1) || 1),
+      ),
+    );
+
+    const results = await runWithConcurrency(unis || [], automationConcurrency, async (uni: any) => {
       const rule = uniToRule.get(uni.id);
       const flow = flows.find((f: any) => (f.rule_ids || []).includes(rule?.id));
       const multi = (multis || []).find((m: any) => (m.flow_ids || []).includes(flow?.id));
@@ -156,13 +215,11 @@ Deno.serve(async (req) => {
       });
 
       if (dry_run) {
-        results.push({ university: uni.name, would_push: true, rule: rule?.name, prefill_keys: Object.keys(prefill), overrides: fieldOverrides });
-        continue;
+        return { university: uni.name, would_push: true, rule: rule?.name, prefill_keys: Object.keys(prefill), overrides: fieldOverrides };
       }
       if (await isRateLimited(uni)) {
         await supabase.from("lp_push_logs").insert({ lead_id: lead.id ?? null, university_id: uni.id, rule_id: rule?.id, flow_id: flow?.id, multi_flow_id: multi?.id, status: "RateLimited", error: `> ${uni.leads_per_minute}/min` });
-        results.push({ university: uni.name, status: "RateLimited" });
-        continue;
+        return { university: uni.name, status: "RateLimited" };
       }
       const r = await buildAndSend(uni, enriched, fieldOverrides);
 
@@ -170,9 +227,9 @@ Deno.serve(async (req) => {
         lead_id: lead.id ?? null, university_id: uni.id, rule_id: rule?.id, flow_id: flow?.id, multi_flow_id: multi?.id,
         status: r.status, http_status: r.httpStatus, request_payload: r.payload as any, response_body: r.body, error: r.error || null,
       });
-      results.push({ university: uni.name, status: r.status, http: r.httpStatus });
-    }
-    return new Response(JSON.stringify({ ok: true, dispatched: results.length, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return { university: uni.name, status: r.status, http: r.httpStatus };
+    });
+    return new Response(JSON.stringify({ ok: true, dispatched: results.length, concurrency: automationConcurrency, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("lp-dispatch-lead", e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.cat-response-analyzer]
 verify_jwt = false
+
+[functions.lp-dispatch-lead]
+verify_jwt = false

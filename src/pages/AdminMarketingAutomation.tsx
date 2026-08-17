@@ -36,13 +36,14 @@ type Rule = {
   match_courses: string[];
   match_sources: string[];
   match_ctas: string[];
+  match_fields?: Record<string, string[]>;
   university_ids: string[];
   prefills: Record<string, Record<string, Record<string, any>>>; // {uniId: {scenario: {field: mapping}}}
 };
 
 type Uni = { id: string; name: string; api_url: string; api_type: string; is_active: boolean; column_mapping: any; default_values: any };
 
-const LEAD_SELECT = "id,name,email,phone,city,state,source,initial_query,interested_college_slug,interested_course_slug,cta,created_at";
+const LEAD_SELECT = "id,name,email,phone,city,state,source,initial_query,interested_college_slug,interested_course_slug,interested_exam_slug,cta,page_url,program_mode,device_type,source_category,otp_verified,consent_terms_accepted,created_at";
 
 const STATUS_COLORS: Record<string, string> = {
   Success: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
@@ -250,7 +251,16 @@ export default function AdminMarketingAutomation() {
     if (!search.trim()) return rules;
     const q = search.toLowerCase();
     return rules.filter((r) => {
-      const hay = [r.name, r.description, ...r.match_cities, ...r.match_states, ...r.match_courses, ...r.match_sources, ...r.match_ctas].join(" ").toLowerCase();
+      const hay = [
+        r.name,
+        r.description,
+        ...r.match_cities,
+        ...r.match_states,
+        ...r.match_courses,
+        ...r.match_sources,
+        ...r.match_ctas,
+        ...Object.entries(r.match_fields || {}).flatMap(([field, values]) => [field, ...(values || [])]),
+      ].join(" ").toLowerCase();
       const uniHits = (r.university_ids || []).some((id) => uniMap.get(id)?.name?.toLowerCase().includes(q));
       return hay.includes(q) || uniHits;
     });
@@ -269,7 +279,7 @@ export default function AdminMarketingAutomation() {
     if (!search.trim()) return recentLeads;
     const q = search.toLowerCase();
     return recentLeads.filter((l) =>
-      [l.name, l.phone, l.city, l.state, l.source, l.interested_course_slug, l.cta].join(" ").toLowerCase().includes(q),
+      [l.name, l.phone, l.city, l.state, l.source, l.interested_course_slug, l.interested_exam_slug, l.cta, l.page_url, l.program_mode, l.source_category].join(" ").toLowerCase().includes(q),
     );
   }, [recentLeads, search]);
 
@@ -278,7 +288,7 @@ export default function AdminMarketingAutomation() {
       name: `New Routing Rule ${rules.length + 1}`,
       description: "", priority: 100, is_active: true, auto_dispatch: true, match_all: false,
       match_cities: [], match_states: [], match_courses: [], match_sources: [], match_ctas: [],
-      university_ids: [], prefills: {},
+      match_fields: {}, university_ids: [], prefills: {},
     } as any).select().single();
     if (error) return toast.error(error.message);
     toast.success("Rule created");
@@ -437,7 +447,11 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 function RuleCard({ rule, unis, uniMap, onEdit, onPrefills, onToggle, onDelete }: any) {
   const targets = (rule.university_ids || []).map((id: string) => uniMap.get(id)).filter(Boolean);
-  const filterCount = (rule.match_courses || []).length + (rule.match_cities || []).length + (rule.match_states || []).length + (rule.match_sources || []).length + (rule.match_ctas || []).length;
+  const genericFilterCount = Object.values(rule.match_fields || {}).reduce(
+    (sum: number, values: any) => sum + (Array.isArray(values) ? values.length : 0),
+    0,
+  );
+  const filterCount = (rule.match_courses || []).length + (rule.match_cities || []).length + (rule.match_states || []).length + (rule.match_sources || []).length + (rule.match_ctas || []).length + genericFilterCount;
   return (
     <Card className="p-5 hover:border-orange-500/40 transition-all group">
       <div className="flex items-start justify-between gap-4">
@@ -463,6 +477,12 @@ function RuleCard({ rule, unis, uniMap, onEdit, onPrefills, onToggle, onDelete }
             <FilterRow label="States" items={rule.match_states} />
             <FilterRow label="Sources" items={rule.match_sources} />
             <FilterRow label="CTAs" items={rule.match_ctas} />
+            <FilterRow
+              label="Any lead field"
+              items={Object.entries(rule.match_fields || {}).flatMap(([field, values]: any) =>
+                (values || []).map((value: string) => `${field}: ${value}`),
+              )}
+            />
           </div>
 
           <div className="mt-3 pt-3 border-t border-border">
@@ -506,6 +526,112 @@ function FilterRow({ label, items }: { label: string; items: string[] }) {
     <div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">{label}</div>
       <Chips items={items || []} />
+    </div>
+  );
+}
+
+const LEAD_FIELD_OPTIONS = [
+  "name",
+  "email",
+  "phone",
+  "city",
+  "state",
+  "source",
+  "cta",
+  "page_url",
+  "initial_query",
+  "current_situation",
+  "interested_college_slug",
+  "interested_course_slug",
+  "interested_exam_slug",
+  "program_mode",
+  "device_type",
+  "source_category",
+  "otp_verified",
+  "consent_terms_accepted",
+];
+
+function GenericLeadFieldMatcher({
+  value,
+  onChange,
+}: {
+  value: Record<string, string[]>;
+  onChange: (value: Record<string, string[]>) => void;
+}) {
+  const [field, setField] = useState(LEAD_FIELD_OPTIONS[0]);
+  const [rawValues, setRawValues] = useState("");
+
+  const addRule = () => {
+    const values = rawValues
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!field || !values.length) return;
+    onChange({
+      ...value,
+      [field]: Array.from(new Set([...(value[field] || []), ...values])),
+    });
+    setRawValues("");
+  };
+
+  const removeValue = (fieldName: string, index: number) => {
+    const nextValues = (value[fieldName] || []).filter((_, i) => i !== index);
+    const next = { ...value };
+    if (nextValues.length) next[fieldName] = nextValues;
+    else delete next[fieldName];
+    onChange(next);
+  };
+
+  const entries = Object.entries(value || {}).filter(([, values]) => values?.length);
+
+  return (
+    <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-3">
+      <Label className="text-sm">Any lead column trigger</Label>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Use this for any column from All Leads. Example: source_category = college or program_mode = online.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-[180px_1fr_auto]">
+        <Select value={field} onValueChange={setField}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {LEAD_FIELD_OPTIONS.map((option) => (
+              <SelectItem key={option} value={option}>{option.replace(/_/g, " ")}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          value={rawValues}
+          onChange={(event) => setRawValues(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addRule();
+            }
+          }}
+          placeholder="value 1, value 2"
+          className="h-9"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={addRule}>
+          Add
+        </Button>
+      </div>
+      {entries.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {entries.map(([fieldName, values]) => (
+            <div key={fieldName} className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">{fieldName.replace(/_/g, " ")}:</span>
+              {values.map((item, index) => (
+                <span key={`${fieldName}-${item}-${index}`} className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-xs text-blue-600">
+                  {item}
+                  <button type="button" onClick={() => removeValue(fieldName, index)} className="hover:text-rose-500">
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -555,7 +681,7 @@ function RuleEditor({ rule, unis, onClose }: { rule: Rule; unis: Uni[]; onClose:
     const { error } = await supabase.from("lp_automation_rules" as any).update({
       name: r.name, description: r.description, priority: r.priority, is_active: r.is_active, auto_dispatch: r.auto_dispatch,
       match_all: r.match_all, match_cities: r.match_cities, match_states: r.match_states, match_courses: r.match_courses,
-      match_sources: r.match_sources, match_ctas: r.match_ctas, university_ids: r.university_ids,
+      match_sources: r.match_sources, match_ctas: r.match_ctas, match_fields: r.match_fields || {}, university_ids: r.university_ids,
     } as any).eq("id", r.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -632,6 +758,10 @@ function RuleEditor({ rule, unis, onClose }: { rule: Rule; unis: Uni[]; onClose:
               <Label>Campaign / CTA ({r.match_ctas.length})</Label>
               <SearchableMultiSelect value={r.match_ctas} onChange={(v) => set("match_ctas", v)} options={opts.ctas} placeholder="Pick a CTA" />
             </div>
+            <GenericLeadFieldMatcher
+              value={r.match_fields || {}}
+              onChange={(value) => set("match_fields", value)}
+            />
           </div>
 
           <Separator />
@@ -998,13 +1128,14 @@ function PrefillEditor({ rule, unis, onSaved }: { rule: Rule; unis: Uni[]; onSav
 
 
 function LiveTester({ rules, unis, recentLeads, selectedLead }: { rules: Rule[]; unis: Uni[]; recentLeads: any[]; selectedLead?: any | null }) {
-  const [lead, setLead] = useState({ name: "Test Lead", email: "test@dekho.com", phone: "9876543210", city: "Delhi", state: "Delhi", source: "chatbot", interested_course_slug: "btech", cta: "" });
+  const [lead, setLead] = useState({ name: "Test Lead", email: "test@dekho.com", phone: "9876543210", city: "Delhi", state: "Delhi", source: "chatbot", interested_course_slug: "btech", cta: "", source_category: "college", program_mode: "regular" });
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
   const loadFrom = useCallback((l: any) => setLead({
     name: l.name || "", email: l.email || "", phone: l.phone || "", city: l.city || "", state: l.state || "",
     source: l.source || "", interested_course_slug: l.interested_course_slug || l.initial_query || "", cta: l.cta || "",
+    source_category: l.source_category || "", program_mode: l.program_mode || "",
   }), []);
 
   useEffect(() => {
@@ -1031,7 +1162,7 @@ function LiveTester({ rules, unis, recentLeads, selectedLead }: { rules: Rule[];
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {(["name", "phone", "city", "state", "source", "interested_course_slug", "cta", "email"] as const).map((k) => (
+          {(["name", "phone", "city", "state", "source", "interested_course_slug", "cta", "email", "source_category", "program_mode"] as const).map((k) => (
             <div key={k}>
               <Label className="text-xs capitalize">{k.replace(/_/g, " ")}</Label>
               <Input value={(lead as any)[k] || ""} onChange={(e) => setLead((p) => ({ ...p, [k]: e.target.value }))} className="h-9" />
@@ -1256,4 +1387,3 @@ function FieldMappingRow({
     </div>
   );
 }
-
