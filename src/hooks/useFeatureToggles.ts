@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ensureBootstrap } from '@/lib/bootstrap';
 
 interface FeatureToggle {
   feature_key: string;
@@ -13,15 +12,13 @@ export function useFeatureToggles() {
   const { data: toggles = [], isLoading } = useQuery({
     queryKey: ['feature-toggles'],
     queryFn: async () => {
-      const boot = await ensureBootstrap();
-      if (boot?.feature_toggles) return boot.feature_toggles as FeatureToggle[];
       const { data, error } = await supabase
         .from('feature_toggles')
         .select('feature_key, label, parent_key, is_enabled');
       if (error) throw error;
       return data as FeatureToggle[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 min cache
   });
 
   const isFeatureEnabled = (featureKey: string): boolean => {

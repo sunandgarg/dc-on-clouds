@@ -23,16 +23,21 @@ interface CustomColumn {
   apiFieldName?: string;
 }
 
-// The canonical export shape for a single university
+// The canonical export shape for a single university.
+// Index signature allows ANY extra column to flow through losslessly on export/import.
 export interface UniversityExportData {
+  [key: string]: any;
   name: string;
   apiUrl: string;
   collegeId: string;
   secretKey: string;
+  secret_key?: string; // snake_case alias for portability
   source: string;
   medium: string;
   campaign: string;
   leadsPerMinute: number;
+  apiTimeoutSeconds?: number;
+  defaultPushConcurrency?: number;
   apiType: string;
   columnMapping: Record<string, string>;
   payloadFields: PayloadField[];
@@ -48,6 +53,9 @@ export interface UniversityExportData {
   authHeaderValue?: string;
   payloadWrapper?: string;
   customHeaders?: Record<string, string>;
+  defaultValues?: Record<string, any>;
+  status?: string;
+  daily_lead_limit?: number | null;
 }
 
 // Wrapped export format (single)
@@ -68,22 +76,30 @@ export interface BulkUniversityExport {
 /** Convert a DB-shaped university object to the canonical export shape */
 export function universityToExportData(uni: any): UniversityExportData {
   const payloadFields = columnMappingToPayloadFields(uni.column_mapping || {});
+  const secret = uni.secret_key || '';
+  // Full pass-through: export EVERY column from the DB row so re-import is lossless.
+  // We keep the canonical camelCase aliases too, so downstream code keeps working.
+  const raw = { ...(uni || {}) };
   return {
+    ...raw, // every db column (snake_case + any custom field) preserved verbatim
     name: uni.name || '',
     apiUrl: uni.api_url || '',
     collegeId: uni.college_id || '',
-    secretKey: uni.secret_key || '',
+    secretKey: secret,
+    secret_key: secret,
     source: uni.source || 'dekhocampus',
     medium: uni.medium || 'dekhocampus',
     campaign: uni.campaign || 'API',
-    leadsPerMinute: uni.leads_per_minute || 5,
+    leadsPerMinute: uni.leads_per_minute || 90,
+    apiTimeoutSeconds: uni.api_timeout_seconds ?? 30,
+    defaultPushConcurrency: uni.default_push_concurrency ?? 2,
     apiType: uni.api_type || 'nopaperforms',
     columnMapping: uni.column_mapping || {},
     payloadFields,
     programs: uni.programs || [],
-    stateCities: uni.stateCities || [],
-    courseSpecializations: uni.courseSpecializations || [],
-    customColumns: uni.customColumns || [],
+    stateCities: uni.stateCities || uni.state_cities || [],
+    courseSpecializations: uni.courseSpecializations || uni.course_specializations || [],
+    customColumns: uni.customColumns || uni.custom_columns || [],
     utmLink: uni.utm_link || '',
     publisherPanelUrl: uni.publisher_panel_url || '',
     publisherId: uni.publisher_id || '',
@@ -92,6 +108,9 @@ export function universityToExportData(uni: any): UniversityExportData {
     authHeaderValue: uni.auth_header_value || '',
     payloadWrapper: uni.payload_wrapper || 'object',
     customHeaders: uni.custom_headers || {},
+    defaultValues: uni.default_values || {},
+    status: uni.status || 'live',
+    daily_lead_limit: uni.daily_lead_limit ?? null,
   };
 }
 
@@ -117,7 +136,9 @@ export function normalizeImportedData(raw: any): UniversityExportData {
   const name = obj.name;
   if (!name) throw new Error('Missing university name in config');
 
+  // Lossless: forward EVERY field from the import payload, then overlay normalized aliases on top.
   return {
+    ...obj,
     name,
     apiUrl: obj.apiUrl ?? obj.api_url ?? '',
     collegeId: obj.collegeId ?? obj.college_id ?? '',
@@ -125,14 +146,16 @@ export function normalizeImportedData(raw: any): UniversityExportData {
     source: obj.source ?? 'dekhocampus',
     medium: obj.medium ?? 'dekhocampus',
     campaign: obj.campaign ?? 'API',
-    leadsPerMinute: obj.leadsPerMinute ?? obj.leads_per_minute ?? 5,
+    leadsPerMinute: obj.leadsPerMinute ?? obj.leads_per_minute ?? 90,
+    apiTimeoutSeconds: obj.apiTimeoutSeconds ?? obj.api_timeout_seconds ?? 30,
+    defaultPushConcurrency: obj.defaultPushConcurrency ?? obj.default_push_concurrency ?? 2,
     apiType: obj.apiType ?? obj.api_type ?? 'nopaperforms',
     columnMapping: obj.columnMapping ?? obj.column_mapping ?? {},
-    payloadFields: obj.payloadFields ?? [],
+    payloadFields: obj.payloadFields ?? obj.payload_fields ?? [],
     programs: obj.programs ?? [],
-    stateCities: obj.stateCities ?? [],
-    courseSpecializations: obj.courseSpecializations ?? [],
-    customColumns: obj.customColumns ?? [],
+    stateCities: obj.stateCities ?? obj.state_cities ?? [],
+    courseSpecializations: obj.courseSpecializations ?? obj.course_specializations ?? [],
+    customColumns: obj.customColumns ?? obj.custom_columns ?? [],
     utmLink: obj.utmLink ?? obj.utm_link ?? '',
     publisherPanelUrl: obj.publisherPanelUrl ?? obj.publisher_panel_url ?? '',
     publisherId: obj.publisherId ?? obj.publisher_id ?? '',
@@ -141,6 +164,9 @@ export function normalizeImportedData(raw: any): UniversityExportData {
     authHeaderValue: obj.authHeaderValue ?? obj.auth_header_value ?? '',
     payloadWrapper: obj.payloadWrapper ?? obj.payload_wrapper ?? 'object',
     customHeaders: obj.customHeaders ?? obj.custom_headers ?? {},
+    defaultValues: obj.defaultValues ?? obj.default_values ?? {},
+    status: obj.status ?? 'live',
+    daily_lead_limit: obj.daily_lead_limit ?? obj.dailyLeadLimit ?? obj.daily_limit ?? null,
   };
 }
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   Upload,
@@ -15,6 +15,9 @@ import {
   Search,
   FileDown,
   CalendarClock,
+  Lock,
+  Unlock,
+  Trash2,
 } from "lucide-react";
 import { parseCSV, generateSampleCSV } from "@/utils/csvParser";
 import {
@@ -30,7 +33,7 @@ import { SingleLeadForm } from "./SingleLeadForm";
 import { Alert } from "../Alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useUploadStatePersistence } from "@/hooks/useUploadStatePersistence";
-import { unthrottledWait, unthrottledInterval } from "@/lib/unthrottledTimer";
+import { appCache } from "@/hooks/useAppCache";
 
 interface CustomColumn {
   columnKey: string;
@@ -38,6 +41,94 @@ interface CustomColumn {
   isRequired: boolean;
   values: { value: string; parentValue?: string }[];
   apiFieldName?: string;
+}
+
+interface PayloadFieldDefinition {
+  fieldName?: string;
+  displayName?: string;
+  sourceType?: "lead_data" | "static" | "dynamic";
+  sourceKey?: string;
+  dynamicType?: "source" | "medium" | "campaign" | "college_id" | "secret_key";
+  staticValue?: string;
+  isRequired?: boolean;
+  sortOrder?: number;
+}
+
+function stringifyUiValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value == null) return "";
+  if (Array.isArray(value)) {
+    return value.map(stringifyUiValue).filter(Boolean).join(", ");
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const preferredKey = ["name", "contact_name", "value", "label", "displayName", "fieldName"].find(
+      (key) => key in record,
+    );
+    if (preferredKey) return stringifyUiValue(record[preferredKey]);
+    return Object.values(record).map(stringifyUiValue).filter(Boolean).join(", ");
+  }
+  return String(value).trim();
+}
+
+function normalizePartnerResponse(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "No response";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    const flattened = stringifyUiValue(value);
+    return flattened || "No response";
+  }
+}
+
+function normalizePartnerStatus(value: unknown): "Success" | "Duplicate" | "Fail" | "Cancelled" {
+  const status = stringifyUiValue(value).toLowerCase();
+  if (status === "success") return "Success";
+  if (status === "duplicate") return "Duplicate";
+  if (status === "cancelled") return "Cancelled";
+  return "Fail";
+}
+
+// This is the final UI boundary for asynchronous partner results. Do not rely
+// on TypeScript here: Edge Function JSON is untrusted at runtime and a partner
+// may return an object (CTPL has returned contact_name objects). React must
+// never receive those objects through live result state.
+function normalizeResponseMap(values: Map<number, unknown>): Map<number, string> {
+  return new Map(
+    Array.from(values.entries()).map(([index, value]) => [index, normalizePartnerResponse(value)] as const),
+  );
+}
+
+// CSV rows and old university mappings are user-controlled data. Keep the
+// boundary between them and React/API state strict: neither the preview nor a
+// partner request may ever receive an object value (for example
+// `{ contact_name: "..." }`).
+function normalizeLeadRow(value: Record<string, unknown>): Lead {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, fieldValue]) => [key, stringifyUiValue(fieldValue)]),
+  ) as Lead;
+}
+
+// Saved CSV mappings predate the current data normalizers. A damaged browser
+// cache can therefore contain a value such as `{ contact_name: "name" }`.
+// Mapping values are used by the select modal and must always be primitive
+// strings; repair them at the storage boundary, not only after CSV parsing.
+function normalizeCsvMapping(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([key, fieldValue]) => [stringifyUiValue(key), stringifyUiValue(fieldValue)] as const)
+      .filter(([key]) => Boolean(key)),
+  );
+}
+
+function clampUniversityNumber(value: unknown, fallback: number, minimum: number, maximum: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(maximum, Math.max(minimum, Math.round(parsed)));
 }
 
 interface University {
@@ -50,6 +141,8 @@ interface University {
   medium: string;
   campaign: string;
   leads_per_minute: number;
+  api_timeout_seconds?: number;
+  default_push_concurrency?: number;
   api_type: string;
   column_mapping: Record<string, string>;
   sample_csv_content?: string;
@@ -61,6 +154,185 @@ interface University {
   auth_header_key?: string;
   auth_header_value?: string;
   custom_headers?: Record<string, string>;
+}
+
+function parseJsonLike<T>(value: unknown, fallback: T): T {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
+  return (value as T) ?? fallback;
+}
+
+function normalizeKeyValueRecord(value: unknown): Record<string, string> {
+  const parsed = parseJsonLike<Record<string, unknown>>(value, {});
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+  return Object.fromEntries(
+    Object.entries(parsed)
+      .filter(([key]) => Boolean(key))
+      .map(([key, entryValue]) => [key, typeof entryValue === "string" ? entryValue : JSON.stringify(entryValue ?? "")]),
+  );
+}
+
+function sanitizePayloadFieldConfigValue(rawValue: string): string {
+  try {
+    const parsed = JSON.parse(rawValue) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return rawValue;
+
+    return JSON.stringify({
+      ...parsed,
+      fieldName: stringifyUiValue(parsed.fieldName),
+      displayName: stringifyUiValue(parsed.displayName) || stringifyUiValue(parsed.fieldName),
+      sourceKey: stringifyUiValue(parsed.sourceKey) || undefined,
+      staticValue: stringifyUiValue(parsed.staticValue) || undefined,
+    });
+  } catch {
+    return rawValue;
+  }
+}
+
+function normalizeColumnMappingRecord(value: unknown): Record<string, string> {
+  const record = normalizeKeyValueRecord(value);
+  return Object.fromEntries(
+    Object.entries(record).map(([key, entryValue]) => [
+      key,
+      key.startsWith("__field_") ? sanitizePayloadFieldConfigValue(entryValue) : entryValue,
+    ]),
+  );
+}
+
+function normalizeOptionValues(value: unknown): Array<{ value: string; parentValue?: string }> {
+  const parsed = parseJsonLike<unknown[]>(value, []);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((entry) => {
+      if (typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean") {
+        const normalized = String(entry).trim();
+        return normalized ? { value: normalized } : null;
+      }
+
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+
+      const valueCandidate = "value" in entry ? String((entry as Record<string, unknown>).value ?? "").trim() : "";
+      if (!valueCandidate) return null;
+
+      const parentCandidate =
+        "parentValue" in entry ? String((entry as Record<string, unknown>).parentValue ?? "").trim() : "";
+
+      return parentCandidate ? { value: valueCandidate, parentValue: parentCandidate } : { value: valueCandidate };
+    })
+    .filter((entry): entry is { value: string; parentValue?: string } => Boolean(entry));
+}
+
+function normalizeCustomColumns(value: unknown): CustomColumn[] {
+  const parsed = parseJsonLike<unknown[]>(value, []);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((entry, index) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+      const record = entry as Record<string, unknown>;
+      const columnKey = String(record.columnKey ?? record.column_key ?? "").trim();
+      const rawColumnName = record.columnName ?? record.column_name ?? columnKey ?? `column_${index + 1}`;
+      const columnName = String(rawColumnName).trim();
+
+      return {
+        columnKey: columnKey || `column_${index + 1}`,
+        columnName: columnName || columnKey || `Column ${index + 1}`,
+        isRequired: Boolean(record.isRequired ?? record.is_required),
+        values: normalizeOptionValues(record.values),
+        apiFieldName: String(record.apiFieldName ?? record.api_field_name ?? "").trim() || undefined,
+      } satisfies CustomColumn;
+    })
+    .filter((entry): entry is CustomColumn => Boolean(entry));
+}
+
+function normalizeStateCities(value: unknown): Array<{ state: string; city: string }> {
+  const parsed = parseJsonLike<unknown[]>(value, []);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+      const record = entry as Record<string, unknown>;
+      const state = String(record.state ?? "").trim();
+      const city = String(record.city ?? "").trim();
+      if (!state && !city) return null;
+      return { state, city };
+    })
+    .filter((entry): entry is { state: string; city: string } => Boolean(entry));
+}
+
+function normalizeCourseSpecializations(value: unknown): Array<{ course: string; specialization: string }> {
+  const parsed = parseJsonLike<unknown[]>(value, []);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+      const record = entry as Record<string, unknown>;
+      const course = String(record.course ?? "").trim();
+      const specialization = String(record.specialization ?? "").trim();
+      if (!course && !specialization) return null;
+      return { course, specialization };
+    })
+    .filter((entry): entry is { course: string; specialization: string } => Boolean(entry));
+}
+
+// University rows are user-editable JSON and a few older records contain
+// `customColumns`/`column_mapping` as strings or null. Normalize them before
+// rendering so one malformed university cannot crash the entire Lead Push
+// component and invoke the recovery boundary.
+function normalizeUniversityRecord(raw: any): University {
+  const columnMapping = normalizeColumnMappingRecord(raw?.column_mapping);
+  const customColumns = normalizeCustomColumns(raw?.customColumns ?? raw?.custom_columns);
+  const stateCities = normalizeStateCities(raw?.stateCities ?? raw?.state_cities);
+  const courseSpecializations = normalizeCourseSpecializations(
+    raw?.courseSpecializations ?? raw?.course_specializations,
+  );
+
+  return {
+    ...raw,
+    name: String(raw?.name ?? "Unnamed University"),
+    api_url: String(raw?.api_url ?? ""),
+    college_id: String(raw?.college_id ?? ""),
+    secret_key: String(raw?.secret_key ?? ""),
+    source: String(raw?.source ?? ""),
+    medium: String(raw?.medium ?? ""),
+    campaign: String(raw?.campaign ?? ""),
+    api_type: String(raw?.api_type ?? "nopaperforms"),
+    leads_per_minute: Number(raw?.leads_per_minute) || 60,
+    // Accept both database (snake_case) and edit-form (camelCase) records.
+    // The value stored for this university is authoritative; there is no
+    // hidden CTPL/default override in the upload runner.
+    api_timeout_seconds: clampUniversityNumber(
+      raw?.api_timeout_seconds ?? raw?.apiTimeoutSeconds,
+      30,
+      5,
+      300,
+    ),
+    default_push_concurrency: clampUniversityNumber(
+      raw?.default_push_concurrency ?? raw?.defaultPushConcurrency,
+      2,
+      1,
+      5,
+    ),
+    column_mapping: columnMapping,
+    customColumns,
+    stateCities,
+    courseSpecializations,
+    payload_wrapper: String(raw?.payload_wrapper ?? "object"),
+    auth_type: String(raw?.auth_type ?? "secret_key"),
+    auth_header_key: String(raw?.auth_header_key ?? ""),
+    auth_header_value: String(raw?.auth_header_value ?? ""),
+    custom_headers: normalizeKeyValueRecord(raw?.custom_headers),
+  } as University;
 }
 
 type ProcessingSlugState = "processing" | "paused" | "complete" | "idle";
@@ -82,9 +354,9 @@ const buildLeadIdentityKey = (lead: { name?: string | null; email?: string | nul
 
 const UPGRAD_EXACT_SAMPLE_CSV = [
   "firstname,lastname,email,phone.number,phone.code,course,sendWelcomeMail,city,state,country,isDetectLocation,affiliateSource,leadSource.platform,leadSource.platformSection,extraFields.chatLink,emailTemplateSuffix",
-  "FirstName,LastName,user@upgrad.com,9999999999,+91,entrepreneurship,true,Mumbai,Maharashtra,India,false,aff_id=1&sub_aff_id=12,,,haptik.com/1234567,in",
-  "Rahul,Sharma,rahul.sharma@example.com,9876543210,+91,entrepreneurship,true,Mumbai,Maharashtra,India,false,aff_id=1&sub_aff_id=12,,,haptik.com/1234567,in",
-  "Priya,Patel,priya.patel@example.com,9876501234,+91,entrepreneurship,true,Mumbai,Maharashtra,India,false,aff_id=1&sub_aff_id=12,,,haptik.com/1234567,in",
+  "FirstName,LastName,user@upgrad.com,9999999999,+91,entrepreneurship,false,Mumbai,Maharashtra,India,false,aff_id=1&sub_aff_id=12,,,haptik.com/1234567,in",
+  "Rahul,Sharma,rahul.sharma@example.com,9876543210,+91,entrepreneurship,false,Mumbai,Maharashtra,India,false,aff_id=1&sub_aff_id=12,,,haptik.com/1234567,in",
+  "Priya,Patel,priya.patel@example.com,9876501234,+91,entrepreneurship,false,Mumbai,Maharashtra,India,false,aff_id=1&sub_aff_id=12,,,haptik.com/1234567,in",
 ].join("\n");
 
 const UPGRAD_EXACT_FIELDS = [
@@ -105,6 +377,122 @@ const UPGRAD_EXACT_FIELDS = [
   "extraFields.chatLink",
   "emailTemplateSuffix",
 ];
+
+const LOCAL_STORAGE_PURGE_KEYS = new Set([
+  "upload:lastSourceLabel",
+  "dekhocampus_upload_leads_state_v1",
+  "dekhocampus_upload_v3",
+  "dekhocampus_upload_processing_v1",
+  "dekhocampus_app_cache_v3",
+  "dekhocampus_app_cache_v4",
+  "lpAdminDashboardCache.v2",
+]);
+
+const LOCAL_STORAGE_PURGE_PREFIXES = ["csv_mapping_", "dekhocampus_"];
+const SESSION_STORAGE_PURGE_KEYS = new Set([
+  "dc_route_state",
+  "app:chunk-reload",
+  "app:has_unsaved_draft",
+  "dekhocampus_upload_session_v1",
+  "dekhocampus_session_state_v2",
+  "dekhocampus_session_state_v3",
+]);
+const SESSION_STORAGE_PURGE_PREFIXES = ["app:page:", "app:sub_slugs", "app:draft_indicator", "dekhocampus_"];
+
+const CSV_HEADER_ALIASES: Record<string, string> = {
+  // This typo existed in the CTPL Invertis sample. Keep accepting old files so
+  // users do not have to manually repair already-downloaded CSVs.
+  campaign_nanme: "campaign_name",
+  campaign_namne: "campaign_name",
+};
+
+const normalizeMappingToken = (value: string | null | undefined) =>
+  (value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+
+function getPayloadFieldDefinitions(columnMapping: Record<string, string> = {}): PayloadFieldDefinition[] {
+  return Object.entries(columnMapping).flatMap(([key, value]) => {
+    if (!key.startsWith("__field_") || !value) return [];
+    try {
+      const rawField = JSON.parse(value) as PayloadFieldDefinition;
+      const fieldName = stringifyUiValue(rawField?.fieldName);
+      if (!fieldName) return [];
+      return [{
+        ...rawField,
+        fieldName,
+        displayName: stringifyUiValue(rawField?.displayName) || fieldName,
+        sourceKey: stringifyUiValue(rawField?.sourceKey) || undefined,
+        staticValue: stringifyUiValue(rawField?.staticValue) || undefined,
+        sortOrder: Number.isFinite(Number(rawField?.sortOrder)) ? Number(rawField?.sortOrder) : 0,
+      }];
+    } catch {
+      return [];
+    }
+  }).sort((left, right) => (left.sortOrder || 0) - (right.sortOrder || 0));
+}
+
+function getPreviewAliases(field: string): string[] {
+  const normalized = String(field || "").trim().toLowerCase();
+  if (["specialisation", "specialization"].includes(normalized)) {
+    return ["specialization", "Specialization", "Specialisation", "specialisation", "specializationName", "specialization_name"];
+  }
+  if (["program", "field_program", "programname", "program_name"].includes(normalized)) {
+    return ["program", "Program", "field_program", "programName", "program_name"];
+  }
+  if (normalized === "course") return ["course", "Course"];
+  if (normalized === "campus") return ["campus", "Campus"];
+  return [field].filter(Boolean);
+}
+
+function readPreviewLeadValue(lead: Lead, ...candidates: Array<string | undefined>): string {
+  const seen = new Set<string>();
+  const expanded = candidates
+    .filter(Boolean)
+    .flatMap((candidate) => getPreviewAliases(candidate as string))
+    .filter((candidate) => {
+      if (seen.has(candidate)) return false;
+      seen.add(candidate);
+      return true;
+    });
+
+  for (const candidate of expanded) {
+    const value = lead[candidate];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return "";
+}
+
+function getPayloadTargetForHeader(header: string, columnMapping: Record<string, string> = {}): string {
+  const aliasedHeader = CSV_HEADER_ALIASES[header.trim().toLowerCase()] || header;
+  const normalizedHeader = normalizeMappingToken(aliasedHeader);
+  const field = getPayloadFieldDefinitions(columnMapping).find((candidate) => {
+    if (candidate.sourceType && candidate.sourceType !== "lead_data") return false;
+    return [candidate.sourceKey, candidate.fieldName, candidate.displayName]
+      .filter(Boolean)
+      .some((value) => normalizeMappingToken(value) === normalizedHeader);
+  });
+  return field ? field.sourceKey?.trim() || field.fieldName?.trim() || "" : "";
+}
+
+function purgeStorageEntries(storage: Storage, keys: Set<string>, prefixes: string[]) {
+  const keysToRemove: string[] = [];
+
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (!key) continue;
+    if (key.startsWith("sb-") || key.includes("auth-token")) continue;
+    if (keys.has(key) || prefixes.some((prefix) => key.startsWith(prefix))) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => storage.removeItem(key));
+}
+
+async function purgeBrowserCacheStorage() {
+  if (!("caches" in window)) return;
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+}
 
 interface UploadLeadsTabProps {
   universities: University[];
@@ -127,15 +515,16 @@ export function UploadLeadsTab({
   currentFileName,
   currentProcessingState: _currentProcessingState = "idle",
 }: UploadLeadsTabProps) {
+  const safeUniversities = useMemo(() => universities.map(normalizeUniversityRecord), [universities]);
   const persistence = useUploadStatePersistence();
   const { state: persistedState, processing: persistedProcessing } = persistence;
 
   const [selectedUniversity, setSelectedUniversityState] = useState<University | null>(() => {
     if (persistedState.selectedUniversityId) {
-      const found = universities.find((u) => u.id === persistedState.selectedUniversityId);
+      const found = safeUniversities.find((u) => u.id === persistedState.selectedUniversityId);
       if (found) return found;
     }
-    return initialSelectedUniversity || null;
+    return initialSelectedUniversity ? normalizeUniversityRecord(initialSelectedUniversity) : null;
   });
 
   const leads = persistedState.leads;
@@ -155,30 +544,50 @@ export function UploadLeadsTab({
   const pageSize = persistedState.pageSize;
   const batchId = persistedState.batchId;
 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isBackgroundPolling, setIsBackgroundPolling] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(Boolean(persistedProcessing.isProcessing && persistedState.batchId));
+  // Per-run only: intentionally not included in upload persistence or university settings.
+  const [pushConcurrency, setPushConcurrency] = useState(2);
+  const [isConcurrencyUnlocked, setIsConcurrencyUnlocked] = useState(false);
+  const [showConcurrencyPin, setShowConcurrencyPin] = useState(false);
+  const [concurrencyPin, setConcurrencyPin] = useState("");
+  const [concurrencyPinError, setConcurrencyPinError] = useState("");
+  const [isPaused, setIsPaused] = useState(Boolean(persistedProcessing.isPaused));
+  const [isBackgroundPolling, setIsBackgroundPolling] = useState(Boolean(persistedProcessing.isProcessing && persistedState.batchId));
   const [showColumnMapping, setShowColumnMapping] = useState(false);
   // ✅ FIX 1: Local state for the mapping dialog - edits are instant, no persistence lag
   const [localColumnMapping, setLocalColumnMapping] = useState<Record<string, string>>({});
-  // Persistent user-added custom field names, per-university, stored in localStorage forever
-  const [userCustomFields, setUserCustomFields] = useState<string[]>([]);
   const [alert, setAlert] = useState<{ type: "success" | "error" | "info" | "warning"; message: string } | null>(null);
   const [startTime, setStartTime] = useState<number | null>(persistedProcessing.startTime);
   const [showSingleLeadForm, setShowSingleLeadForm] = useState(persistedState.showSingleLeadForm);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const [isPurgingCache, setIsPurgingCache] = useState(false);
   const [customPageSize, setCustomPageSize] = useState<string>("");
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState<string>("");
   const [scheduleTime, setScheduleTime] = useState<string>("");
   const [isScheduling, setIsScheduling] = useState(false);
+  const [sourceLabel, setSourceLabel] = useState<string>(() => {
+    try {
+      return localStorage.getItem("upload:lastSourceLabel") || "";
+    } catch {
+      return "";
+    }
+  });
+  // Post-mapping "Data Source" entry dialog
+  const [showSourceEntry, setShowSourceEntry] = useState(false);
+  const [pendingMapping, setPendingMapping] = useState<Record<string, string> | null>(null);
+  // Always ask fresh - do NOT persist source/description between uploads
+  const [pendingSourceLabel, setPendingSourceLabel] = useState<string>("");
+  const [pendingDataDescription, setPendingDataDescription] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const processingRef = useRef<boolean>(false);
   const pausedRef = useRef<boolean>(false);
+  const activeRunIdRef = useRef(0);
+  const activePacketControllersRef = useRef<Set<AbortController>>(new Set());
   const currentIndexRef = useRef<number>(persistedProcessing.currentIndex);
   const applyColumnMappingAndProcessRef = useRef<((mapping?: Record<string, string>) => void) | null>(null);
-  const pollingRef = useRef<(() => void) | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isPollingInFlightRef = useRef(false);
   const lastUrlProcessingStateRef = useRef<ProcessingSlugState | null>(null);
   // Refs for polling to avoid stale closures
@@ -193,6 +602,28 @@ export function UploadLeadsTab({
   useEffect(() => {
     pausedRef.current = isPaused;
   }, [isPaused]);
+
+  useEffect(() => {
+    if (!selectedUniversity?.id) {
+      setPushConcurrency(2);
+      setIsConcurrencyUnlocked(false);
+      return;
+    }
+
+    setPushConcurrency(Math.min(5, Math.max(1, selectedUniversity.default_push_concurrency || 2)));
+    setIsConcurrencyUnlocked(false);
+  }, [selectedUniversity?.id, selectedUniversity?.default_push_concurrency]);
+
+  // The parent refreshes university records after add/edit. Previously this
+  // component kept the old object when its id was unchanged, so a saved
+  // timeout/concurrency could look correct in Settings but never be used by
+  // Lead Push until a full browser refresh.
+  useEffect(() => {
+    const preferredId = initialSelectedUniversity?.id || persistedState.selectedUniversityId;
+    if (!preferredId) return;
+    const freshUniversity = safeUniversities.find((university) => university.id === preferredId);
+    if (freshUniversity) setSelectedUniversityState(freshUniversity);
+  }, [initialSelectedUniversity?.id, persistedState.selectedUniversityId, safeUniversities]);
 
   // Keep refs in sync for polling
   useEffect(() => {
@@ -258,7 +689,7 @@ export function UploadLeadsTab({
 
       if (isBatchComplete) {
         if (pollingRef.current) {
-          pollingRef.current();
+          clearInterval(pollingRef.current);
           pollingRef.current = null;
         }
         setIsBackgroundPolling(false);
@@ -282,83 +713,53 @@ export function UploadLeadsTab({
     }
   }, []);
 
-  // Start/stop polling when background processing state changes.
-  // Uses a Web Worker timer so polling continues when the tab is hidden.
+  // Start/stop polling when background processing state changes
   useEffect(() => {
     const shouldPoll = Boolean(batchId && isBackgroundPolling);
 
     if (shouldPoll && batchId) {
+      // Initial poll immediately
       pollBatchProgress(batchId);
-      pollingRef.current = unthrottledInterval(3000, () => {
+
+      // Then poll every 3 seconds
+      pollingRef.current = setInterval(() => {
         pollBatchProgress(batchId);
-      });
+      }, 3000);
     }
 
     return () => {
       if (pollingRef.current) {
-        pollingRef.current();
+        clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
     };
   }, [batchId, isBackgroundPolling, pollBatchProgress]);
 
-  // Clear stale processing state on page load without starting auto-polling.
-  // Polling every few seconds made the upload page look like it was refreshing.
+  // If the upload view remounts during an active push, restore the visible
+  // processing state instead of dropping back to "Process Now". Polling keeps
+  // the aggregate counters aligned with the active batch until it completes.
   useEffect(() => {
-    if (batchId && persistedProcessing.isProcessing && !isProcessing) {
-      setIsBackgroundPolling(false);
-      setIsProcessing(false);
-      setIsPaused(false);
-      setStartTime(null);
+    if (batchId && persistedProcessing.isProcessing) {
+      setIsProcessing(true);
+      setIsPaused(Boolean(persistedProcessing.isPaused));
+      setIsBackgroundPolling(true);
+      if (persistedProcessing.startTime) {
+        setStartTime(persistedProcessing.startTime);
+      }
     }
-  }, []);
-
-  // Hydrate persistent user-added custom fields whenever selected university changes
-  useEffect(() => {
-    if (!selectedUniversity) { setUserCustomFields([]); return; }
-    try {
-      const raw = localStorage.getItem(`csv_custom_fields_${selectedUniversity.id}`);
-      const arr = raw ? JSON.parse(raw) : [];
-      setUserCustomFields(Array.isArray(arr) ? arr.filter((v) => typeof v === "string" && v.trim()) : []);
-    } catch { setUserCustomFields([]); }
-  }, [selectedUniversity?.id]);
-
-  const addUserCustomField = useCallback((field: string) => {
-    if (!selectedUniversity) return;
-    const clean = field.trim();
-    if (!clean) return;
-    setUserCustomFields((prev) => {
-      if (prev.includes(clean)) return prev;
-      const next = [...prev, clean];
-      try {
-        localStorage.setItem(`csv_custom_fields_${selectedUniversity.id}`, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, [selectedUniversity?.id]);
-
-  const removeUserCustomField = useCallback((field: string) => {
-    if (!selectedUniversity) return;
-    setUserCustomFields((prev) => {
-      const next = prev.filter((f) => f !== field);
-      try {
-        localStorage.setItem(`csv_custom_fields_${selectedUniversity.id}`, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, [selectedUniversity?.id]);
+  }, [batchId, persistedProcessing.isProcessing, persistedProcessing.isPaused, persistedProcessing.startTime]);
 
   useEffect(() => {
-    if (persistedState.selectedUniversityId && universities.length > 0) {
-      const found = universities.find((u) => u.id === persistedState.selectedUniversityId);
+    if (persistedState.selectedUniversityId && safeUniversities.length > 0) {
+      const found = safeUniversities.find((u) => u.id === persistedState.selectedUniversityId);
       if (found && (!selectedUniversity || selectedUniversity.id !== found.id)) {
-        setSelectedUniversityState(found);
+        setSelectedUniversityState(normalizeUniversityRecord(found));
         if (onSelectUniversity) {
           onSelectUniversity(found);
         }
       }
     }
-  }, [universities, persistedState.selectedUniversityId]);
+  }, [safeUniversities, persistedState.selectedUniversityId]);
 
   const setLeads = useCallback(
     (newLeads: Lead[]) => {
@@ -403,7 +804,7 @@ export function UploadLeadsTab({
   const setLeadResponses = useCallback(
     (responses: Map<number, string>) => {
       persistence.setState({
-        leadResponses: Object.fromEntries(responses.entries()),
+        leadResponses: Object.fromEntries(normalizeResponseMap(responses).entries()),
       });
     },
     [persistence],
@@ -453,14 +854,18 @@ export function UploadLeadsTab({
 
   const setCsvHeaders = useCallback(
     (headers: string[]) => {
-      persistence.setState({ csvHeaders: headers });
+      persistence.setState({ csvHeaders: headers.map((header) => stringifyUiValue(header)).filter(Boolean) });
     },
     [persistence],
   );
 
   const setTempColumnMapping = useCallback(
     (mapping: Record<string, string>) => {
-      persistence.setState({ tempColumnMapping: mapping });
+      persistence.setState({
+        tempColumnMapping: Object.fromEntries(
+          Object.entries(mapping).map(([key, value]) => [stringifyUiValue(key), stringifyUiValue(value)]),
+        ),
+      });
     },
     [persistence],
   );
@@ -507,7 +912,7 @@ export function UploadLeadsTab({
       "phone.number": phone.number,
       course: lead.course || programOfInterest,
       country: lead.country || "India",
-      sendWelcomeMail: "true",
+      sendWelcomeMail: "false",
       isDetectLocation: lead.isDetectLocation || "false",
       affiliateSource: lead.affiliateSource || "aff_id=1&sub_aff_id=12",
       "leadSource.platform": lead["leadSource.platform"] || "",
@@ -518,7 +923,112 @@ export function UploadLeadsTab({
   };
 
   const slugifyUpgradCourse = (value: string) =>
-    (value || "").toString().trim().toLowerCase().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]/g, "");
+    (value || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_]+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
+  const isLeadSquaredCustomUiPublisher = (apiUrl?: string) =>
+    (apiUrl || "").toLowerCase().includes("customui.leadsquared.com");
+
+  const addFirstAvailablePayloadAlias = (payload: Record<string, string>, aliases: string[]) => {
+    const existingValue = aliases
+      .map((key) => payload[key])
+      .find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+
+    if (!existingValue) return;
+
+    aliases.forEach((key) => {
+      if (!payload[key] || !String(payload[key]).trim()) {
+        payload[key] = String(existingValue);
+      }
+    });
+  };
+
+  const addAcademicPayloadAliases = (payload: Record<string, string>) => {
+    addFirstAvailablePayloadAlias(payload, ["campus", "Campus"]);
+    addFirstAvailablePayloadAlias(payload, ["course", "Course"]);
+    addFirstAvailablePayloadAlias(payload, ["specialization", "Specialization", "Specialisation", "specialisation"]);
+  };
+
+  const canonicalizePayloadField = (payload: Record<string, string>, canonicalKey: string, aliases: string[]) => {
+    const existingValue = [canonicalKey, ...aliases]
+      .map((key) => payload[key])
+      .find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+
+    if (existingValue !== undefined && existingValue !== null) {
+      payload[canonicalKey] = String(existingValue);
+    }
+
+    aliases.forEach((key) => {
+      if (key !== canonicalKey) delete payload[key];
+    });
+  };
+
+  const normalizeMerittoNoPaperFormsPayload = (payload: Record<string, string>) => {
+    addFirstAvailablePayloadAlias(payload, ["campus", "Campus"]);
+    canonicalizePayloadField(payload, "course", ["Course"]);
+    canonicalizePayloadField(payload, "specialization", [
+      "Specialization",
+      "Specialisation",
+      "specialisation",
+      "specializationName",
+      "specialization_name",
+    ]);
+  };
+
+  const normalizeCustomUiPublisherPayload = (payload: unknown) => {
+    if (!isLeadSquaredCustomUiPublisher(selectedUniversity?.api_url) || Array.isArray(payload) || !payload || typeof payload !== "object") {
+      return payload;
+    }
+
+    const normalized = { ...(payload as Record<string, string>) };
+    addAcademicPayloadAliases(normalized);
+    return normalized;
+  };
+
+  const normalizeLeadSquaredTrackingFields = (payload: Record<string, string>) => {
+    const sourceValue = payload.leadSource || payload.source || "";
+    const mediumValue = payload.leadMedium || payload.medium || "";
+    const campaignValue = payload.leadCampaign || payload.campaign || "";
+
+    delete payload.source;
+    delete payload.medium;
+    delete payload.campaign;
+
+    if (sourceValue) payload.leadSource = sourceValue;
+    if (mediumValue) payload.leadMedium = mediumValue;
+    if (campaignValue) payload.leadCampaign = campaignValue;
+  };
+
+  const ensureLeadSquaredTrackingFields = (payload: Record<string, string>) => {
+    if (!payload.leadSource && selectedUniversity?.source) payload.leadSource = selectedUniversity.source;
+    if (!payload.leadMedium && selectedUniversity?.medium) payload.leadMedium = selectedUniversity.medium;
+    if (!payload.leadCampaign && selectedUniversity?.campaign) payload.leadCampaign = selectedUniversity.campaign;
+  };
+
+  const buildLeadSquaredAttributePayload = (payload: Record<string, string>) =>
+    Object.entries(payload)
+      .filter(([_, value]) => value !== undefined && value !== null && String(value).trim() !== "")
+      .sort(([left], [right]) => {
+        const preferredOrder = [
+          "FirstName",
+          "EmailAddress",
+          "Phone",
+          "mx_State",
+          "mx_City",
+          "mx_Course",
+          "leadSource",
+          "leadMedium",
+          "leadCampaign",
+        ];
+        const leftIndex = preferredOrder.includes(left) ? preferredOrder.indexOf(left) : preferredOrder.length;
+        const rightIndex = preferredOrder.includes(right) ? preferredOrder.indexOf(right) : preferredOrder.length;
+        return leftIndex === rightIndex ? 0 : leftIndex - rightIndex;
+      })
+      .map(([key, value]) => ({ Attribute: key, Value: String(value) }));
 
   const buildMappedPayloadPreview = (lead: Lead): string => {
     if (!selectedUniversity) return "";
@@ -526,6 +1036,7 @@ export function UploadLeadsTab({
     const apiType = selectedUniversity.api_type || "nopaperforms";
     const columnMapping = selectedUniversity.column_mapping || {};
     const customColumns = selectedUniversity.customColumns || [];
+    const payloadFields = getPayloadFieldDefinitions(columnMapping);
 
     const customColumnApiMapping: Record<string, string> = {};
     customColumns.forEach((col: any) => {
@@ -537,13 +1048,97 @@ export function UploadLeadsTab({
     const entries = Object.entries(lead).filter(([, v]) => typeof v === "string" && v.trim()) as Array<
       [string, string]
     >;
+    if (payloadFields.length > 0) {
+      const payload: Record<string, string> = {};
+      const manualAcademicFieldKeys = new Set(["campus", "course", "specialization", "specialisation", "program"]);
+      const payloadFieldKeys = new Set(
+        payloadFields
+          .flatMap((field) => [field.fieldName, field.sourceKey, field.displayName])
+          .filter(Boolean)
+          .map((field) => normalizeMappingToken(field as string)),
+      );
+
+      payloadFields.forEach((field) => {
+        if (!field.fieldName) return;
+        let value = "";
+        if (field.sourceType === "lead_data") {
+          const sourceKey = field.sourceKey?.trim() || field.fieldName;
+          value = readPreviewLeadValue(lead, sourceKey, field.fieldName);
+        } else if (field.sourceType === "static") {
+          value = field.staticValue || "";
+        } else if (field.sourceType === "dynamic") {
+          switch (field.dynamicType) {
+            case "source":
+              value = lead.leadSource?.trim() || selectedUniversity.source || "";
+              break;
+            case "medium":
+              value = lead.leadMedium?.trim() || selectedUniversity.medium || "";
+              break;
+            case "campaign":
+              value = lead.leadCampaign?.trim() || selectedUniversity.campaign || "";
+              break;
+            case "college_id":
+              value = selectedUniversity.college_id || "";
+              break;
+            case "secret_key":
+              value = selectedUniversity.secret_key ? "[hidden]" : "";
+              break;
+          }
+        }
+        if (value || field.isRequired) payload[field.fieldName] = value;
+      });
+
+      entries.forEach(([key, value]) => {
+        if (["leadSource", "leadMedium", "leadCampaign"].includes(key)) return;
+        // A manual CSV override is already represented by the lead key. Keep
+        // it when the university mapping does not contain that key (e.g.
+        // CSV column -> Campus while the saved field is named campus).
+        const mappedKey =
+          customColumnApiMapping[key] ||
+          columnMapping[key] ||
+          (payloadFieldKeys.has(normalizeMappingToken(key)) || manualAcademicFieldKeys.has(normalizeMappingToken(key))
+            ? key
+            : "");
+        if (mappedKey && !payload[mappedKey]) payload[mappedKey] = value;
+      });
+      Object.entries(columnMapping).forEach(([key, value]) => {
+        if (key.startsWith("__static_") && value && !payload[key.replace("__static_", "")]) {
+          payload[key.replace("__static_", "")] = value;
+        }
+      });
+
+      if (apiType === "meritto" || apiType === "nopaperforms") {
+        if (selectedUniversity.college_id && !payload.college_id) {
+          payload.college_id = selectedUniversity.college_id;
+        }
+        normalizeMerittoNoPaperFormsPayload(payload);
+      }
+
+      if (apiType === "leadsquared") {
+        normalizeLeadSquaredTrackingFields(payload);
+        ensureLeadSquaredTrackingFields(payload);
+        return JSON.stringify(buildLeadSquaredAttributePayload(payload), null, 2);
+      }
+
+      const normalizedPayload = normalizeCustomUiPublisherPayload(payload);
+      const finalPayload = selectedUniversity.payload_wrapper === "array" ? [normalizedPayload] : normalizedPayload;
+      return JSON.stringify(finalPayload, null, 2);
+    }
 
     if (apiType === "leadsquared") {
-      const payload = entries.map(([key, value]) => ({
-        Attribute: customColumnApiMapping[key] || columnMapping[key] || key,
-        Value: value,
-      }));
-      return JSON.stringify(payload, null, 2);
+      const trackingPayload: Record<string, string> = {};
+      entries.forEach(([key, value]) => {
+        const mappedKey = customColumnApiMapping[key] || columnMapping[key] || key;
+        trackingPayload[mappedKey] = value;
+      });
+      Object.entries(columnMapping).forEach(([key, value]) => {
+        if (key.startsWith("__static_") && value) {
+          trackingPayload[key.replace("__static_", "")] = value;
+        }
+      });
+      normalizeLeadSquaredTrackingFields(trackingPayload);
+      ensureLeadSquaredTrackingFields(trackingPayload);
+      return JSON.stringify(buildLeadSquaredAttributePayload(trackingPayload), null, 2);
     }
 
     if (apiType === "upgrad") {
@@ -553,7 +1148,12 @@ export function UploadLeadsTab({
       });
       const get = (upgradField: string, fallbackField: string) => {
         const mappedKey = (columnMapping as any)[`__upgrad_src_${upgradField}`] || fallbackField;
-        return ((lead as any)[mappedKey] || (lead as any)[upgradField] || (lead as any)[fallbackField] || "").toString();
+        return (
+          (lead as any)[mappedKey] ||
+          (lead as any)[upgradField] ||
+          (lead as any)[fallbackField] ||
+          ""
+        ).toString();
       };
       const fullName = (get("firstname", "name") || lead.name || "").trim();
       const parts = fullName.split(/\s+/).filter(Boolean);
@@ -564,7 +1164,14 @@ export function UploadLeadsTab({
         parts.join(" ") ||
         firstname;
       const phone = normalizeUpgradMobile(lead["phone.number"] || get("mobile", "mobile"));
-      const course = (lead.course || lead.programOfInterest || get("course", "course") || get("specialization", "specialization")).toString().trim();
+      const course = (
+        lead.course ||
+        lead.programOfInterest ||
+        get("course", "course") ||
+        get("specialization", "specialization")
+      )
+        .toString()
+        .trim();
       const upPayload: Record<string, unknown> = {
         firstname,
         lastname,
@@ -574,7 +1181,7 @@ export function UploadLeadsTab({
           code: lead["phone.code"] || lead["phone.countryCode"] || phone.countryCode,
         },
         course,
-        sendWelcomeMail: true,
+        sendWelcomeMail: false,
         city: get("city", "city"),
         state: get("state", "state"),
         country: lead.country || upgradMeta.country || "India",
@@ -624,6 +1231,27 @@ export function UploadLeadsTab({
         }
       });
 
+      // Include static payload fields (e.g. access_key) and __static_* entries
+      Object.entries(columnMapping).forEach(([key, value]) => {
+        if (key.startsWith("__static_") && value) {
+          payload[key.replace("__static_", "")] = value;
+        } else if (key.startsWith("__field_") && value) {
+          try {
+            const f = JSON.parse(value);
+            if (f && f.fieldName && f.sourceType === "static" && f.staticValue) {
+              payload[f.fieldName] = f.staticValue;
+            }
+          } catch {
+            /* skip */
+          }
+        }
+      });
+
+      if (selectedUniversity.college_id && !payload.college_id) {
+        payload.college_id = selectedUniversity.college_id;
+      }
+      normalizeMerittoNoPaperFormsPayload(payload);
+
       return JSON.stringify(payload, null, 2);
     }
 
@@ -668,13 +1296,15 @@ export function UploadLeadsTab({
       });
     }
 
-    const finalPayload = selectedUniversity.payload_wrapper === "array" ? [payload] : payload;
+    const normalizedPayload = normalizeCustomUiPublisherPayload(payload);
+    const finalPayload = selectedUniversity.payload_wrapper === "array" ? [normalizedPayload] : normalizedPayload;
     return JSON.stringify(finalPayload, null, 2);
   };
 
   const handleUniversityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const uni = universities.find((u) => u.id === e.target.value);
+    const uni = safeUniversities.find((u) => u.id === e.target.value);
     setSelectedUniversityState(uni || null);
+    persistence.setState({ selectedUniversityId: uni?.id || null });
     if (uni && onSelectUniversity) {
       onSelectUniversity(uni);
     }
@@ -700,12 +1330,28 @@ export function UploadLeadsTab({
     const reader = new FileReader();
 
     reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setCsvData(text);
+      // FileReader callbacks run outside React's event boundary. A malformed
+      // CSV or a bad saved mapping must therefore be handled here explicitly;
+      // otherwise the modal backdrop can remain mounted and look like a
+      // white/black screen with no useful error.
+      try {
+        const text = typeof event.target?.result === "string" ? event.target.result : "";
+        if (!text.trim()) throw new Error("The selected file is empty.");
+        setCsvData(text);
 
-      const isUpgradCsv = (selectedUniversity.api_type || "") === "upgrad";
-      const { data, headers } = parseCSV(text, { preserveHeaders: isUpgradCsv });
+        const isUpgradCsv = (selectedUniversity.api_type || "") === "upgrad";
+        const { data, headers } = parseCSV(text, { preserveHeaders: isUpgradCsv });
       setCsvHeaders(headers);
+
+      if (headers.length === 0 || data.length === 0) {
+        setShowColumnMapping(false);
+        delete (window as any).__pendingCsvData;
+        setAlert({
+          type: "error",
+          message: "This CSV has no usable header or lead rows. Please use the university sample and try again.",
+        });
+        return;
+      }
 
       // upGrad-specific pre-flight CSV validation (non-blocking warnings)
       if (isUpgradCsv) {
@@ -714,7 +1360,9 @@ export function UploadLeadsTab({
         const missing = required.filter((r) => !lowerHeaders.includes(r));
         const issues: string[] = [];
         if (missing.length) {
-          issues.push(`Missing exact upGrad column(s): ${missing.join(", ")}. Download the upGrad sample and keep these JSON-style headers unchanged.`);
+          issues.push(
+            `Missing exact upGrad column(s): ${missing.join(", ")}. Download the upGrad sample and keep these JSON-style headers unchanged.`,
+          );
         }
         const mobileKey = headers.find((h) => h.toLowerCase().trim() === "phone.number");
         const courseKey = headers.find((h) => h.toLowerCase().trim() === "course");
@@ -723,14 +1371,18 @@ export function UploadLeadsTab({
         let emptyRows = 0;
         data.forEach((row) => {
           const allEmpty = Object.values(row).every((v) => !v || !String(v).trim());
-          if (allEmpty) { emptyRows++; return; }
+          if (allEmpty) {
+            emptyRows++;
+            return;
+          }
           if (mobileKey) {
             const digits = String(row[mobileKey] || "").replace(/\D/g, "");
-            const normalized = digits.length === 12 && digits.startsWith("91")
-              ? digits.slice(2)
-              : digits.length === 11 && digits.startsWith("0")
-                ? digits.slice(1)
-                : digits;
+            const normalized =
+              digits.length === 12 && digits.startsWith("91")
+                ? digits.slice(2)
+                : digits.length === 11 && digits.startsWith("0")
+                  ? digits.slice(1)
+                  : digits;
             if (normalized.length !== 10) badMobiles++;
           }
           if (courseKey) {
@@ -738,8 +1390,14 @@ export function UploadLeadsTab({
             if (v && !/^[a-z0-9-]+$/.test(v)) badCourses++;
           }
         });
-        if (badMobiles) issues.push(`${badMobiles} row(s) have mobile numbers that aren't 10-digit Indian format (will be auto-normalized; +91/0 prefixes stripped).`);
-        if (badCourses) issues.push(`${badCourses} row(s) use course values with spaces/special characters. Keep course exactly as upGrad JSON expects, e.g. entrepreneurship.`);
+        if (badMobiles)
+          issues.push(
+            `${badMobiles} row(s) have mobile numbers that aren't 10-digit Indian format (will be auto-normalized; +91/0 prefixes stripped).`,
+          );
+        if (badCourses)
+          issues.push(
+            `${badCourses} row(s) use course values with spaces/special characters. Keep course exactly as upGrad JSON expects, e.g. entrepreneurship.`,
+          );
         if (emptyRows) issues.push(`${emptyRows} empty row(s) detected - they will be skipped.`);
         if (issues.length) {
           setAlert({
@@ -761,7 +1419,12 @@ export function UploadLeadsTab({
       const savedMappingRaw = localStorage.getItem(savedMappingKey);
       let savedMapping: Record<string, string> | null = null;
       try {
-        if (savedMappingRaw) savedMapping = JSON.parse(savedMappingRaw);
+        if (savedMappingRaw) {
+          savedMapping = normalizeCsvMapping(JSON.parse(savedMappingRaw));
+          // Replace old/bad cache immediately, so the same broken mapping
+          // cannot crash the modal again on the next upload.
+          localStorage.setItem(savedMappingKey, JSON.stringify(savedMapping));
+        }
       } catch {
         /* ignore */
       }
@@ -769,6 +1432,7 @@ export function UploadLeadsTab({
       // ✅ FIX 2: Always show mapping dialog - pre-fill with saved mapping if available
       if (savedMapping && headers.every((h) => h in savedMapping)) {
         setLocalColumnMapping(savedMapping);
+        setTempColumnMapping(savedMapping);
         (window as any).__pendingCsvData = data;
         setShowColumnMapping(true);
         return;
@@ -778,6 +1442,17 @@ export function UploadLeadsTab({
       const usedFields = new Set<string>();
       headers.forEach((header) => {
         const normalizedHeader = header.toLowerCase().trim();
+
+        // University payload fields take priority over generic aliases. This is
+        // essential when a partner needs both `program` and `course`: the old
+        // generic mapper collapsed `program` into `course` and silently skipped
+        // the real course column.
+        const payloadTarget = getPayloadTargetForHeader(header, selectedUniversity.column_mapping || {});
+        if (payloadTarget && !usedFields.has(payloadTarget)) {
+          initialMapping[header] = payloadTarget;
+          usedFields.add(payloadTarget);
+          return;
+        }
 
         if ((selectedUniversity.api_type || "") === "upgrad" && UPGRAD_EXACT_FIELDS.includes(header)) {
           initialMapping[header] = header;
@@ -828,7 +1503,11 @@ export function UploadLeadsTab({
             autoField = "leadSource";
           } else if (["medium", "lead_medium", "utm_medium", "lead medium"].includes(normalizedHeader)) {
             autoField = "leadMedium";
-          } else if (["campaign", "lead_campaign", "utm_campaign", "lead campaign"].includes(normalizedHeader)) {
+          } else if (
+            ["campaign", "campaign_name", "campaign_nanme", "campaign_namne", "lead_campaign", "utm_campaign", "lead campaign"].includes(
+              normalizedHeader,
+            )
+          ) {
             autoField = "leadCampaign";
           } else if (["address", "full_address", "street_address", "full address"].includes(normalizedHeader)) {
             autoField = "address";
@@ -844,23 +1523,50 @@ export function UploadLeadsTab({
       });
 
       // ✅ FIX 3: Set localColumnMapping (not persistence) so dialog edits work instantly
-      setLocalColumnMapping(initialMapping);
-      setShowColumnMapping(true);
-      (window as any).__pendingCsvData = data;
+        setLocalColumnMapping(initialMapping);
+        setShowColumnMapping(true);
+        (window as any).__pendingCsvData = data;
+      } catch (error) {
+        console.error("[Lead Push] CSV parsing failed:", error);
+        setShowColumnMapping(false);
+        setShowSourceEntry(false);
+        setPendingMapping(null);
+        setLocalColumnMapping({});
+        delete (window as any).__pendingCsvData;
+        setAlert({
+          type: "error",
+          message: error instanceof Error ? error.message : "The CSV could not be parsed. Please re-save it as UTF-8 CSV and try again.",
+        });
+      }
     };
 
     reader.readAsText(file);
+    reader.onerror = () => {
+      setShowColumnMapping(false);
+      delete (window as any).__pendingCsvData;
+      setAlert({ type: "error", message: "The CSV could not be read. Please re-save it as UTF-8 CSV and try again." });
+    };
   };
 
   // ✅ FIX 4: Accept mappingOverride so the "Apply" button passes localColumnMapping directly
   const applyColumnMappingAndProcess = useCallback(
     (mappingOverride?: Record<string, string>) => {
       const rawData = (window as any).__pendingCsvData;
-      if (!rawData || !selectedUniversity) return;
+      if (!rawData || !selectedUniversity) {
+        setShowColumnMapping(false);
+        setAlert({ type: "error", message: "The CSV preview expired. Please upload the file again." });
+        return;
+      }
 
-      const activeMapping = mappingOverride ?? tempColumnMapping;
+      try {
+
+      const activeMapping = normalizeCsvMapping(mappingOverride ?? tempColumnMapping);
       if (!Array.isArray(rawData) || rawData.length === 0) {
-        setAlert({ type: "error", message: "No lead rows found in this file. Please upload a CSV or tab-separated file with at least one data row." });
+        setAlert({
+          type: "error",
+          message:
+            "No lead rows found in this file. Please upload a CSV or tab-separated file with at least one data row.",
+        });
         return;
       }
 
@@ -884,12 +1590,28 @@ export function UploadLeadsTab({
           const value = row[csvHeader];
           if (value && targetField && targetField.trim() !== "") {
             (lead as any)[targetField] = value;
+
+            // Mirror payload-field aliases back to canonical lead fields so
+            // validation (which reads lead.email/mobile/name) doesn't flag them as Missing.
+            const tf = targetField.toLowerCase();
+            if (!lead.email && ["emailid", "email_id", "emailaddress", "email_address", "email", "emailaddress1"].includes(tf)) {
+              lead.email = value;
+            }
+            if (!lead.mobile && ["phone", "phonenumber", "phone_number", "mobilenumber", "mobile_number", "contact", "contactnumber", "mobile", "mobile_no"].includes(tf)) {
+              lead.mobile = value;
+            }
+            if (!lead.name && ["fullname", "full_name", "studentname", "student_name", "firstname", "name", "studentname1"].includes(tf)) {
+              lead.name = value;
+            }
           }
         });
 
         const locationValue = row.location || row.Location || row.LOCATION || "";
         if (locationValue && (!lead.city?.trim() || !lead.state?.trim())) {
-          const [cityPart, ...stateParts] = locationValue.split(",").map((part) => part.trim()).filter(Boolean);
+          const [cityPart, ...stateParts] = locationValue
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean);
           if (!lead.city?.trim() && cityPart) lead.city = cityPart;
           if (!lead.state?.trim() && stateParts.length > 0) lead.state = stateParts.join(", ");
         }
@@ -908,7 +1630,7 @@ export function UploadLeadsTab({
         if (!lead.leadCampaign?.trim() && selectedUniversity.campaign?.trim())
           lead.leadCampaign = selectedUniversity.campaign;
 
-        return normalizeUpgradLead(lead as Lead);
+        return normalizeLeadRow(normalizeUpgradLead(lead as Lead));
       });
 
       const payloadMap = new Map<number, string>();
@@ -950,7 +1672,18 @@ export function UploadLeadsTab({
       currentIndexRef.current = 0;
       setShowColumnMapping(false);
       setLocalColumnMapping({});
-      delete (window as any).__pendingCsvData;
+        delete (window as any).__pendingCsvData;
+      } catch (error) {
+        console.error("[Lead Push] Mapping failed:", error);
+        setShowColumnMapping(false);
+        setShowSourceEntry(false);
+        setPendingMapping(null);
+        delete (window as any).__pendingCsvData;
+        setAlert({
+          type: "error",
+          message: error instanceof Error ? error.message : "The column mapping could not be applied. Please upload the CSV again.",
+        });
+      }
     },
     [
       selectedUniversity,
@@ -1079,24 +1812,26 @@ export function UploadLeadsTab({
         processed_count: 0,
         current_lead_index: 0,
       })
-      .select()
+      .select("id")
       .single();
 
-    if (error) {
-      console.error("Error creating batch:", error);
-      return null;
-    }
+    if (error) throw new Error(`Failed to create batch: ${error.message}`);
     return data.id;
   };
 
-  // Frontend-driven processing - no leads saved to database
+  // Frontend-driven processing. Lead payloads are not stored in public.leads;
+  // only the batch history, counters, and aggregate statistics are persisted.
   const startBackgroundProcessing = async () => {
     if (!selectedUniversity || leads.length === 0) return;
 
     processingRef.current = true;
+    const runId = ++activeRunIdRef.current;
     setIsProcessing(true);
     setStartTime(Date.now());
-    setAlert({ type: "info", message: `Processing ${leads.length} leads...` });
+    setAlert({
+      type: "info",
+      message: `Processing ${leads.length} leads (${pushConcurrency} at a time)...`,
+    });
 
     try {
       const newBatchId = await createBatch("processing");
@@ -1109,48 +1844,70 @@ export function UploadLeadsTab({
       setBatchId(newBatchId);
 
       const apiConfig = getApiConfig();
-      const leadsPerMinute = selectedUniversity.leads_per_minute || 5;
-      const delayMs = Math.max(Math.round(60000 / leadsPerMinute), 200);
-
       const statuses = new Map<number, LeadProcessingStatus>();
       const responses = new Map<number, string>();
       let processed = 0;
+      let nextLeadIndex = 0;
+      const workerCount = Math.min(pushConcurrency, leads.length);
+      // Claim one lead per worker so Pause takes effect after only the currently
+      // active request (at most pushConcurrency leads), never a hidden packet.
+      const packetSize = 1;
 
-      for (let i = 0; i < leads.length; i++) {
-        if (!processingRef.current) break;
+      // Each worker still sends exactly one lead per request. The per-run control
+      // only changes how many independent requests may be in flight together.
+      const leadWorker = async () => {
+        while (processingRef.current) {
+          while (pausedRef.current && processingRef.current) {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+          if (!processingRef.current) return;
 
-        // Wait while paused (worker timer so it keeps ticking on hidden tab)
-        while (pausedRef.current && processingRef.current) {
-          await unthrottledWait(500);
+          const packetStart = nextLeadIndex;
+          if (packetStart >= leads.length) return;
+          nextLeadIndex = Math.min(nextLeadIndex + packetSize, leads.length);
+          const packet = leads
+            .slice(packetStart, nextLeadIndex)
+            .map((lead, offset) => ({ lead, index: packetStart + offset }));
+
+          packet.forEach(({ index }) => {
+            statuses.set(index, "pending");
+            responses.set(index, "Waiting for partner response...");
+          });
+          setLeadStatuses(new Map(statuses));
+          setLeadResponses(new Map(responses));
+
+          const controller = new AbortController();
+          activePacketControllersRef.current.add(controller);
+          const results = await processLeadPacket(packet, newBatchId, apiConfig, controller.signal);
+          activePacketControllersRef.current.delete(controller);
+
+          // Stop starts a new run generation and aborts active requests. Never
+          // let late responses mutate progress or produce a false completion.
+          if (runId !== activeRunIdRef.current || !processingRef.current || controller.signal.aborted) return;
+          packet.forEach(({ index }, resultIndex) => {
+            const result = results[resultIndex];
+            const status: LeadProcessingStatus =
+              result.status === "Success" ? "success" : result.status === "Duplicate" ? "duplicate" : "failed";
+            statuses.set(index, status);
+            responses.set(index, result.response);
+          });
+
+          processed += packet.length;
+          currentIndexRef.current = processed;
+          setLeadStatuses(new Map(statuses));
+          setLeadResponses(new Map(responses));
+          setProcessedCount(processed);
         }
-        if (!processingRef.current) break;
+      };
 
-        const lead = leads[i];
-        currentIndexRef.current = i;
+      await Promise.all(Array.from({ length: workerCount }, () => leadWorker()));
 
-        try {
-          const result = await processLead(lead, i, newBatchId, apiConfig);
+      if (runId !== activeRunIdRef.current || !processingRef.current) return;
 
-          const status: LeadProcessingStatus =
-            result.status === "Success" ? "success" : result.status === "Duplicate" ? "duplicate" : "failed";
-
-          statuses.set(i, status);
-          responses.set(i, result.response);
-        } catch (err) {
-          statuses.set(i, "failed");
-          responses.set(i, String(err));
-        }
-
-        processed++;
-        setLeadStatuses(new Map(statuses));
-        setLeadResponses(new Map(responses));
-        setProcessedCount(processed);
-
-        // Rate limiting delay - worker timer keeps firing on hidden tabs
-        if (i < leads.length - 1 && processingRef.current) {
-          await unthrottledWait(delayMs);
-        }
-      }
+      // Ensure partial final groups are always visible.
+      setLeadStatuses(new Map(statuses));
+      setLeadResponses(new Map(responses));
+      setProcessedCount(processed);
 
       // Mark batch complete
       if (processingRef.current) {
@@ -1177,112 +1934,26 @@ export function UploadLeadsTab({
       });
     } catch (error) {
       console.error("Processing error:", error);
-      setAlert({ type: "error", message: "Processing failed: " + String(error) });
+      setAlert({
+        type: "error",
+        message: error instanceof Error ? error.message : `Processing failed: ${String(error)}`,
+      });
       processingRef.current = false;
       setIsProcessing(false);
     }
   };
 
-  // Schedule leads for background server-side processing
+  // Scheduling would require storing lead payloads until the scheduled time.
+  // Lead Push is configured as no-lead-storage, so scheduled pushes are blocked.
   const scheduleProcessing = async (scheduledAt: Date) => {
     if (!selectedUniversity || leads.length === 0) return;
 
     setIsScheduling(true);
     try {
-      const apiConfig = getApiConfig();
-
-      // Create batch with scheduled status
-      const { data: batchData, error: batchError } = await supabase
-        .from("upload_batches")
-        .insert({
-          university_id: selectedUniversity.id,
-          file_name: fileName,
-          total_leads: leads.length,
-          csv_data: null,
-          status: "scheduled",
-          is_paused: false,
-          is_cancelled: false,
-          processed_count: 0,
-          current_lead_index: 0,
-          scheduled_at: scheduledAt.toISOString(),
-          leads_per_minute: selectedUniversity.leads_per_minute || 5,
-          api_config: apiConfig,
-        })
-        .select()
-        .single();
-
-      if (batchError || !batchData) {
-        setAlert({
-          type: "error",
-          message: "Failed to create scheduled batch: " + (batchError?.message || "Unknown error"),
-        });
-        setIsScheduling(false);
-        return;
-      }
-
-      // Save all leads to the leads table for server-side processing
-      const leadsToInsert = leads.map((lead) => {
-        const extraData: Record<string, string> = {};
-        Object.entries(lead).forEach(([key, value]) => {
-          if (
-            value &&
-            ![
-              "name",
-              "email",
-              "mobile",
-              "address",
-              "state",
-              "city",
-              "course",
-              "specialization",
-              "leadSource",
-              "leadMedium",
-              "leadCampaign",
-            ].includes(key)
-          ) {
-            extraData[key] = value;
-          }
-        });
-
-        return {
-          batch_id: batchData.id,
-          university_id: selectedUniversity.id,
-          name: lead.name || "",
-          email: lead.email || "",
-          mobile: lead.mobile || "",
-          address: lead.address || null,
-          state: lead.state || null,
-          city: lead.city || null,
-          course: lead.course || null,
-          specialization: lead.specialization || null,
-          lead_source: lead.leadSource || selectedUniversity.source || null,
-          lead_medium: lead.leadMedium || selectedUniversity.medium || null,
-          lead_campaign: lead.leadCampaign || selectedUniversity.campaign || null,
-          extra_data: Object.keys(extraData).length > 0 ? extraData : {},
-          status: "pending",
-        };
-      });
-
-      // Insert leads in chunks of 500
-      const chunkSize = 500;
-      for (let i = 0; i < leadsToInsert.length; i += chunkSize) {
-        const chunk = leadsToInsert.slice(i, i + chunkSize);
-        const { error: insertError } = await supabase.from("push_leads").insert(chunk);
-        if (insertError) {
-          console.error("Error inserting leads chunk:", insertError);
-          setAlert({ type: "error", message: "Failed to save leads for scheduling: " + insertError.message });
-          // Clean up the batch
-          await supabase.from("upload_batches").delete().eq("id", batchData.id);
-          setIsScheduling(false);
-          return;
-        }
-      }
-
       setAlert({
-        type: "success",
-        message: `Scheduled ${leads.length} leads for ${scheduledAt.toLocaleString()}. Processing will start automatically - no need to keep the app open.`,
+        type: "error",
+        message: `Scheduling is disabled because it requires saving lead data until ${scheduledAt.toLocaleString()}. Use Push Now for no-storage lead pushing.`,
       });
-      clearAll();
     } catch (error) {
       console.error("Schedule error:", error);
       setAlert({ type: "error", message: "Failed to schedule: " + String(error) });
@@ -1317,7 +1988,9 @@ export function UploadLeadsTab({
       authHeaderKey: selectedUniversity.auth_header_key || "",
       authHeaderValue: selectedUniversity.auth_header_value || "",
       customHeaders: selectedUniversity.custom_headers || {},
-      universityDefaults: {}, // Will be resolved by edge function only if needed
+      apiTimeoutSeconds:
+        clampUniversityNumber(selectedUniversity.api_timeout_seconds, 30, 5, 300),
+      universityDefaults: {},
     };
   }, [selectedUniversity]);
 
@@ -1337,6 +2010,7 @@ export function UploadLeadsTab({
         body: {
           universityId: selectedUniversity.id,
           batchId: batchIdParam,
+          sourceLabel: sourceLabel.trim() || null,
           leadData: {
             ...lead,
             leadSource: lead.leadSource || selectedUniversity.source,
@@ -1353,13 +2027,63 @@ export function UploadLeadsTab({
       }
 
       return {
-        success: data?.status === "Success",
-        status: data?.status || "Fail",
-        response: data?.response || "No response",
+        success: normalizePartnerStatus(data?.status) === "Success",
+        status: normalizePartnerStatus(data?.status),
+        response: normalizePartnerResponse(data?.response),
       };
     } catch (error) {
       console.error("Process lead error:", error);
       return { success: false, status: "Fail", response: String(error) };
+    }
+  };
+
+  // Amortize Edge Function startup and database guard/counter work across a
+  // small packet. The Edge Function still POSTs each lead separately to the
+  // partner; concurrency controls only how many of those POSTs overlap.
+  const processLeadPacket = async (
+    packet: Array<{ lead: Lead; index: number }>,
+    batchIdParam: string,
+    apiConfig: ReturnType<typeof getApiConfig>,
+    signal?: AbortSignal,
+  ): Promise<Array<{ success: boolean; status: string; response: string }>> => {
+    if (!selectedUniversity || !apiConfig) {
+      return packet.map(() => ({ success: false, status: "Fail", response: "No university selected" }));
+    }
+
+    const tasks = packet.map(({ lead }) => ({
+      universityId: selectedUniversity.id,
+      batchId: batchIdParam,
+      sourceLabel: sourceLabel.trim() || null,
+      leadData: {
+        ...lead,
+        leadSource: lead.leadSource || selectedUniversity.source,
+        leadMedium: lead.leadMedium || selectedUniversity.medium,
+        leadCampaign: lead.leadCampaign || selectedUniversity.campaign,
+      },
+      apiConfig,
+    }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("process-lead", {
+        body: { tasks, concurrency: 1 },
+        signal,
+      });
+      if (error) throw error;
+      const results = Array.isArray(data?.results) ? data.results : [];
+      return packet.map((_, index) => {
+        const result = results[index] || {};
+        return {
+          success: normalizePartnerStatus(result.status) === "Success",
+          status: normalizePartnerStatus(result.status),
+          response: normalizePartnerResponse(result.response),
+        };
+      });
+    } catch (error) {
+      if (signal?.aborted) {
+        return packet.map(() => ({ success: false, status: "Cancelled", response: "Processing stopped" }));
+      }
+      console.error("Process lead packet error:", error);
+      return packet.map(() => ({ success: false, status: "Fail", response: String(error) }));
     }
   };
 
@@ -1378,13 +2102,25 @@ export function UploadLeadsTab({
   const processLeads = useCallback(async () => {
     if (!selectedUniversity || leads.length === 0) return;
 
-    // Always use background processing for reliable progress tracking
+    if (!sourceLabel.trim()) {
+      setAlert({
+        type: "error",
+        message: "Please enter a Source of Data before pushing (e.g. 'Meta Ads - Jan campaign').",
+      });
+      return;
+    }
+    try {
+      localStorage.setItem("upload:lastSourceLabel", sourceLabel.trim());
+    } catch {
+      /* ignore */
+    }
+
     setAlert({
       type: "info",
       message: `Queuing ${leads.length} leads for background processing...`,
     });
     await startBackgroundProcessing();
-  }, [selectedUniversity, leads, startBackgroundProcessing]);
+  }, [selectedUniversity, leads, startBackgroundProcessing, sourceLabel]);
 
   const pauseProcessing = async () => {
     pausedRef.current = true;
@@ -1396,30 +2132,25 @@ export function UploadLeadsTab({
   };
 
   const resumeProcessing = async () => {
-    // Just flip the pause flag - the local loop in startBackgroundProcessing
-    // is already waiting on `pausedRef.current` via unthrottledWait(500).
-    // We must NOT invoke `process-queue` here: the server-side dispatcher
-    // would race the local loop and double-send every remaining lead.
     pausedRef.current = false;
     setIsPaused(false);
-    setAlert({ type: "info", message: "Resumed. Continuing where it left off..." });
+    setAlert(null);
     if (batchId) {
-      supabase
-        .from("upload_batches")
-        .update({ is_paused: false, status: "processing" })
-        .eq("id", batchId)
-        .then();
+      await supabase.from("upload_batches").update({ is_paused: false, status: "processing" }).eq("id", batchId);
     }
   };
 
   const stopProcessing = async () => {
     processingRef.current = false;
     pausedRef.current = false;
+    activeRunIdRef.current++;
+    activePacketControllersRef.current.forEach((controller) => controller.abort());
+    activePacketControllersRef.current.clear();
     setIsProcessing(false);
     setIsPaused(false);
     setIsBackgroundPolling(false);
     if (pollingRef.current) {
-      pollingRef.current();
+      clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
     setAlert({ type: "info", message: "Processing stopped. Remaining leads cancelled." });
@@ -1455,30 +2186,27 @@ export function UploadLeadsTab({
     const responses = new Map(leadResponses);
     const failedIndices = [...statuses.entries()].filter(([_, s]) => s === "failed").map(([i]) => i);
     const precomputedApiConfig = getApiConfig();
-    const targetIntervalMs = Math.round(60000 / (selectedUniversity.leads_per_minute || 5));
+    failedIndices.forEach((index) => statuses.set(index, "pending"));
+    setLeadStatuses(new Map(statuses));
 
-    for (const index of failedIndices) {
-      statuses.set(index, "pending");
-      setLeadStatuses(new Map(statuses));
-
-      const startTime = Date.now();
-      const lead = leads[index];
-      const result = await processLead(lead, index, batchId, precomputedApiConfig);
-
-      const bulkRetryStatus =
-        result.status === "Success" ? "success" : result.status === "Duplicate" ? "duplicate" : "failed";
-      statuses.set(index, bulkRetryStatus);
-      responses.set(index, result.response);
-      setLeadStatuses(new Map(statuses));
-      setLeadResponses(new Map(responses));
-
-      // Rate-adjusted delay - worker timer keeps ticking on hidden tabs
-      const elapsed = Date.now() - startTime;
-      const remainingDelay = Math.max(0, targetIntervalMs - elapsed);
-      if (remainingDelay > 0) {
-        await unthrottledWait(remainingDelay);
+    let retryCursor = 0;
+    let retryCompleted = 0;
+    const retryWorker = async () => {
+      while (true) {
+        const index = failedIndices[retryCursor++];
+        if (index === undefined) return;
+        const result = await processLead(leads[index], index, batchId, precomputedApiConfig);
+        const bulkRetryStatus =
+          result.status === "Success" ? "success" : result.status === "Duplicate" ? "duplicate" : "failed";
+        statuses.set(index, bulkRetryStatus);
+        responses.set(index, result.response);
+        retryCompleted++;
+        setLeadStatuses(new Map(statuses));
+        setLeadResponses(new Map(responses));
       }
-    }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(pushConcurrency, failedIndices.length) }, () => retryWorker()));
 
     setIsProcessing(false);
     const successCount = [...statuses.values()].filter((s) => s === "success").length;
@@ -1492,9 +2220,12 @@ export function UploadLeadsTab({
   const clearAll = () => {
     processingRef.current = false;
     pausedRef.current = false;
+    activeRunIdRef.current++;
+    activePacketControllersRef.current.forEach((controller) => controller.abort());
+    activePacketControllersRef.current.clear();
     setIsBackgroundPolling(false);
     if (pollingRef.current) {
-      pollingRef.current();
+      clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
     setLeads([]);
@@ -1509,6 +2240,15 @@ export function UploadLeadsTab({
     setBatchId(null);
     setIsProcessing(false);
     setIsPaused(false);
+    setPushConcurrency(
+      selectedUniversity
+        ? clampUniversityNumber(selectedUniversity.default_push_concurrency, 2, 1, 5)
+        : 2,
+    );
+    setIsConcurrencyUnlocked(false);
+    setShowConcurrencyPin(false);
+    setConcurrencyPin("");
+    setConcurrencyPinError("");
     setStartTime(null);
     currentIndexRef.current = 0;
     setCsvHeaders([]);
@@ -1517,6 +2257,37 @@ export function UploadLeadsTab({
     setLocalColumnMapping({});
     setShowColumnMapping(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handlePurgeCache = async () => {
+    setIsPurgingCache(true);
+
+    try {
+      clearAll();
+      persistence.resetAll();
+      appCache.reset();
+      purgeStorageEntries(localStorage, LOCAL_STORAGE_PURGE_KEYS, LOCAL_STORAGE_PURGE_PREFIXES);
+      purgeStorageEntries(sessionStorage, SESSION_STORAGE_PURGE_KEYS, SESSION_STORAGE_PURGE_PREFIXES);
+      await purgeBrowserCacheStorage();
+
+      setSourceLabel("");
+      setPendingSourceLabel("");
+      setPendingDataDescription("");
+      setPendingMapping(null);
+      setShowSourceEntry(false);
+      setAlert({
+        type: "success",
+        message: "Cache purged. Upload state, mappings, stale page cache, and browser cache were cleared.",
+      });
+    } catch (error) {
+      console.error("Failed to purge upload cache:", error);
+      setAlert({
+        type: "error",
+        message: "Could not purge all cache. Please refresh and try again.",
+      });
+    } finally {
+      setIsPurgingCache(false);
+    }
   };
 
   const handlePageSizeChange = (size: number | "custom") => {
@@ -1538,17 +2309,27 @@ export function UploadLeadsTab({
   const pendingCount = Math.max(leads.length - processedDisplayCount, 0);
 
   const getEstimatedTime = () => {
-    if (!startTime || !selectedUniversity || processedDisplayCount === 0) return null;
+    if (!startTime || !selectedUniversity) return null;
+    const hasStableSample = processedDisplayCount >= 8;
     const elapsed = (Date.now() - startTime) / 1000;
-    const avgTimePerLead = elapsed / processedDisplayCount;
+    // Before two packets complete, use configured throughput instead of a
+    // cold-start sample. ETA remains visible, then becomes measured/live.
+    const configuredPerLead = 60 / Math.max(1, (selectedUniversity.leads_per_minute || 60) * pushConcurrency);
+    const avgTimePerLead = hasStableSample ? elapsed / processedDisplayCount : configuredPerLead;
     const secondsRemaining = Math.round(pendingCount * avgTimePerLead);
+    const prefix = hasStableSample ? "" : "Initial estimate: ";
 
-    if (secondsRemaining < 60) return `${secondsRemaining}s remaining`;
-    if (secondsRemaining < 3600) return `${Math.round(secondsRemaining / 60)}m remaining`;
-    return `${Math.round(secondsRemaining / 3600)}h ${Math.round((secondsRemaining % 3600) / 60)}m remaining`;
+    if (secondsRemaining < 60) return `${prefix}${secondsRemaining}s remaining`;
+    if (secondsRemaining < 3600) return `${prefix}${Math.round(secondsRemaining / 60)}m remaining`;
+    return `${prefix}${Math.round(secondsRemaining / 3600)}h ${Math.round((secondsRemaining % 3600) / 60)}m remaining`;
   };
 
-  const showUploadActionBar = Boolean(selectedUniversity || currentFileName || fileName);
+  const hasOpenUploadModal =
+    showColumnMapping || showConcurrencyPin || showSourceEntry || showScheduleModal || showSingleLeadForm;
+  // The fixed action bars previously used the maximum possible z-index and sat
+  // above the mapping dialog. On some screens that left only the dark backdrop
+  // visible, which looked like the page had blacked out.
+  const showUploadActionBar = Boolean(selectedUniversity || currentFileName || fileName) && !hasOpenUploadModal;
   const hasLoadedLeads = leads.length > 0;
   const isAllProcessed = leads.length > 0 && processedDisplayCount >= leads.length;
 
@@ -1564,7 +2345,7 @@ export function UploadLeadsTab({
         typeof document !== "undefined" &&
         createPortal(
           <>
-            <div className="fixed inset-x-0 top-0 z-[2147483647] border-b border-border bg-card px-4 py-3 shadow-2xl">
+            <div className="fixed inset-x-0 top-0 z-40 border-b border-border bg-card px-4 py-3 shadow-2xl">
               <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-foreground">
@@ -1591,6 +2372,24 @@ export function UploadLeadsTab({
                   </p>
                 </div>
 
+                {hasLoadedLeads && (
+                  <div className="mb-3 w-full sm:max-w-md">
+                    <label className="mb-1 block text-xs font-medium text-foreground">
+                      Source of Data <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={sourceLabel}
+                      onChange={(e) => setSourceLabel(e.target.value)}
+                      placeholder="e.g. Meta Ads - Jan campaign, Justdial export 2026-03"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Saved on the batch so you can find this push later by source name.
+                    </p>
+                  </div>
+                )}
+
                 {!hasLoadedLeads ? (
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -1612,12 +2411,18 @@ export function UploadLeadsTab({
                 ) : (
                   <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                     {isPaused ? (
-                      <button onClick={resumeProcessing} className="btn-success flex min-h-12 items-center justify-center gap-2">
+                      <button
+                        onClick={resumeProcessing}
+                        className="btn-success flex min-h-12 items-center justify-center gap-2"
+                      >
                         <Play className="h-5 w-5" />
                         Resume
                       </button>
                     ) : (
-                      <button onClick={pauseProcessing} className="btn-primary flex min-h-12 items-center justify-center gap-2">
+                      <button
+                        onClick={pauseProcessing}
+                        className="btn-primary flex min-h-12 items-center justify-center gap-2"
+                      >
                         <Pause className="h-5 w-5" />
                         Pause
                       </button>
@@ -1634,7 +2439,7 @@ export function UploadLeadsTab({
             </div>
 
             {hasLoadedLeads && (
-              <div className="fixed inset-x-0 bottom-0 z-[2147483647] border-t border-border bg-card px-4 py-3 shadow-2xl">
+              <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 py-3 shadow-2xl">
                 <div className="mx-auto flex max-w-6xl justify-end">
                   {!isProcessing ? (
                     <button
@@ -1648,12 +2453,18 @@ export function UploadLeadsTab({
                   ) : (
                     <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                       {isPaused ? (
-                        <button onClick={resumeProcessing} className="btn-success flex min-h-12 items-center justify-center gap-2">
+                        <button
+                          onClick={resumeProcessing}
+                          className="btn-success flex min-h-12 items-center justify-center gap-2"
+                        >
                           <Play className="h-5 w-5" />
                           Resume
                         </button>
                       ) : (
-                        <button onClick={pauseProcessing} className="btn-primary flex min-h-12 items-center justify-center gap-2">
+                        <button
+                          onClick={pauseProcessing}
+                          className="btn-primary flex min-h-12 items-center justify-center gap-2"
+                        >
                           <Pause className="h-5 w-5" />
                           Pause
                         </button>
@@ -1678,7 +2489,16 @@ export function UploadLeadsTab({
           <h2 className="font-display text-2xl font-bold text-foreground">Upload Leads</h2>
           <p className="text-muted-foreground">Select a university and upload student leads via CSV</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handlePurgeCache}
+            disabled={isPurgingCache}
+            title="Purge upload cache"
+            className="flex items-center gap-2 rounded-lg border border-destructive/30 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            {isPurgingCache ? "Purging..." : "Purge Cache"}
+          </button>
           {selectedUniversity?.sample_csv_content && (
             <button
               onClick={() => {
@@ -1716,7 +2536,7 @@ export function UploadLeadsTab({
               disabled={isProcessing}
             >
               <option value="">Choose a university...</option>
-              {universities.map((uni) => (
+              {safeUniversities.map((uni) => (
                 <option key={uni.id} value={uni.id}>
                   {uni.name}
                 </option>
@@ -1775,10 +2595,12 @@ export function UploadLeadsTab({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {isProcessing ? `Pushing leads: ${processedDisplayCount} / ${leads.length}` : `Ready to push ${leads.length} lead(s)`}
+                    {isProcessing
+                      ? `Pushing leads: ${processedDisplayCount} / ${leads.length}`
+                      : `Ready to push ${leads.length} lead(s)`}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {(selectedUniversity?.api_type || "") === "upgrad"
+                    {(selectedUniversity.api_type || "") === "upgrad"
                       ? "upGrad payload preview below matches the nested JSON sent to the API."
                       : "Review the preview below before pushing."}
                   </p>
@@ -1895,7 +2717,7 @@ export function UploadLeadsTab({
                 </div>
               )}
 
-              {(selectedUniversity?.api_type || "") === "upgrad" && leadPayloads.has(0) && (
+              {(selectedUniversity.api_type || "") === "upgrad" && leadPayloads.has(0) && (
                 <div className="mb-4 rounded-lg border border-border bg-background p-4">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-sm font-medium text-foreground">upGrad Request JSON</p>
@@ -1909,7 +2731,7 @@ export function UploadLeadsTab({
 
               <LeadPreviewTable
                 leads={leads.slice(0, pageSize)}
-                showStatus={processedDisplayCount > 0}
+                showStatus={isProcessing || processedDisplayCount > 0 || leadResponses.size > 0 || leadStatuses.size > 0}
                 leadStatuses={leadStatuses}
                 leadResponses={leadResponses}
                 leadPayloads={leadPayloads}
@@ -1918,6 +2740,7 @@ export function UploadLeadsTab({
                 onRetry={!isProcessing ? retryLead : undefined}
                 onUpdateLead={!isProcessing ? handleUpdateLead : undefined}
                 isEditable={!isProcessing && processedDisplayCount === 0}
+                rowOffset={0}
               />
 
               {processedDisplayCount === 0 && !isProcessing && (
@@ -2033,7 +2856,7 @@ export function UploadLeadsTab({
                   <>
                     <button
                       onClick={processLeads}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 shadow-sm disabled:opacity-50"
+                      className="btn-success w-full flex items-center justify-center gap-2"
                       disabled={processedDisplayCount === leads.length}
                     >
                       <Rocket className="h-5 w-5" />
@@ -2043,7 +2866,7 @@ export function UploadLeadsTab({
                       <>
                         <button
                           onClick={startBackgroundProcessing}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium border border-primary text-primary hover:bg-primary/10"
                         >
                           <Clock className="h-5 w-5" />
                           Queue for Background Processing
@@ -2057,7 +2880,7 @@ export function UploadLeadsTab({
                             setScheduleTime(defaultTime);
                             setShowScheduleModal(true);
                           }}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold bg-orange-500 text-white hover:bg-orange-600 shadow-sm"
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium border border-accent text-accent-foreground hover:bg-accent/10 bg-accent/5"
                         >
                           <CalendarClock className="h-5 w-5" />
                           Schedule for Later
@@ -2120,16 +2943,61 @@ export function UploadLeadsTab({
 
       {/* ✅ FIXED COLUMN MAPPING DIALOG - uses localColumnMapping for instant edits */}
       {showColumnMapping && selectedUniversity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-sm p-4">
-          <div className="bg-card rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-card shadow-xl">
+            {/* Header, speed control, and mappings share one scroll area. The
+                speed control naturally scrolls out of view; actions never do. */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="p-6 border-b border-border">
               <h2 className="font-display text-xl font-bold text-foreground">Map CSV Columns</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Match your CSV columns to the correct lead fields. Each field can only be used once.
               </p>
+              <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-sm font-medium text-foreground">Leads at one time: {pushConcurrency}</span>
+                    <p className="text-xs text-muted-foreground">Locked at 3 by default for safe, fast processing.</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={isConcurrencyUnlocked ? "Lock lead speed" : "Request lead speed unlock"}
+                    onClick={() => {
+                      if (isConcurrencyUnlocked) {
+                        setIsConcurrencyUnlocked(false);
+                        return;
+                      }
+                      setConcurrencyPin("");
+                      setConcurrencyPinError("");
+                      setShowConcurrencyPin(true);
+                    }}
+                    className="rounded-md border border-border bg-card p-2 text-foreground hover:border-primary hover:text-primary"
+                  >
+                    {isConcurrencyUnlocked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="grid grid-cols-5 gap-2" role="group" aria-label="Mapping leads processed at one time">
+                  {[1, 2, 3, 4, 5].map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      aria-pressed={pushConcurrency === count}
+                      disabled={!isConcurrencyUnlocked}
+                      onClick={() => setPushConcurrency(count)}
+                      className={`rounded-md border py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
+                        pushConcurrency === count
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-foreground hover:border-primary/60"
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
+            <div className="p-6 space-y-4">
               {csvHeaders.map((header) => {
                 // ✅ Use localColumnMapping to compute used fields
                 const usedByOthers = new Set<string>();
@@ -2146,7 +3014,16 @@ export function UploadLeadsTab({
                     label: col.columnName || col.columnKey,
                   }));
 
+                const payloadFieldOptions = getPayloadFieldDefinitions(selectedUniversity.column_mapping || {})
+                  .filter((field) => !field.sourceType || field.sourceType === "lead_data")
+                  .map((field) => ({
+                    value: field.sourceKey?.trim() || field.fieldName?.trim() || "",
+                    label: field.displayName?.trim() || field.fieldName?.trim() || field.sourceKey?.trim() || "",
+                  }))
+                  .filter((option) => option.value);
+
                 const standardOptions = [
+                  ...payloadFieldOptions,
                   ...((selectedUniversity.api_type || "") === "upgrad"
                     ? UPGRAD_EXACT_FIELDS.map((field) => ({ value: field, label: field }))
                     : []),
@@ -2195,18 +3072,21 @@ export function UploadLeadsTab({
                   { value: "mx_Country", label: "mx_Country" },
                   { value: "mx_Present_State", label: "mx_Present_State" },
                   { value: "mx_Course_Interested_In", label: "mx_Course_Interested_In" },
-                  { value: "mx_State", label: "mx_State" },
+                  { value: "programName", label: "programName" },
+                  { value: "specializationName", label: "specializationName" },
+                  { value: "campusId", label: "campusId" },
+                  { value: "districtName", label: "districtName" },
+                  { value: "emailId", label: "EmailId" },
+                  { value: "access_key", label: "access_key" },
+                  { value: "Campus", label: "Campus" },
+                  { value: "specialization", label: "specialization" },
+                  { value: "course", label: "course" }
                 ];
 
-                const userCustomOptions = userCustomFields.map((f) => ({
-                  value: f,
-                  label: `${f} (saved)`,
-                }));
-
-                const allOptions = [...standardOptions, ...customColOptions, ...userCustomOptions];
-                const currentValue = localColumnMapping[header] || "";
-                const isCustomValue =
-                  currentValue && !allOptions.some((o) => o.value === currentValue);
+                // Payload editors and the legacy standard list can contain the
+                // same key more than once. De-duplicate them to prevent unstable
+                // React option rendering inside the mapping modal.
+                const allOptions = [...new Map([...standardOptions, ...customColOptions].map((opt) => [opt.value, opt])).values()];
 
                 return (
                   <div key={header} className="flex items-center gap-4">
@@ -2214,31 +3094,13 @@ export function UploadLeadsTab({
                       {header}
                     </span>
                     <span className="text-muted-foreground">→</span>
+                    {/* ✅ Bound to localColumnMapping - changes reflect instantly */}
                     <select
-                      value={currentValue}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "__add_new__") {
-                          const entered = window.prompt(
-                            `Add custom API field name for column "${header}"\n\n(Use the exact key your API expects, e.g. mx_NewField, extraFields.foo)`,
-                            "",
-                          );
-                          const clean = (entered || "").trim();
-                          if (!clean) return;
-                          addUserCustomField(clean); // persist forever for this university
-                          setLocalColumnMapping((prev) => ({ ...prev, [header]: clean }));
-                          return;
-                        }
-                        setLocalColumnMapping((prev) => ({ ...prev, [header]: val }));
-                      }}
+                      value={localColumnMapping[header] || ""}
+                      onChange={(e) => setLocalColumnMapping((prev) => ({ ...prev, [header]: e.target.value }))}
                       className="flex-1 input-field text-sm"
                     >
                       <option value="">-- Skip this column --</option>
-                      {isCustomValue && (
-                        <option value={currentValue}>
-                          {currentValue} (custom)
-                        </option>
-                      )}
                       {allOptions.map((opt) => {
                         const isUsed = usedByOthers.has(opt.value);
                         return (
@@ -2248,14 +3110,14 @@ export function UploadLeadsTab({
                           </option>
                         );
                       })}
-                      <option value="__add_new__">+ Add new custom field…</option>
                     </select>
                   </div>
                 );
               })}
             </div>
+            </div>
 
-            <div className="p-6 border-t border-border flex items-center justify-between gap-3">
+            <div className="shrink-0 border-t border-border bg-card p-4 sm:p-6 flex items-center justify-between gap-3">
               <button
                 onClick={() => {
                   const savedMappingKey = `csv_mapping_${selectedUniversity.id}`;
@@ -2282,8 +3144,15 @@ export function UploadLeadsTab({
                 >
                   Cancel
                 </button>
-                {/* ✅ Passes localColumnMapping directly to apply function */}
-                <button onClick={() => applyColumnMappingAndProcess(localColumnMapping)} className="btn-primary">
+                {/* ✅ Opens "Data Source" entry dialog before applying mapping */}
+                <button
+                  onClick={() => {
+                    setPendingMapping(localColumnMapping);
+                    setShowColumnMapping(false);
+                    setShowSourceEntry(true);
+                  }}
+                  className="btn-primary"
+                >
                   Apply Mapping & Continue
                 </button>
               </div>
@@ -2292,9 +3161,148 @@ export function UploadLeadsTab({
         </div>
       )}
 
+      {showConcurrencyPin && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl bg-card p-6 shadow-2xl">
+            <h3 className="font-display text-lg font-bold text-foreground">Unlock lead speed</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Enter the CTO PIN to change leads processed at one time.</p>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoFocus
+              value={concurrencyPin}
+              onChange={(event) => {
+                setConcurrencyPin(event.target.value.replace(/\D/g, "").slice(0, 6));
+                setConcurrencyPinError("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && concurrencyPin === "123456") {
+                  setIsConcurrencyUnlocked(true);
+                  setShowConcurrencyPin(false);
+                  setConcurrencyPin("");
+                }
+              }}
+              placeholder="6-digit PIN"
+              aria-label="CTO PIN"
+              className="input-field mt-4 w-full"
+            />
+            {concurrencyPinError && <p className="mt-2 text-sm text-destructive">{concurrencyPinError}</p>}
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConcurrencyPin(false);
+                  setConcurrencyPin("");
+                  setConcurrencyPinError("");
+                }}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (concurrencyPin !== "123456") {
+                    setConcurrencyPinError("Incorrect PIN. Please ask the CTO.");
+                    return;
+                  }
+                  setIsConcurrencyUnlocked(true);
+                  setShowConcurrencyPin(false);
+                  setConcurrencyPin("");
+                }}
+                className="btn-primary"
+              >
+                Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ DATA SOURCE ENTRY DIALOG - shown after column mapping is applied */}
+      {showSourceEntry && selectedUniversity && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
+            <div className="p-6 border-b border-border">
+              <h2 className="font-display text-xl font-bold text-foreground">Tag this Data</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Help track this batch later. Tell us where the data came from and what it is.
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Data Source <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={pendingSourceLabel}
+                  onChange={(e) => setPendingSourceLabel(e.target.value)}
+                  placeholder="e.g. Facebook Ads, Justdial, Excel Dec 2026"
+                  className="input-field w-full"
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Where did this data come from? (campaign, vendor, channel, etc.)
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  What data are you uploading? <span className="text-muted-foreground font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={pendingDataDescription}
+                  onChange={(e) => setPendingDataDescription(e.target.value)}
+                  placeholder="e.g. BBA enquiries from Delhi, Nov week-3 ad leads"
+                  rows={3}
+                  className="input-field w-full resize-none"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Short description - used for reporting & filtering only.
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-border flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  // Back to mapping without losing pending state
+                  setShowSourceEntry(false);
+                  setShowColumnMapping(true);
+                }}
+                className="px-6 py-3 rounded-lg font-medium text-muted-foreground hover:bg-muted"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  const src = pendingSourceLabel.trim();
+                  if (!src) {
+                    setAlert({ type: "error", message: "Please enter a Data Source to continue." });
+                    return;
+                  }
+                  const desc = pendingDataDescription.trim();
+                  const combined = desc ? `${src} - ${desc}` : src;
+                  setSourceLabel(combined);
+                  setShowSourceEntry(false);
+                  const mapping = pendingMapping || localColumnMapping;
+                  setPendingMapping(null);
+                  // Reset so next upload always asks fresh
+                  setPendingSourceLabel("");
+                  setPendingDataDescription("");
+                  applyColumnMappingAndProcess(mapping);
+                }}
+                className="btn-primary"
+              >
+                Save & Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Schedule Modal */}
       {showScheduleModal && selectedUniversity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
           <div className="bg-card rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
             <div className="p-6 border-b border-border">
               <h2 className="font-display text-xl font-bold text-foreground flex items-center gap-2">
@@ -2319,7 +3327,7 @@ export function UploadLeadsTab({
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">Rate</label>
-                <p className="text-sm text-muted-foreground">{selectedUniversity.leads_per_minute || 5} leads/minute</p>
+                <p className="text-sm text-muted-foreground">{selectedUniversity.leads_per_minute || 90} leads/minute</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -2345,8 +3353,7 @@ export function UploadLeadsTab({
               {leads.length > 0 && scheduleDate && scheduleTime && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
                   <p>
-                    Estimated completion: ~{Math.ceil(leads.length / (selectedUniversity.leads_per_minute || 5))}{" "}
-                    minutes after start
+                    Sequential mode sends one lead, waits for its response, then sends the next lead.
                   </p>
                 </div>
               )}

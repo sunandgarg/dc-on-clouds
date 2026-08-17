@@ -126,7 +126,7 @@ class DataStore {
       source: university.source || 'dekhocampus',
       medium: university.medium || 'dekhocampus',
       campaign: university.campaign || 'API',
-      leadsPerMinute: university.leadsPerMinute || 5,
+      leadsPerMinute: university.leadsPerMinute || 90,
       apiType: university.apiType || 'nopaperforms',
       columnMapping: university.columnMapping || {},
       programs: university.programs || [],
@@ -304,7 +304,7 @@ class DataStore {
       // Fetch universities from server
       const { data: serverUniversities, error } = await supabase
         .from('universities')
-        .select('*')
+        .select('id,name,api_url,college_id,secret_key,source,medium,campaign,leads_per_minute,api_type,column_mapping,created_at,updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -320,7 +320,7 @@ class DataStore {
         source: u.source || 'dekhocampus',
         medium: u.medium || 'dekhocampus',
         campaign: u.campaign || 'API',
-        leadsPerMinute: u.leads_per_minute || 5,
+        leadsPerMinute: u.leads_per_minute || 90,
         apiType: u.api_type || 'nopaperforms',
         columnMapping: (u.column_mapping as Record<string, string>) || {},
         programs: [],

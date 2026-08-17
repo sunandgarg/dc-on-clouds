@@ -1,6 +1,6 @@
-import { memo, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Component, memo, useEffect, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, Home } from 'lucide-react';
+import { ChevronRight, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadLeadsTab } from '@/components/upload/UploadLeadsTab';
 import { QueueMonitor } from '@/components/upload/QueueMonitor';
@@ -13,9 +13,23 @@ interface UploadLeadsViewProps {
   onSelectUniversity: (uni: any) => void;
 }
 
+const stringifyViewValue = (value: unknown): string => {
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value == null) return '';
+  if (Array.isArray(value)) return value.map(stringifyViewValue).filter(Boolean).join(', ');
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const preferredKey = ['name', 'contact_name', 'value', 'label', 'displayName', 'fieldName'].find((key) => key in record);
+    if (preferredKey) return stringifyViewValue(record[preferredKey]);
+    return Object.values(record).map(stringifyViewValue).filter(Boolean).join(', ');
+  }
+  return String(value).trim();
+};
+
 // Create slug from university name
 const toSlug = (name: string): string => {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  return stringifyViewValue(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 };
 
 // Encode filename for URL (handle special chars like dots)
@@ -36,6 +50,59 @@ const decodeFilename = (encoded: string): string => {
 const PROCESSING_STATES = ['processing', 'paused', 'complete', 'idle'] as const;
 type ProcessingState = typeof PROCESSING_STATES[number];
 
+class LeadPushErrorBoundary extends Component<{ children: ReactNode; onReset?: () => void }, { hasError: boolean; message: string }> {
+  state = { hasError: false, message: "" };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error('[Lead Push] Render error recovered by boundary:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    this.setState({ hasError: true, message });
+  }
+
+  private resetUploadState = () => {
+    const removeMatching = (storage: Storage) => {
+      const keys: string[] = [];
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (key && !key.startsWith('sb-') && !key.includes('auth-token') &&
+            (key.startsWith('dekhocampus_') || key.startsWith('csv_mapping_') || key.startsWith('app:page:'))) {
+          keys.push(key);
+        }
+      }
+      keys.forEach((key) => storage.removeItem(key));
+    };
+
+    try {
+      removeMatching(localStorage);
+      removeMatching(sessionStorage);
+    } catch (error) {
+      console.warn('[Lead Push] Could not clear recovered upload state:', error);
+    }
+    this.props.onReset?.();
+    this.setState({ hasError: false, message: "" });
+  };
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-card p-8 text-center shadow-md">
+        <h2 className="text-lg font-semibold text-foreground">Lead Push recovered from an upload error</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The upload state was reset. If this message returns, the diagnostic below identifies the remaining configuration problem.
+        </p>
+        {this.state.message && <p className="mt-2 break-words text-xs text-destructive">{this.state.message}</p>}
+        <button type="button" onClick={this.resetUploadState} className="btn-primary mt-5">
+          Reset Upload State
+        </button>
+      </div>
+    );
+  }
+}
+
 function isProcessingState(str: string): str is ProcessingState {
   return PROCESSING_STATES.includes(str as ProcessingState);
 }
@@ -44,6 +111,8 @@ export function UploadLeadsView({ universities, selectedUniversity, onSelectUniv
   const navigate = useNavigate();
   const location = useLocation();
   const isInitialized = useRef(false);
+  const [uploadResetKey, setUploadResetKey] = useState(0);
+  const [queueResetKey, setQueueResetKey] = useState(0);
 
   // Parse the hierarchical slug from URL
   const { universitySlug, fileName, processingState } = useMemo(() => {
@@ -128,49 +197,11 @@ export function UploadLeadsView({ universities, selectedUniversity, onSelectUniv
   }, [selectedUniversity, navigate]);
 
   // Update URL with processing state
-  const handleProcessingStateChange = useCallback((newState: ProcessingState) => {
-    if (!selectedUniversity) return;
-    
-    const uniSlug = selectedUniversity.slug || toSlug(selectedUniversity.name);
-    let path = `/admin/lead-push/upload/${uniSlug}`;
-    
-    if (fileName) {
-      path += `/${encodeFilename(fileName)}`;
-    }
-    
-    // Only add processing state if not idle
-    if (newState !== 'idle') {
-      path += `/${newState}`;
-    }
-
-    if (path === location.pathname) return;
-    
-    navigate(path, { replace: true });
-  }, [selectedUniversity, fileName, location.pathname, navigate]);
-
-  // Navigate up one level
-  const navigateUp = useCallback(() => {
-    if (!selectedUniversity) {
-      navigate('/admin/lead-push');
-      return;
-    }
-    
-    const uniSlug = selectedUniversity.slug || toSlug(selectedUniversity.name);
-    
-    if (processingState !== 'idle') {
-      // Remove processing state, keep filename
-      if (fileName) {
-        navigate(`/admin/lead-push/upload/${uniSlug}/${encodeFilename(fileName)}`);
-      } else {
-        navigate(`/admin/lead-push/upload/${uniSlug}`);
-      }
-    } else if (fileName) {
-      // Remove filename
-      navigate(`/admin/lead-push/upload/${uniSlug}`);
-    } else {
-      navigate('/admin/lead-push');
-    }
-  }, [selectedUniversity, fileName, processingState, navigate]);
+  const handleProcessingStateChange = useCallback((_newState: ProcessingState) => {
+    // Processing-state route churn was re-driving the upload screen while a
+    // push was running. The file/university URL remains stable, and the live
+    // processing state is shown in-page instead of rewriting the route.
+  }, []);
 
   // Clear file from URL
   const handleClearFile = useCallback(() => {
@@ -189,7 +220,7 @@ export function UploadLeadsView({ universities, selectedUniversity, onSelectUniv
     
     const crumbs: Array<{ label: string; path: string; isActive: boolean }> = [
       { label: 'Lead Push', path: '/admin/lead-push', isActive: false },
-      { label: selectedUniversity.name, path: basePath, isActive: !fileName && processingState === 'idle' },
+      { label: stringifyViewValue(selectedUniversity.name), path: basePath, isActive: !fileName && processingState === 'idle' },
     ];
     
     if (fileName) {
@@ -220,17 +251,6 @@ export function UploadLeadsView({ universities, selectedUniversity, onSelectUniv
 
   return (
     <div className="container mx-auto px-4 py-6">
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={navigateUp}
-        className="mb-4 text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        {fileName || processingState !== 'idle' ? 'Back' : 'Back to Lead Push'}
-      </Button>
-      
       {/* Breadcrumbs */}
       {breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-1 text-sm mb-4 flex-wrap">
@@ -251,9 +271,9 @@ export function UploadLeadsView({ universities, selectedUniversity, onSelectUniv
                 className="h-7 px-2 max-w-[200px] truncate"
                 onClick={() => !crumb.isActive && navigate(crumb.path)}
                 disabled={crumb.isActive}
-                title={crumb.label}
+                title={stringifyViewValue(crumb.label)}
               >
-                {crumb.label}
+                {stringifyViewValue(crumb.label)}
               </Button>
             </div>
           ))}
@@ -264,19 +284,24 @@ export function UploadLeadsView({ universities, selectedUniversity, onSelectUniv
       
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <UploadLeadsTab 
-            universities={universities}
-            selectedUniversity={selectedUniversity}
-            onSelectUniversity={handleSelectUniversity}
-            onFileUpload={handleFileUpload}
-            onClearFile={handleClearFile}
-            onProcessingStateChange={handleProcessingStateChange}
-            currentFileName={fileName}
-            currentProcessingState={processingState}
-          />
+          <LeadPushErrorBoundary onReset={() => setUploadResetKey((value) => value + 1)}>
+            <UploadLeadsTab
+              key={uploadResetKey}
+              universities={universities}
+              selectedUniversity={selectedUniversity}
+              onSelectUniversity={handleSelectUniversity}
+              onFileUpload={handleFileUpload}
+              onClearFile={handleClearFile}
+              onProcessingStateChange={handleProcessingStateChange}
+              currentFileName={fileName}
+              currentProcessingState={processingState}
+            />
+          </LeadPushErrorBoundary>
         </div>
         <div className="lg:col-span-1">
-          <QueueMonitor />
+          <LeadPushErrorBoundary onReset={() => setQueueResetKey((value) => value + 1)}>
+            <QueueMonitor key={queueResetKey} />
+          </LeadPushErrorBoundary>
         </div>
       </div>
     </div>

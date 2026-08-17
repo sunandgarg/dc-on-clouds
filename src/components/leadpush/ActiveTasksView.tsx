@@ -1,6 +1,6 @@
 import { memo, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Pause, Play, XCircle, Activity, CheckCircle2, User, Clock, CalendarClock } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Pause, Play, XCircle, Activity, User, Clock, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,9 +18,12 @@ interface BatchTask {
   total_leads: number;
   success_count: number;
   fail_count: number;
+  duplicate_count?: number;
   status: string;
   is_paused: boolean;
   is_cancelled: boolean;
+  processed_count?: number | null;
+  current_lead_index?: number | null;
   created_at: string;
   completed_at: string | null;
   user_id: string;
@@ -28,6 +31,26 @@ interface BatchTask {
   university_name?: string;
   leads_per_minute?: number;
 }
+
+const ACTIVE_TASK_BATCH_COLUMNS = [
+  'id',
+  'university_id',
+  'user_id',
+  'file_name',
+  'total_leads',
+  'success_count',
+  'fail_count',
+  'duplicate_count',
+  'status',
+  'is_paused',
+  'is_cancelled',
+  'processed_count',
+  'current_lead_index',
+  'created_at',
+  'completed_at',
+  'leads_per_minute',
+  'scheduled_at',
+].join(',');
 
 // Caches to avoid repeated lookups
 const uniCache = new Map<string, string>();
@@ -45,7 +68,8 @@ function ActiveTasksViewInner() {
     try {
       const { data, error } = await supabase
         .from('upload_batches')
-        .select('*')
+        .select(ACTIVE_TASK_BATCH_COLUMNS)
+        .in('status', ['processing', 'pending', 'paused', 'scheduled'])
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -102,11 +126,9 @@ function ActiveTasksViewInner() {
     fetchTasks();
   }, [toast, fetchTasks]);
 
-  const { activeTasks, scheduledTasks, completedTasks, cancelledTasks } = useMemo(() => ({
+  const { activeTasks, scheduledTasks } = useMemo(() => ({
     activeTasks: tasks.filter(t => ['processing', 'pending', 'paused'].includes(t.status)),
     scheduledTasks: tasks.filter(t => t.status === 'scheduled'),
-    completedTasks: tasks.filter(t => t.status === 'completed'),
-    cancelledTasks: tasks.filter(t => t.status === 'cancelled'),
   }), [tasks]);
 
   const getProgress = (t: BatchTask) => t.total_leads === 0 ? 0 : Math.round(((t.success_count + t.fail_count + ((t as any).duplicate_count || 0)) / t.total_leads) * 100);
@@ -249,33 +271,6 @@ function ActiveTasksViewInner() {
             </Card>
           )}
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                Completed ({completedTasks.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {completedTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No completed tasks</p>
-              ) : completedTasks.slice(0, 20).map(renderTask)}
-            </CardContent>
-          </Card>
-
-          {cancelledTasks.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <XCircle className="h-4 w-4 text-destructive" />
-                  Cancelled ({cancelledTasks.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {cancelledTasks.slice(0, 10).map(renderTask)}
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
     </div>

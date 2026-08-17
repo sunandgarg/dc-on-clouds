@@ -16,10 +16,29 @@ export interface PayloadField {
   dropdownValues?: { value: string; parentValue?: string }[];
 }
 
+function stringifyPayloadFieldValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value == null) return "";
+  if (Array.isArray(value)) {
+    return value.map(stringifyPayloadFieldValue).filter(Boolean).join(", ");
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const preferredKey = ["name", "contact_name", "value", "label", "displayName", "fieldName"].find(
+      (key) => key in record,
+    );
+    if (preferredKey) return stringifyPayloadFieldValue(record[preferredKey]);
+    return Object.values(record).map(stringifyPayloadFieldValue).filter(Boolean).join(", ");
+  }
+  return String(value).trim();
+}
+
 interface PayloadFieldsEditorProps {
   fields: PayloadField[];
   onChange: (fields: PayloadField[]) => void;
   previewData?: Record<string, string>;
+  payloadWrapper?: string;
   dynamicValues: {
     source: string;
     medium: string;
@@ -40,7 +59,7 @@ const defaultLeadFields = [
   { key: "address", label: "Address" },
 ];
 
-export function PayloadFieldsEditor({ fields, onChange, previewData = {}, dynamicValues }: PayloadFieldsEditorProps) {
+export function PayloadFieldsEditor({ fields, onChange, previewData = {}, payloadWrapper = "object", dynamicValues }: PayloadFieldsEditorProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [customSourceKeyMode, setCustomSourceKeyMode] = useState<Set<string>>(() => new Set());
 
@@ -170,7 +189,7 @@ export function PayloadFieldsEditor({ fields, onChange, previewData = {}, dynami
       <div className="bg-muted/30 rounded-xl p-4 border border-border">
         <h4 className="text-sm font-medium text-foreground mb-2">Live Payload Preview</h4>
         <pre className="bg-background p-4 rounded-lg overflow-x-auto font-mono text-xs text-foreground whitespace-pre-wrap border border-border max-h-48 overflow-y-auto">
-          {JSON.stringify(buildPayloadPreview(), null, 2)}
+          {JSON.stringify(payloadWrapper === "array" ? [buildPayloadPreview()] : buildPayloadPreview(), null, 2)}
         </pre>
       </div>
 
@@ -709,10 +728,17 @@ export function columnMappingToPayloadFields(mapping: Record<string, string>): P
   Object.entries(mapping).forEach(([key, value]) => {
     if (key.startsWith("__field_")) {
       try {
-        const config = JSON.parse(value);
+        const config = JSON.parse(value) as Partial<PayloadField>;
+        const fieldName = stringifyPayloadFieldValue(config.fieldName);
+        if (!fieldName) return;
+
         fields.push({
           id: key.replace("__field_", ""),
           ...config,
+          fieldName,
+          displayName: stringifyPayloadFieldValue(config.displayName) || fieldName,
+          sourceKey: stringifyPayloadFieldValue(config.sourceKey) || undefined,
+          staticValue: stringifyPayloadFieldValue(config.staticValue) || undefined,
         });
       } catch {
         // Ignore invalid JSON

@@ -46,6 +46,10 @@ export interface UniversityEditData {
   medium: string;
   campaign: string;
   leadsPerMinute: number;
+  apiTimeoutSeconds: number;
+  defaultPushConcurrency: number;
+  dailyLeadLimit?: number | null;
+  status?: "live" | "disabled";
   apiType: string;
   utmLink: string;
   publisherPanelUrl: string;
@@ -90,7 +94,11 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
     source: "dekhocampus",
     medium: "dekhocampus",
     campaign: "API",
-    leadsPerMinute: 5,
+    leadsPerMinute: 90,
+    apiTimeoutSeconds: 30,
+    defaultPushConcurrency: 2,
+    dailyLeadLimit: "" as number | "",
+    status: "live" as "live" | "disabled",
     apiType: "nopaperforms",
     utmLink: "",
     publisherPanelUrl: "",
@@ -108,7 +116,6 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
   const [payloadFields, setPayloadFields] = useState<PayloadField[]>(createDefaultPayloadFields());
   const [sampleCsvContent, setSampleCsvContent] = useState<string>("");
   const [defaultValues, setDefaultValues] = useState<Record<string, string>>({});
-  const [showSecret, setShowSecret] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isTestingApi, setIsTestingApi] = useState(false);
   const [apiTestResult, setApiTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -128,7 +135,10 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
         source: university.source || "dekhocampus",
         medium: university.medium || "dekhocampus",
         campaign: university.campaign || "API",
-        leadsPerMinute: university.leadsPerMinute || 5,
+        leadsPerMinute: university.leadsPerMinute || 90,
+        apiTimeoutSeconds: (university as any).apiTimeoutSeconds ?? (university as any).api_timeout_seconds ?? 30,
+        defaultPushConcurrency: (university as any).defaultPushConcurrency ?? (university as any).default_push_concurrency ?? 2,
+        dailyLeadLimit: (university.dailyLeadLimit ?? "") as any,
         apiType: university.apiType || "nopaperforms",
         utmLink: university.utmLink || "",
         publisherPanelUrl: university.publisherPanelUrl || "",
@@ -138,6 +148,7 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
         authHeaderValue: university.authHeaderValue || "",
         payloadWrapper: university.payloadWrapper || "object",
         customHeaders: university.customHeaders || {},
+        status: (university.status === "disabled" ? "disabled" : "live"),
       });
       setPrograms(university.programs || []);
       setStateCities(university.stateCities || []);
@@ -164,7 +175,15 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: name === "leadsPerMinute" ? Number(value) : value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        name === "leadsPerMinute" || name === "apiTimeoutSeconds" || name === "defaultPushConcurrency"
+          ? Number(value)
+          : name === "dailyLeadLimit"
+            ? (value === "" ? "" : Number(value))
+            : value,
+    }));
     if (errors[name]) {
       setErrors((prev) => {
         const n = { ...prev };
@@ -240,6 +259,7 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
           medium: formData.medium,
           campaign: formData.campaign,
           apiType: formData.apiType,
+          apiTimeoutSeconds: formData.apiTimeoutSeconds,
           columnMapping,
         },
       });
@@ -296,6 +316,12 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
     if (formData.leadsPerMinute < 1 || formData.leadsPerMinute > 120) {
       newErrors.leadsPerMinute = "Must be between 1 and 120";
     }
+    if (formData.apiTimeoutSeconds < 5 || formData.apiTimeoutSeconds > 300) {
+      newErrors.apiTimeoutSeconds = "Timeout must be between 5 and 300 seconds";
+    }
+    if (formData.defaultPushConcurrency < 1 || formData.defaultPushConcurrency > 5) {
+      newErrors.defaultPushConcurrency = "Leads at one time must be between 1 and 5";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -317,6 +343,9 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
     onSave({
       id: university.id,
       ...formData,
+      dailyLeadLimit: formData.dailyLeadLimit === "" || formData.dailyLeadLimit == null ? null : Number(formData.dailyLeadLimit),
+      apiTimeoutSeconds: Number(formData.apiTimeoutSeconds) || 30,
+      defaultPushConcurrency: Number(formData.defaultPushConcurrency) || 2,
       programs: programs.filter((p) => p.trim()),
       stateCities,
       courseSpecializations,
@@ -349,6 +378,8 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
     medium: formData.medium,
     campaign: formData.campaign,
     leads_per_minute: formData.leadsPerMinute,
+    api_timeout_seconds: formData.apiTimeoutSeconds,
+    default_push_concurrency: formData.defaultPushConcurrency,
     api_type: formData.apiType,
     column_mapping: payloadFieldsToColumnMapping(payloadFields),
     programs,
@@ -468,43 +499,31 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
                 {errors.collegeId && <p className="text-xs text-destructive mt-1">{errors.collegeId}</p>}
               </div>
 
-              {/* ✅ Secret Key - visible with reveal toggle so admins can verify the stored value */}
+              {/* ✅ Secret Key - optional label for custom */}
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Secret Key / Token{formData.apiType === "nopaperforms" || formData.apiType === "upgrad" ? " *" : " (optional)"}
                 </label>
-                <div className="relative">
-                  <input
-                    type={showSecret ? "text" : "password"}
-                    name="secretKey"
-                    value={formData.secretKey}
-                    onChange={handleInputChange}
-                    className={`input-field pr-20 ${errors.secretKey ? "border-destructive" : ""}`}
-                    placeholder={
-                      formData.apiType === "upgrad"
-                        ? "user:pass (e.g. vendor1:password1)"
-                        : formData.apiType === "custom"
-                        ? "Optional auth key or token"
-                        : "API authentication key"
-                    }
-                    autoComplete="off"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSecret((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted"
-                    aria-label={showSecret ? "Hide secret key" : "Show secret key"}
-                  >
-                    {showSecret ? "Hide" : "Show"}
-                  </button>
-                </div>
+                <input
+                  type="password"
+                  name="secretKey"
+                  value={formData.secretKey}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.secretKey ? "border-destructive" : ""}`}
+                  placeholder={
+                    formData.apiType === "upgrad"
+                      ? "user:pass (e.g. vendor1:password1)"
+                      : formData.apiType === "custom"
+                      ? "Optional auth key or token"
+                      : "API authentication key"
+                  }
+                />
                 {errors.secretKey && <p className="text-xs text-destructive mt-1">{errors.secretKey}</p>}
                 {formData.apiType === "upgrad" && !errors.secretKey && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Basic auth - paste <code>user:pass</code>, base64 of it, or the full <code>Basic xxxx</code> value.
                   </p>
                 )}
-                <p className="text-[11px] text-muted-foreground mt-1">Stored encrypted. Never echoed in JSON previews while pushing leads.</p>
               </div>
             </div>
           </section>
@@ -730,6 +749,7 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
               fields={payloadFields}
               onChange={setPayloadFields}
               previewData={previewData}
+              payloadWrapper={formData.payloadWrapper}
               dynamicValues={{
                 source: formData.source,
                 medium: formData.medium,
@@ -780,21 +800,85 @@ export function EditUniversityModal({ isOpen, university, onClose, onSave }: Edi
           {/* Rate Limiting */}
           <section>
             <h3 className="font-medium text-foreground mb-4">Rate Limiting</h3>
-            <div className="max-w-xs">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">Leads Per Minute</label>
-              <input
-                type="number"
-                name="leadsPerMinute"
-                value={formData.leadsPerMinute}
-                onChange={handleInputChange}
-                className={`input-field ${errors.leadsPerMinute ? "border-destructive" : ""}`}
-                min="1"
-                max="120"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                1 lead every {Math.round(60 / formData.leadsPerMinute)} seconds
-              </p>
-              {errors.leadsPerMinute && <p className="text-xs text-destructive mt-1">{errors.leadsPerMinute}</p>}
+            <div className="grid gap-4 sm:grid-cols-2 max-w-3xl">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Leads Per Minute</label>
+                <input
+                  type="number"
+                  name="leadsPerMinute"
+                  value={formData.leadsPerMinute}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.leadsPerMinute ? "border-destructive" : ""}`}
+                  min="1"
+                  max="120"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  1 lead every {Math.round(60 / formData.leadsPerMinute)} seconds
+                </p>
+                {errors.leadsPerMinute && <p className="text-xs text-destructive mt-1">{errors.leadsPerMinute}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">API Timeout (seconds)</label>
+                <input
+                  type="number"
+                  name="apiTimeoutSeconds"
+                  value={formData.apiTimeoutSeconds}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.apiTimeoutSeconds ? "border-destructive" : ""}`}
+                  min="5"
+                  max="300"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Default 30 sec. Increase this for slow university partners.
+                </p>
+                {errors.apiTimeoutSeconds && <p className="text-xs text-destructive mt-1">{errors.apiTimeoutSeconds}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Default Leads at One Time</label>
+                <input
+                  type="number"
+                  name="defaultPushConcurrency"
+                  value={formData.defaultPushConcurrency}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.defaultPushConcurrency ? "border-destructive" : ""}`}
+                  min="1"
+                  max="5"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Default upload concurrency for this university. Recommended: 2.
+                </p>
+                {errors.defaultPushConcurrency && <p className="text-xs text-destructive mt-1">{errors.defaultPushConcurrency}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Daily Lead Limit (DLL)</label>
+                <input
+                  type="number"
+                  name="dailyLeadLimit"
+                  value={formData.dailyLeadLimit as any}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  min="1"
+                  placeholder="Leave blank = unlimited"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Hard ceiling per day. Resets at midnight.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">University Status</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="input-field"
+                >
+                  <option value="live">🟢 Live - accept &amp; push leads</option>
+                  <option value="disabled">🔴 Disabled - block all pushes</option>
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Disabled universities are skipped and shown at the bottom of the admin dashboard.
+                </p>
+              </div>
             </div>
           </section>
 

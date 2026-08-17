@@ -1,5 +1,3 @@
-import { normalizeIndianMobile } from "@/lib/phone";
-
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
@@ -33,12 +31,16 @@ export interface LeadValidationConfig {
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // Mobile validation - accepts 10+ digits, optional country code
+const mobileRegex = /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/;
+
 export function validateEmail(email: string): boolean {
   return emailRegex.test(email.trim());
 }
 
 export function validateMobile(mobile: string): boolean {
-  return /^\d{10}$/.test(normalizeIndianMobile(mobile));
+  // Remove spaces, dashes, parentheses for validation
+  const cleaned = mobile.replace(/[\s\-().]/g, '');
+  return mobileRegex.test(cleaned);
 }
 
 // Core required fields that are always validated
@@ -127,7 +129,7 @@ export function validateLeads(leads: Lead[], config?: LeadValidationConfig): {
     }
 
     // Check for duplicate mobile
-    const normalizedMobile = normalizeIndianMobile(lead.mobile || '');
+    const normalizedMobile = lead.mobile?.replace(/[\s\-().+]/g, '');
     if (normalizedMobile) {
       const existingIndex = seenMobiles.get(normalizedMobile);
       if (existingIndex !== undefined) {
@@ -161,7 +163,7 @@ export async function checkDatabaseDuplicates(
   supabase: any
 ): Promise<{ duplicates: { email: string; mobile: string; existingId: string }[]; emails: Set<string>; mobiles: Set<string> }> {
   const emails = leads.map(l => l.email?.trim().toLowerCase()).filter(Boolean);
-  const mobiles = leads.map(l => normalizeIndianMobile(l.mobile || '')).filter(Boolean);
+  const mobiles = leads.map(l => l.mobile?.replace(/[\s\-().+]/g, '')).filter(Boolean);
 
   if (emails.length === 0 && mobiles.length === 0) {
     return { duplicates: [], emails: new Set(), mobiles: new Set() };
@@ -188,7 +190,7 @@ export async function checkDatabaseDuplicates(
   }
 
   const existingEmails = new Set<string>((existingLeads || []).map((l: any) => (l.email?.toLowerCase() || '') as string).filter(Boolean));
-  const existingMobiles = new Set<string>((existingLeads || []).map((l: any) => normalizeIndianMobile(l.mobile || '')).filter(Boolean));
+  const existingMobiles = new Set<string>((existingLeads || []).map((l: any) => (l.mobile?.replace(/[\s\-().+]/g, '') || '') as string).filter(Boolean));
   
   const duplicates = (existingLeads || []).map((l: any) => ({
     email: l.email,

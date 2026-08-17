@@ -146,12 +146,20 @@ function PurgeUniversityCacheViewInner({ universities }: Props) {
             </div>
           )}
 
-          <div className="pt-2 flex flex-wrap gap-2">
-            {TARGET_TABLES.map((t) => (
-              <Badge key={t.key} variant="outline" className="text-xs">
-                {t.label}
-              </Badge>
-            ))}
+          <div className="pt-2 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide self-center">Will purge:</span>
+              {TARGET_TABLES.map((t) => (
+                <Badge key={t.key} variant="outline" className="text-xs">
+                  {t.label}
+                </Badge>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 p-2 rounded-md bg-emerald-500/10 border border-emerald-500/30">
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide self-center">✓ Preserved (never purged):</span>
+              <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-400">Lead Push Daily Stats</Badge>
+              <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-400">Cumulative Stats</Badge>
+            </div>
           </div>
         </CardContent>
       </Card>

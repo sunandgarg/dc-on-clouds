@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { X, Send, User, Mail, Phone, MapPin, BookOpen, Tag, Loader2, CheckCircle2, XCircle, AlertTriangle, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { columnMappingToPayloadFields } from '@/components/universities/PayloadFieldsEditor';
-import { normalizeIndianMobile } from '@/lib/phone';
 
 interface CustomColumn {
   columnKey: string;
@@ -33,6 +32,41 @@ interface SingleLeadFormProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+const stringifyRenderValue = (value: unknown): string => {
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value == null) return '';
+  if (Array.isArray(value)) {
+    return value.map(stringifyRenderValue).filter(Boolean).join(', ');
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const preferredKey = ['name', 'contact_name', 'value', 'label', 'displayName', 'fieldName'].find(
+      (key) => key in record,
+    );
+    if (preferredKey) return stringifyRenderValue(record[preferredKey]);
+    return Object.values(record).map(stringifyRenderValue).filter(Boolean).join(', ');
+  }
+  return String(value).trim();
+};
+
+const normalizeSingleLeadStatus = (value: unknown): "Success" | "Duplicate" | "Fail" => {
+  const status = stringifyRenderValue(value).toLowerCase();
+  if (status === "success") return "Success";
+  if (status === "duplicate") return "Duplicate";
+  return "Fail";
+};
+
+const normalizeSingleLeadResponse = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return stringifyRenderValue(value);
+  }
+};
 
 // Define which fields are core lead fields vs dynamic/static
 const coreLeadFields = ['name', 'email', 'mobile', 'state', 'city', 'course', 'specialization', 'address'];
@@ -102,6 +136,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ status: 'success' | 'fail'; message: string; response?: string } | null>(null);
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const safeResultResponse = result ? normalizeSingleLeadResponse(result.response) : '';
 
   // Update form when university changes
   useEffect(() => {
@@ -110,7 +145,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: name === 'mobile' ? normalizeIndianMobile(value) : value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     
     // Reset dependent fields
     if (name === 'state') {
@@ -175,11 +210,12 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
     const hasParent = column.values.some(v => v.parentValue);
     if (hasParent && formData.course) {
       return column.values
-        .filter(v => !v.parentValue || v.parentValue === formData.course)
-        .map(v => v.value);
+        .filter(v => !v.parentValue || stringifyRenderValue(v.parentValue) === formData.course)
+        .map(v => stringifyRenderValue(v.value))
+        .filter(Boolean);
     }
     
-    return [...new Set(column.values.map(v => v.value))];
+    return [...new Set(column.values.map(v => stringifyRenderValue(v.value)).filter(Boolean))];
   };
 
   // Check if a core field is configured in payload
@@ -272,8 +308,12 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
           file_name: `Single Lead - ${formData.name || formData.email}`,
           total_leads: 1,
           status: 'processing',
+          is_paused: false,
+          is_cancelled: false,
+          processed_count: 0,
+          current_lead_index: 0,
         })
-        .select()
+        .select('id')
         .single();
 
       if (batchError) throw batchError;
@@ -295,34 +335,9 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
         }
       });
 
-      // Insert lead
-      const { data: lead, error: leadError } = await supabase
-        .from('push_leads')
-        .insert({
-          university_id: university.id,
-          batch_id: batch.id,
-          name: formData.name || '',
-          email: formData.email || '',
-          mobile: formData.mobile || '',
-          state: formData.state || '',
-          city: formData.city || '',
-          course: formData.course || '',
-          specialization: formData.specialization || '',
-          lead_source: formData.leadSource || '',
-          lead_medium: formData.leadMedium || '',
-          lead_campaign: formData.leadCampaign || '',
-          extra_data: Object.keys(extraData).length > 0 ? extraData : null,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (leadError) throw leadError;
-
-      // Process lead via edge function
+      // Process lead directly. Lead Push does not store individual lead rows.
       const { data: processResult, error: processError } = await supabase.functions.invoke('process-lead', {
         body: {
-          leadId: lead.id,
           universityId: university.id,
           batchId: batch.id,
           leadData: { ...formData, ...extraData },
@@ -342,24 +357,28 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
       if (processError) throw processError;
 
       // Update batch status and counts
-      const isSuccess = processResult?.status === 'Success';
+      const normalizedStatus = normalizeSingleLeadStatus(processResult?.status);
+      const normalizedResponse = normalizeSingleLeadResponse(processResult?.response);
+      const isSuccess = normalizedStatus === 'Success';
+      const isDuplicate = normalizedStatus === 'Duplicate';
       await supabase
         .from('upload_batches')
         .update({ 
           status: 'completed',
           completed_at: new Date().toISOString(),
           success_count: isSuccess ? 1 : 0,
-          fail_count: isSuccess ? 0 : 1,
+          duplicate_count: isDuplicate ? 1 : 0,
+          fail_count: isSuccess || isDuplicate ? 0 : 1,
           processed_count: 1,
         })
         .eq('id', batch.id);
 
       // Show result
-      if (processResult?.status === 'Success') {
+      if (normalizedStatus === 'Success') {
         setResult({ 
           status: 'success', 
           message: 'Lead submitted successfully!',
-          response: processResult.response
+          response: normalizedResponse
         });
         
         if (addAnother) {
@@ -380,7 +399,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
       } else {
         let errorMessage = 'Lead submission failed';
         try {
-          const responseJson = JSON.parse(processResult?.response || '{}');
+          const responseJson = JSON.parse(normalizedResponse || '{}');
           errorMessage = responseJson.message || responseJson.error || errorMessage;
         } catch {
           // Keep default message
@@ -389,7 +408,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
         setResult({ 
           status: 'fail', 
           message: errorMessage,
-          response: processResult?.response
+          response: normalizedResponse
         });
       }
     } catch (error) {
@@ -432,7 +451,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
           >
             <option value="">Select {label}</option>
             {options.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={stringifyRenderValue(opt)} value={stringifyRenderValue(opt)}>{stringifyRenderValue(opt)}</option>
             ))}
           </select>
         ) : (
@@ -457,7 +476,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
         <div className="flex items-center justify-between border-b border-border p-6">
           <div>
             <h2 className="font-display text-xl font-bold text-foreground">Add Single Lead</h2>
-            <p className="text-sm text-muted-foreground mt-1">Submit a lead directly to {university.name}</p>
+            <p className="text-sm text-muted-foreground mt-1">Submit a lead directly to {stringifyRenderValue(university.name)}</p>
           </div>
           <button
             onClick={onClose}
@@ -482,13 +501,13 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
                 <p className={`font-medium ${result.status === 'success' ? 'text-success' : 'text-destructive'}`}>
                   {result.message}
                 </p>
-                {result.response && (
+                {safeResultResponse && (
                   <details className="mt-2">
                     <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                       View API Response
                     </summary>
                     <pre className="mt-2 text-xs bg-background p-2 rounded overflow-x-auto font-mono">
-                      {result.response}
+                      {safeResultResponse}
                     </pre>
                   </details>
                 )}
@@ -635,7 +654,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
               <div className="grid gap-4 sm:grid-cols-2">
                 {customInputFields.map(field => renderField(
                   field.key,
-                  field.displayName,
+                  stringifyRenderValue(field.displayName) || stringifyRenderValue(field.key),
                   field.isRequired
                 ))}
               </div>
@@ -655,7 +674,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
                   return (
                     <div key={column.columnKey}>
                       <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                        {column.columnName}
+                        {stringifyRenderValue(column.columnName) || stringifyRenderValue(column.columnKey)}
                         {column.isRequired && <span className="text-destructive ml-1">*</span>}
                       </label>
                       {columnValues.length > 0 ? (
@@ -667,7 +686,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
                           disabled={isDisabled}
                           required={column.isRequired}
                         >
-                          <option value="">Select {column.columnName}</option>
+                          <option value="">Select {stringifyRenderValue(column.columnName) || stringifyRenderValue(column.columnKey)}</option>
                           {columnValues.map(value => (
                             <option key={value} value={value}>{value}</option>
                           ))}
@@ -679,7 +698,7 @@ export function SingleLeadForm({ university, onClose, onSuccess }: SingleLeadFor
                           value={formData[column.columnKey] || ''}
                           onChange={handleChange}
                           className="input-field"
-                          placeholder={`Enter ${column.columnName.toLowerCase()}`}
+                          placeholder={`Enter ${(stringifyRenderValue(column.columnName) || stringifyRenderValue(column.columnKey)).toLowerCase()}`}
                           required={column.isRequired}
                         />
                       )}

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { RefreshCw, Clock, Zap, Save, ExternalLink, KeyRound, Lock } from "lucide-react";
+import { RefreshCw, Clock, Zap, Save, ExternalLink, KeyRound, Lock, Gauge } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface University {
   id: string;
@@ -16,6 +17,9 @@ interface University {
   api_type: string;
   publisher_panel_url?: string;
   publisher_id?: string;
+  daily_lead_limit?: number | null;
+  daily_pushed_count?: number;
+  daily_count_reset_at?: string;
 }
 
 interface UniversityInfoPanelProps {
@@ -33,16 +37,45 @@ let adminConfigCache: { config: RateLimitConfig | null; timestamp: number } | nu
 const ADMIN_CACHE_TTL = 60000; // 1 min
 
 export function UniversityInfoPanel({ university, onRateLimitUpdate }: UniversityInfoPanelProps) {
-  const [leadsPerMinute, setLeadsPerMinute] = useState(university.leads_per_minute || 5);
+  const [leadsPerMinute, setLeadsPerMinute] = useState(university.leads_per_minute || 90);
   const [isSaving, setIsSaving] = useState(false);
   const [adminConfig, setAdminConfig] = useState<RateLimitConfig | null>(null);
+  const [dllInput, setDllInput] = useState<string>(
+    university.daily_lead_limit != null ? String(university.daily_lead_limit) : "",
+  );
+  const [dllSaving, setDllSaving] = useState(false);
+  const [dllUsage, setDllUsage] = useState<{ count: number; limit: number | null }>({
+    count: university.daily_pushed_count || 0,
+    limit: university.daily_lead_limit ?? null,
+  });
   const { toast } = useToast();
+  const { isAdmin } = useAdminAuth();
   const onRateLimitUpdateRef = useRef(onRateLimitUpdate);
   onRateLimitUpdateRef.current = onRateLimitUpdate;
 
+  // Refresh DLL usage from DB when university changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("universities")
+        .select("daily_lead_limit, daily_pushed_count, daily_count_reset_at")
+        .eq("id", university.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const resetDate = (data.daily_count_reset_at || "").slice(0, 10);
+      const count = resetDate === today ? (data.daily_pushed_count || 0) : 0;
+      setDllUsage({ count, limit: data.daily_lead_limit ?? null });
+      setDllInput(data.daily_lead_limit != null ? String(data.daily_lead_limit) : "");
+    })();
+    return () => { cancelled = true; };
+  }, [university.id]);
+
+
   // Sync state when university prop changes
   useEffect(() => {
-    const rate = university.leads_per_minute || 5;
+    const rate = university.leads_per_minute || 90;
     setLeadsPerMinute(rate);
   }, [university.id, university.leads_per_minute]);
 
@@ -104,28 +137,56 @@ export function UniversityInfoPanel({ university, onRateLimitUpdate }: Universit
     }
   };
 
+  const handleSaveDLL = async () => {
+    setDllSaving(true);
+    try {
+      const trimmed = dllInput.trim();
+      const newLimit = trimmed === "" ? null : Math.max(0, parseInt(trimmed, 10) || 0);
+      const { error } = await supabase
+        .from("universities")
+        .update({ daily_lead_limit: newLimit })
+        .eq("id", university.id);
+      if (error) throw error;
+      setDllUsage((u) => ({ ...u, limit: newLimit }));
+      toast({
+        title: "Daily limit saved",
+        description: newLimit == null ? "Unlimited" : `${newLimit} leads/day`,
+      });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to save daily limit", variant: "destructive" });
+    } finally {
+      setDllSaving(false);
+    }
+  };
+
+  const dllPct = dllUsage.limit && dllUsage.limit > 0 ? Math.min(100, Math.round((dllUsage.count / dllUsage.limit) * 100)) : 0;
+
+
+
   return (
     <div className="space-y-6">
       {/* University Info Card */}
-      <div className="card-elevated p-6">
-        <h3 className="font-display text-lg font-bold text-foreground mb-4">{university.name}</h3>
-        <div className="space-y-3">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">API Endpoint</p>
-            <p className="text-sm text-foreground font-mono break-all">{university.api_url}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+      {isAdmin && (
+        <div className="card-elevated p-6">
+          <h3 className="font-display text-lg font-bold text-foreground mb-4">{university.name}</h3>
+          <div className="space-y-3">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Source</p>
-              <p className="text-sm text-foreground font-medium">{university.source}</p>
+              <p className="text-xs text-muted-foreground mb-1">API Endpoint</p>
+              <p className="text-sm text-foreground font-mono break-all">{university.api_url}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Medium</p>
-              <p className="text-sm text-foreground font-medium">{university.medium}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Source</p>
+                <p className="text-sm text-foreground font-medium">{university.source}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Medium</p>
+                <p className="text-sm text-foreground font-medium">{university.medium}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Publisher Panel Info */}
       {(university.publisher_panel_url || university.publisher_id) && (
@@ -232,6 +293,57 @@ export function UniversityInfoPanel({ university, onRateLimitUpdate }: Universit
             {isSaving ? "Saving..." : `Save Rate Limit (${leadsPerMinute}/min)`}
           </button>
         )}
+      </div>
+
+      {/* Daily Lead Limit Card */}
+      <div className="card-elevated p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+            <Gauge className="h-5 w-5 text-amber-500" />
+          </div>
+          <div>
+            <h4 className="font-medium text-foreground">Daily Lead Limit (DLL)</h4>
+            <p className="text-xs text-muted-foreground">Cap how many leads can be pushed per calendar day. Leave blank for unlimited.</p>
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-muted-foreground">Today's usage</span>
+            <span className="text-sm font-bold text-foreground">
+              {dllUsage.count.toLocaleString()} / {dllUsage.limit == null ? "∞" : dllUsage.limit.toLocaleString()}
+            </span>
+          </div>
+          {dllUsage.limit != null && (
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full transition-all ${dllPct >= 100 ? "bg-destructive" : dllPct >= 80 ? "bg-amber-500" : "bg-primary"}`}
+                style={{ width: `${dllPct}%` }}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-foreground mb-1">Limit per day</label>
+            <input
+              type="number"
+              min={0}
+              value={dllInput}
+              onChange={(e) => setDllInput(e.target.value)}
+              placeholder="Unlimited"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+          <button onClick={handleSaveDLL} disabled={dllSaving} className="btn-primary flex items-center justify-center gap-2 px-4 py-2">
+            <Save className="h-4 w-4" />
+            {dllSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          When the daily count reaches the limit, further pushes return <code>DLL_Blocked</code> until midnight.
+        </p>
       </div>
     </div>
   );

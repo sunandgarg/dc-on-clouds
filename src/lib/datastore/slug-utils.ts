@@ -57,13 +57,8 @@ export function parseSubSlug(subSlug: string): { parentSlug: string; childSlug: 
  */
 export function generateUploadSlug(universitySlug: string, fileName?: string): string {
   const now = new Date();
-  // Avoid a character-class literal that Tailwind's source scanner mistakes for CSS.
   const timestamp = now.toISOString()
-    .replace(/-/g, '')
-    .replace(/:/g, '')
-    .replace('T', '')
-    .replace('.', '')
-    .replace('Z', '')
+    .replace(/-|:|T|\.|Z/g, '')
     .slice(0, 14);
   
   const randomPart = Math.random().toString(36).substring(2, 6);

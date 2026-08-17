@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { functionUrl } from '@/lib/backendMode';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -40,7 +39,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseProjectUrl } from '@/integrations/supabase/client';
 
 interface LandingPage {
   id: string;
@@ -61,7 +60,7 @@ interface Props {
   universities: any[];
 }
 
-const RECEIVE_URL = functionUrl('receive-lead');
+const RECEIVE_URL = `${supabaseProjectUrl}/functions/v1/receive-lead`;
 
 export function LandingPagesView({ universities }: Props) {
   const navigate = useNavigate();
@@ -79,7 +78,7 @@ export function LandingPagesView({ universities }: Props) {
   const reload = useCallback(async () => {
     setLoading(true);
     const [pRes, prRes] = await Promise.all([
-      supabase.from('push_landing_pages').select('*').order('created_at', { ascending: false }),
+      supabase.from('landing_pages').select('*').order('created_at', { ascending: false }),
       supabase.from('multi_push_presets').select('id, name, university_ids'),
     ]);
     setPages((pRes.data as any) || []);
@@ -97,13 +96,13 @@ export function LandingPagesView({ universities }: Props) {
   };
 
   const toggleActive = async (lp: LandingPage) => {
-    await supabase.from('push_landing_pages').update({ is_active: !lp.is_active }).eq('id', lp.id);
+    await supabase.from('landing_pages').update({ is_active: !lp.is_active }).eq('id', lp.id);
     reload();
   };
 
   const deletePage = async (lp: LandingPage) => {
     if (!confirm(`Delete landing page "${lp.name}"? Its API key will stop working.`)) return;
-    await supabase.from('push_landing_pages').delete().eq('id', lp.id);
+    await supabase.from('landing_pages').delete().eq('id', lp.id);
     reload();
   };
 
@@ -112,7 +111,7 @@ export function LandingPagesView({ universities }: Props) {
     const newKey = Array.from(crypto.getRandomValues(new Uint8Array(24)))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
-    await supabase.from('push_landing_pages').update({ api_key: newKey }).eq('id', lp.id);
+    await supabase.from('landing_pages').update({ api_key: newKey }).eq('id', lp.id);
     reload();
     toast({ title: 'Key rotated', description: 'Update your landing page with the new key.' });
   };
@@ -341,8 +340,8 @@ function LandingPageDialog({
       default_values: defaults,
     };
     const { error } = editing
-      ? await supabase.from('push_landing_pages').update(row).eq('id', editing.id)
-      : await supabase.from('push_landing_pages').insert(row);
+      ? await supabase.from('landing_pages').update(row).eq('id', editing.id)
+      : await supabase.from('landing_pages').insert(row);
     setSaving(false);
     if (error) {
       toast({ title: 'Save failed', description: error.message, variant: 'destructive' });

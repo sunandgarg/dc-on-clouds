@@ -14,6 +14,43 @@ interface TestPayload {
   campaign: string;
   apiType: string;
   columnMapping?: Record<string, string>;
+  apiTimeoutSeconds?: number;
+}
+
+function parseJsonLike<T>(value: unknown, fallback: T): T {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
+  return (value as T) ?? fallback;
+}
+
+function normalizeStringRecord(value: unknown): Record<string, string> {
+  const parsed = parseJsonLike<Record<string, unknown>>(value, {});
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+  return Object.fromEntries(
+    Object.entries(parsed)
+      .filter(([key]) => Boolean(key))
+      .map(([key, entryValue]) => [key, typeof entryValue === 'string' ? entryValue : JSON.stringify(entryValue ?? '')]),
+  );
+}
+
+function resolvePartnerTimeoutMs(apiConfig: TestPayload): number {
+  const configuredSeconds = Number(apiConfig.apiTimeoutSeconds);
+  if (Number.isFinite(configuredSeconds) && configuredSeconds >= 5 && configuredSeconds <= 300) {
+    return Math.round(configuredSeconds * 1000);
+  }
+
+  if (String(apiConfig.apiUrl || '').toLowerCase().includes('ctpl')) {
+    return 90000;
+  }
+
+  return 30000;
 }
 
 // SSRF Protection: Validate URL to prevent internal network access
@@ -93,6 +130,7 @@ serve(async (req) => {
 
   try {
     const apiConfig = await req.json() as TestPayload;
+    const columnMapping = normalizeStringRecord(apiConfig.columnMapping);
 
     // Validate URL to prevent SSRF attacks
     const urlValidation = isValidExternalUrl(apiConfig.apiUrl);
@@ -143,7 +181,7 @@ serve(async (req) => {
         email: 'user@upgrad.com',
         phone: { number: '9999999999', code: '+91' },
         course: 'entrepreneurship',
-        sendWelcomeMail: true,
+        sendWelcomeMail: false,
         city: 'Mumbai',
         state: 'Maharashtra',
         country: 'India',
@@ -157,7 +195,7 @@ serve(async (req) => {
       payload = Object.entries(testLead)
         .filter(([_, value]) => value)
         .map(([key, value]) => ({
-          Attribute: apiConfig.columnMapping?.[key] || key,
+          Attribute: columnMapping[key] || key,
           Value: value,
         }));
     } else if (apiConfig.apiType === 'meritto' || apiConfig.apiType === 'nopaperforms') {
@@ -171,7 +209,8 @@ serve(async (req) => {
       Object.entries(testLead).forEach(([key, value]) => {
         if (value) {
           const mappedKey = apiConfig.columnMapping?.[key] || key;
-          formData[mappedKey] = value;
+          const normalizedKey = columnMapping[key] || mappedKey;
+          formData[normalizedKey] = value;
         }
       });
 
@@ -188,11 +227,16 @@ serve(async (req) => {
 
     console.log('Test payload:', JSON.stringify(payload));
 
+    const controller = new AbortController();
+    const partnerTimeoutMs = resolvePartnerTimeoutMs(apiConfig);
+    const timeout = setTimeout(() => controller.abort(), partnerTimeoutMs);
+
     const apiResponse = await fetch(apiConfig.apiUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
 
     const httpStatus = apiResponse.status;
     const responseBody = await apiResponse.text();
@@ -254,10 +298,11 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Test API error:', error);
+    const isTimeout = error instanceof DOMException && error.name === 'AbortError';
     return new Response(
       JSON.stringify({ 
         isConfigValid: false, 
-        errorMessage: String(error),
+        errorMessage: isTimeout ? 'Partner API timed out' : String(error),
         httpStatus: 0,
         response: null,
       }),

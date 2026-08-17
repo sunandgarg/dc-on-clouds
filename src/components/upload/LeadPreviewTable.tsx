@@ -1,7 +1,6 @@
 import { RotateCcw, CheckCircle2, XCircle, Clock, Eye, AlertTriangle, Pencil, Check, X } from "lucide-react";
 import { useState, Fragment, useMemo } from "react";
 import { type Lead } from "@/utils/leadValidation";
-import { normalizeIndianMobile } from "@/lib/phone";
 
 // Module-level helper: recursively flatten any value to a string for safe React rendering
 const safeStringify = (val: unknown): string => {
@@ -29,6 +28,7 @@ interface LeadPreviewTableProps {
   onRetry?: (index: number) => void;
   onUpdateLead?: (index: number, lead: Lead) => void;
   isEditable?: boolean;
+  rowOffset?: number;
 }
 
 export function LeadPreviewTable({
@@ -42,6 +42,7 @@ export function LeadPreviewTable({
   onRetry,
   onUpdateLead,
   isEditable = false,
+  rowOffset = 0,
 }: LeadPreviewTableProps) {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [editingRow, setEditingRow] = useState<number | null>(null);
@@ -114,30 +115,39 @@ export function LeadPreviewTable({
     }
   };
 
-  const formatResponse = (response: string) => {
+  const formatResponse = (response: unknown) => {
+    const safeResponse = safeStringify(response);
     try {
-      const parsed = JSON.parse(response);
+      const parsed = JSON.parse(safeResponse);
       return JSON.stringify(parsed, null, 2);
     } catch {
-      return response;
+      return safeResponse;
     }
   };
 
-  const getResponseSummary = (response: string) => {
+  const getResponseSummary = (response: unknown) => {
+    const safeResponse = safeStringify(response);
     try {
-      const parsed = JSON.parse(response);
+      const parsed = JSON.parse(safeResponse);
       if (parsed.message) return parsed.message;
       if (parsed.error) return parsed.error;
       if (parsed.status) return parsed.status;
       return "View response";
     } catch {
-      return response.substring(0, 30) + (response.length > 30 ? "..." : "");
+      return safeResponse.substring(0, 30) + (safeResponse.length > 30 ? "..." : "");
     }
   };
 
   const startEditing = (index: number) => {
     setEditingRow(index);
-    setEditData({ ...leads[index] });
+    // The preview is tolerant of historical/object-valued leads. The edit
+    // controls must be equally strict: an input value may not receive an
+    // object such as `{ contact_name: "..." }`.
+    setEditData(
+      Object.fromEntries(
+        Object.entries(leads[index] || {}).map(([key, value]) => [key, safeStringify(value)]),
+      ) as Lead,
+    );
   };
 
   const cancelEditing = () => {
@@ -155,7 +165,7 @@ export function LeadPreviewTable({
 
   const updateField = (field: keyof Lead, value: string) => {
     if (editData) {
-      setEditData({ ...editData, [field]: field === "mobile" ? normalizeIndianMobile(value) : value });
+      setEditData({ ...editData, [field]: value });
     }
   };
 
@@ -225,10 +235,11 @@ export function LeadPreviewTable({
         </thead>
         <tbody className="divide-y divide-border">
           {safeLeads.map((lead, index) => {
-            const errors = validationErrors.get(index);
+            const actualIndex = rowOffset + index;
+            const errors = validationErrors.get(actualIndex);
             const hasErrors = errors && errors.length > 0;
-            const isDbDuplicate = dbDuplicates.has(index);
-            const isEditing = editingRow === index;
+            const isDbDuplicate = dbDuplicates.has(actualIndex);
+            const isEditing = editingRow === actualIndex;
 
             return (
               <Fragment key={index}>
@@ -328,12 +339,12 @@ export function LeadPreviewTable({
                   {(showStatus || hasValidationErrors || hasDbDuplicates) && (
                     <td className="px-3 py-2 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        {getStatusIcon(index)}
-                        {showStatus && getStatusBadge(index)}
+                        {getStatusIcon(actualIndex)}
+                        {showStatus && getStatusBadge(actualIndex)}
                       </div>
                       {hasErrors && (
                         <button
-                          onClick={() => setExpandedRow(expandedRow === index ? null : index)}
+                          onClick={() => setExpandedRow(expandedRow === actualIndex ? null : actualIndex)}
                           className="block mx-auto mt-1 text-xs text-warning hover:underline"
                         >
                           {errors.length} error(s)
@@ -347,9 +358,9 @@ export function LeadPreviewTable({
 
                   {showPayloadCol && (
                     <td className="px-3 py-2">
-                      {leadPayloads.has(index) ? (
+                      {leadPayloads.has(actualIndex) ? (
                         <button
-                          onClick={() => setExpandedRow(expandedRow === index ? null : index)}
+                          onClick={() => setExpandedRow(expandedRow === actualIndex ? null : actualIndex)}
                           className="flex items-center gap-1 text-xs text-primary hover:underline"
                         >
                           <Eye className="h-3 w-3" />
@@ -363,13 +374,13 @@ export function LeadPreviewTable({
 
                   {showStatus && (
                     <td className="px-3 py-2">
-                      {leadResponses.has(index) ? (
+                      {leadResponses.has(actualIndex) ? (
                         <button
-                          onClick={() => setExpandedRow(expandedRow === index ? null : index)}
+                          onClick={() => setExpandedRow(expandedRow === actualIndex ? null : actualIndex)}
                           className="flex items-center gap-1 text-xs text-primary hover:underline"
                         >
                           <Eye className="h-3 w-3" />
-                          {getResponseSummary(leadResponses.get(index) || "")}
+                          {getResponseSummary(leadResponses.get(actualIndex) || "")}
                         </button>
                       ) : (
                         <span className="text-xs text-muted-foreground">-</span>
@@ -395,7 +406,7 @@ export function LeadPreviewTable({
                         <div className="flex items-center justify-center gap-1">
                           {isEditable && onUpdateLead && (
                             <button
-                              onClick={() => startEditing(index)}
+                              onClick={() => startEditing(actualIndex)}
                               className="p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded"
                               title="Edit lead"
                             >
@@ -403,9 +414,9 @@ export function LeadPreviewTable({
                             </button>
                           )}
 
-                          {leadStatuses.get(index) === "failed" && onRetry && (
+                          {leadStatuses.get(actualIndex) === "failed" && onRetry && (
                             <button
-                              onClick={() => onRetry(index)}
+                              onClick={() => onRetry(actualIndex)}
                               className="flex items-center gap-1 text-xs text-warning hover:underline"
                             >
                               <RotateCcw className="h-3 w-3" /> Retry
@@ -418,7 +429,7 @@ export function LeadPreviewTable({
                 </tr>
 
                 {/* Expanded row for validation errors */}
-                {hasErrors && expandedRow === index && (
+                {hasErrors && expandedRow === actualIndex && (
                   <tr className="bg-warning/10">
                     <td colSpan={colSpan} className="px-3 py-3">
                       <p className="font-medium text-warning mb-2 text-xs flex items-center gap-1">
@@ -431,11 +442,11 @@ export function LeadPreviewTable({
                         ))}
                       </ul>
 
-                      {leadPayloads.has(index) && (
+                      {leadPayloads.has(actualIndex) && (
                         <>
                           <p className="font-medium text-muted-foreground mt-4 mb-2 text-xs">Mapped Payload (JSON):</p>
                           <pre className="bg-background p-3 rounded-lg overflow-x-auto font-mono text-xs text-foreground whitespace-pre-wrap">
-                            {formatResponse(leadPayloads.get(index) || "")}
+                            {formatResponse(leadPayloads.get(actualIndex) || "")}
                           </pre>
                         </>
                       )}
@@ -445,24 +456,24 @@ export function LeadPreviewTable({
 
                 {/* Expanded row for payload/response */}
                 {!hasErrors &&
-                  expandedRow === index &&
-                  (leadPayloads.has(index) || (showStatus && leadResponses.has(index))) && (
+                  expandedRow === actualIndex &&
+                  (leadPayloads.has(actualIndex) || (showStatus && leadResponses.has(actualIndex))) && (
                     <tr className="bg-muted/20">
                       <td colSpan={colSpan} className="px-3 py-3 space-y-4">
-                        {leadPayloads.has(index) && (
+                        {leadPayloads.has(actualIndex) && (
                           <div>
                             <p className="font-medium text-muted-foreground mb-2 text-xs">Mapped Payload (JSON):</p>
                             <pre className="bg-background p-3 rounded-lg overflow-x-auto font-mono text-xs text-foreground whitespace-pre-wrap">
-                              {formatResponse(leadPayloads.get(index) || "")}
+                              {formatResponse(leadPayloads.get(actualIndex) || "")}
                             </pre>
                           </div>
                         )}
 
-                        {showStatus && leadResponses.has(index) && (
+                        {showStatus && leadResponses.has(actualIndex) && (
                           <div>
                             <p className="font-medium text-muted-foreground mb-2 text-xs">API Response:</p>
                             <pre className="bg-background p-3 rounded-lg overflow-x-auto font-mono text-xs text-foreground whitespace-pre-wrap">
-                              {formatResponse(leadResponses.get(index) || "")}
+                              {formatResponse(leadResponses.get(actualIndex) || "")}
                             </pre>
                           </div>
                         )}

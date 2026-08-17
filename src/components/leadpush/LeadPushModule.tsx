@@ -1,7 +1,8 @@
 import { memo, useMemo, useEffect } from "react";
-import { useLocation, Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { LeadPushHub } from "./LeadPushHub";
 import { appCache } from "@/hooks/useAppCache";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import UniversitiesView from "@/components/leadpush/UniversitiesView";
 import UTMLinksView from "@/components/leadpush/UTMLinksView";
 import UploadLeadsView from "@/components/leadpush/UploadLeadsView";
@@ -10,6 +11,7 @@ import ActiveTasksView from "@/components/leadpush/ActiveTasksView";
 import MultiPushView from "@/components/leadpush/multipush/MultiPushView";
 import PurgeUniversityCacheView from "@/components/leadpush/PurgeUniversityCacheView";
 import LandingPagesView from "@/components/leadpush/LandingPagesView";
+import LeadPushAdminDashboard from "@/components/leadpush/admin/LeadPushAdminDashboard";
 
 interface LeadPushModuleProps {
   universities: any[];
@@ -19,10 +21,13 @@ interface LeadPushModuleProps {
   onAddUniversity: () => void;
   onEditUniversity: (uni: any) => void;
   onDeleteUniversity: (id: string) => void;
+  onBulkDeleteUniversities?: (ids: string[]) => void;
   onSelectUploadUniversity: (uni: any) => void;
   selectedUploadUniversity: any | null;
   onBulkImport?: (configs: any[]) => void;
 }
+
+const USER_ALLOWED_LEAD_PUSH_VIEWS = new Set(["upload", "active-tasks"]);
 
 export function LeadPushModule({
   universities,
@@ -32,18 +37,25 @@ export function LeadPushModule({
   onAddUniversity,
   onEditUniversity,
   onDeleteUniversity,
+  onBulkDeleteUniversities,
   onSelectUploadUniversity,
   selectedUploadUniversity,
   onBulkImport,
 }: LeadPushModuleProps) {
   const location = useLocation();
+  const { isAdmin, loading: adminAuthLoading } = useAdminAuth();
 
   const { activeView } = useMemo(() => {
     const parts = location.pathname.split("/").filter(Boolean);
-    // Support both /lead-push/:view and /admin/lead-push/:view
-    const idx = parts.indexOf("lead-push");
-    if (idx >= 0 && parts[idx + 1]) {
-      return { activeView: parts[idx + 1] };
+    const leadPushIndex =
+      parts[0] === "admin" && parts[1] === "lead-push"
+        ? 1
+        : parts[0] === "lead-push"
+          ? 0
+          : -1;
+
+    if (leadPushIndex >= 0 && parts[leadPushIndex + 1]) {
+      return { activeView: parts[leadPushIndex + 1] };
     }
     return { activeView: "hub" };
   }, [location.pathname]);
@@ -89,10 +101,19 @@ export function LeadPushModule({
     };
   }, [universities, batches]);
 
+  if (adminAuthLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAdmin && !USER_ALLOWED_LEAD_PUSH_VIEWS.has(activeView)) {
+    return <Navigate to="/admin/lead-push/upload" replace />;
+  }
+
   switch (activeView) {
-    case "automation":
-      // Safety net: if static automation route lost the match, redirect there explicitly.
-      return <Navigate to="/admin/lead-push/automation" replace />;
     case "universities":
       return (
         <UniversitiesView
@@ -100,6 +121,7 @@ export function LeadPushModule({
           onAdd={onAddUniversity}
           onEdit={onEditUniversity}
           onDelete={onDeleteUniversity}
+          onBulkDelete={onBulkDeleteUniversities}
           onRefresh={onUniversitiesChange}
           onBulkImport={onBulkImport}
         />
@@ -124,6 +146,8 @@ export function LeadPushModule({
       return <LandingPagesView universities={universities} />;
     case "purge-cache":
       return <PurgeUniversityCacheView universities={universities} />;
+    case "admin":
+      return <LeadPushAdminDashboard />;
     case "hub":
     default:
       return <LeadPushHub stats={hubStats} />;

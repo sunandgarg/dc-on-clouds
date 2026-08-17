@@ -2,8 +2,8 @@
  * useUploadStatePersistence - Unified state persistence for lead upload
  *
  * This replaces the dual localStorage/sessionStorage systems with a single,
- * robust implementation that:
- * 1. Uses localStorage for cross-tab persistence
+ * lightweight implementation that:
+ * 1. Uses localStorage only for non-sensitive upload metadata
  * 2. Saves immediately on visibility change (tab switch)
  * 3. Saves on beforeunload (browser close)
  * 4. Hydrates state synchronously on mount
@@ -133,6 +133,89 @@ function normalizeLeads(leads: Lead[]): Lead[] {
   return leads.map(normalizeLead);
 }
 
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(coerceLeadValue).map((entry) => entry.trim()).filter(Boolean);
+}
+
+function normalizeStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => Boolean(String(key).trim()))
+      .map(([key, entryValue]) => [String(key), coerceLeadValue(entryValue)]),
+  );
+}
+
+function normalizeValidationErrors(
+  value: unknown,
+): Record<number, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([key, entryValue]) => {
+        const numericKey = Number.parseInt(String(key), 10);
+        if (!Number.isFinite(numericKey)) return null;
+        return [numericKey, normalizeStringArray(entryValue)] as const;
+      })
+      .filter((entry): entry is readonly [number, string[]] => Boolean(entry)),
+  );
+}
+
+function normalizeLeadStatuses(
+  value: unknown,
+): Record<number, "pending" | "success" | "failed" | "duplicate"> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const allowed = new Set(["pending", "success", "failed", "duplicate"]);
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([key, entryValue]) => {
+        const numericKey = Number.parseInt(String(key), 10);
+        const status = coerceLeadValue(entryValue) as "pending" | "success" | "failed" | "duplicate";
+        if (!Number.isFinite(numericKey) || !allowed.has(status)) return null;
+        return [numericKey, status] as const;
+      })
+      .filter((entry): entry is readonly [number, "pending" | "success" | "failed" | "duplicate"] => Boolean(entry)),
+  );
+}
+
+function normalizeNumberArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => Number.parseInt(coerceLeadValue(entry), 10))
+    .filter((entry) => Number.isFinite(entry));
+}
+
+function normalizeUploadState(state: UploadState): UploadState {
+  return {
+    ...DEFAULT_STATE,
+    ...state,
+    selectedUniversityId: state.selectedUniversityId ? coerceLeadValue(state.selectedUniversityId) : null,
+    fileName: coerceLeadValue(state.fileName),
+    csvData: coerceLeadValue(state.csvData),
+    csvHeaders: normalizeStringArray(state.csvHeaders),
+    leads: normalizeLeads(Array.isArray(state.leads) ? state.leads : []),
+    tempColumnMapping: normalizeStringRecord(state.tempColumnMapping),
+    validationErrors: normalizeValidationErrors(state.validationErrors),
+    hasValidationErrors: Object.keys(normalizeValidationErrors(state.validationErrors)).length > 0,
+    dbDuplicates: normalizeNumberArray(state.dbDuplicates),
+    duplicateAction: state.duplicateAction === "process" ? "process" : "skip",
+    processedCount: Number.isFinite(state.processedCount) ? state.processedCount : 0,
+    leadStatuses: normalizeLeadStatuses(state.leadStatuses),
+    leadResponses: normalizeStringRecord(state.leadResponses),
+    leadPayloads: normalizeStringRecord(state.leadPayloads),
+    leadDbIds: normalizeStringRecord(state.leadDbIds),
+    batchId: state.batchId ? coerceLeadValue(state.batchId) : null,
+    showSingleLeadForm: Boolean(state.showSingleLeadForm),
+    pageSize: Number.isFinite(state.pageSize) && state.pageSize > 0 ? state.pageSize : DEFAULT_STATE.pageSize,
+    searchTerm: coerceLeadValue(state.searchTerm),
+    currentPage: Number.isFinite(state.currentPage) && state.currentPage >= 0 ? state.currentPage : 0,
+  };
+}
+
 function loadFromStorage(): { state: UploadState; processing: ProcessingState } {
   try {
     const stateStr = localStorage.getItem(STORAGE_KEY);
@@ -141,13 +224,11 @@ function loadFromStorage(): { state: UploadState; processing: ProcessingState } 
     const state = stateStr ? JSON.parse(stateStr) : DEFAULT_STATE;
     const processing = processingStr ? JSON.parse(processingStr) : DEFAULT_PROCESSING_STATE;
 
-    // Validate and merge with defaults to handle missing fields
+    // Validate and merge with defaults to handle missing fields. Lead rows,
+    // CSV contents, partner responses and request payloads are intentionally
+    // not restored from storage.
     return {
-      state: {
-        ...DEFAULT_STATE,
-        ...state,
-        leads: normalizeLeads(Array.isArray(state?.leads) ? state.leads : []),
-      },
+      state: sanitizeUploadStateForStorage(normalizeUploadState({ ...DEFAULT_STATE, ...state })),
       processing: { ...DEFAULT_PROCESSING_STATE, ...processing },
     };
   } catch (error) {
@@ -156,22 +237,21 @@ function loadFromStorage(): { state: UploadState; processing: ProcessingState } 
   }
 }
 
+function sanitizeUploadStateForStorage(state: UploadState): UploadState {
+  return {
+    ...state,
+    csvData: "",
+    csvHeaders: [],
+    leads: [],
+    leadResponses: {},
+    leadPayloads: {},
+    leadDbIds: {},
+  };
+}
+
 function saveToStorage(state: UploadState, processing: ProcessingState): void {
   try {
-    const normalizedState = {
-      ...state,
-      leads: normalizeLeads(state.leads),
-    };
-
-    const stateToPersist: UploadState = processing.isProcessing
-      ? {
-          ...normalizedState,
-          // Keep leadStatuses and leadResponses so polling data persists across saves
-          // Only skip heavy payloads to reduce storage size
-          leadPayloads: {},
-          csvData: normalizedState.csvData.length > 500000 ? "" : normalizedState.csvData,
-        }
-      : normalizedState;
+    const stateToPersist = sanitizeUploadStateForStorage(state);
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToPersist));
     localStorage.setItem(PROCESSING_STATE_KEY, JSON.stringify(processing));
@@ -206,6 +286,76 @@ function getProcessingSlug(processing: ProcessingState, state: UploadState): Pro
 // ============= Main Hook =============
 interface UseUploadStatePersistenceOptions {
   onNavigateWithState?: (path: string) => void;
+}
+
+function normalizeUploadStateUpdates(updates: Partial<UploadState>): Partial<UploadState> {
+  const normalized: Partial<UploadState> = { ...updates };
+
+  if ("selectedUniversityId" in updates) {
+    normalized.selectedUniversityId = updates.selectedUniversityId ? coerceLeadValue(updates.selectedUniversityId) : null;
+  }
+  if ("fileName" in updates) {
+    normalized.fileName = coerceLeadValue(updates.fileName);
+  }
+  if ("csvData" in updates) {
+    normalized.csvData = coerceLeadValue(updates.csvData);
+  }
+  if ("csvHeaders" in updates) {
+    normalized.csvHeaders = normalizeStringArray(updates.csvHeaders);
+  }
+  if ("leads" in updates) {
+    normalized.leads = normalizeLeads(Array.isArray(updates.leads) ? updates.leads : []);
+  }
+  if ("tempColumnMapping" in updates) {
+    normalized.tempColumnMapping = normalizeStringRecord(updates.tempColumnMapping);
+  }
+  if ("validationErrors" in updates) {
+    normalized.validationErrors = normalizeValidationErrors(updates.validationErrors);
+  }
+  if ("hasValidationErrors" in updates || "validationErrors" in updates) {
+    const validationErrors = normalized.validationErrors ?? updates.validationErrors;
+    normalized.hasValidationErrors = Object.keys(normalizeValidationErrors(validationErrors)).length > 0;
+  }
+  if ("dbDuplicates" in updates) {
+    normalized.dbDuplicates = normalizeNumberArray(updates.dbDuplicates);
+  }
+  if ("duplicateAction" in updates) {
+    normalized.duplicateAction = updates.duplicateAction === "process" ? "process" : "skip";
+  }
+  if ("processedCount" in updates) {
+    normalized.processedCount = Number.isFinite(updates.processedCount) ? updates.processedCount : 0;
+  }
+  if ("leadStatuses" in updates) {
+    normalized.leadStatuses = normalizeLeadStatuses(updates.leadStatuses);
+  }
+  if ("leadResponses" in updates) {
+    normalized.leadResponses = normalizeStringRecord(updates.leadResponses);
+  }
+  if ("leadPayloads" in updates) {
+    normalized.leadPayloads = normalizeStringRecord(updates.leadPayloads);
+  }
+  if ("leadDbIds" in updates) {
+    normalized.leadDbIds = normalizeStringRecord(updates.leadDbIds);
+  }
+  if ("batchId" in updates) {
+    normalized.batchId = updates.batchId ? coerceLeadValue(updates.batchId) : null;
+  }
+  if ("showSingleLeadForm" in updates) {
+    normalized.showSingleLeadForm = Boolean(updates.showSingleLeadForm);
+  }
+  if ("pageSize" in updates) {
+    normalized.pageSize =
+      Number.isFinite(updates.pageSize) && (updates.pageSize ?? 0) > 0 ? updates.pageSize : DEFAULT_STATE.pageSize;
+  }
+  if ("searchTerm" in updates) {
+    normalized.searchTerm = coerceLeadValue(updates.searchTerm);
+  }
+  if ("currentPage" in updates) {
+    normalized.currentPage =
+      Number.isFinite(updates.currentPage) && (updates.currentPage ?? -1) >= 0 ? updates.currentPage : 0;
+  }
+
+  return normalized;
 }
 
 interface UseUploadStatePersistenceReturn {
@@ -292,7 +442,7 @@ export function useUploadStatePersistence(
   const setState = useCallback(
     (updates: Partial<UploadState>) => {
       setStateInternal((prev) => {
-        const next = { ...prev, ...updates };
+        const next = { ...prev, ...normalizeUploadStateUpdates(updates) };
         stateRef.current = next;
         scheduleSave();
         return next;
@@ -342,7 +492,10 @@ export function useUploadStatePersistence(
       setStateInternal((prev) => {
         const next = {
           ...prev,
-          leadResponses: { ...prev.leadResponses, [index]: response },
+          // Partner responses are external JSON. Coerce here as well as at
+          // initial hydration so a live response can never introduce an
+          // object-valued React child into the upload UI.
+          leadResponses: { ...prev.leadResponses, [index]: coerceLeadValue(response) },
         };
         stateRef.current = next;
         scheduleSave();
@@ -357,7 +510,7 @@ export function useUploadStatePersistence(
       setStateInternal((prev) => {
         const next = {
           ...prev,
-          leadPayloads: { ...prev.leadPayloads, [index]: payload },
+          leadPayloads: { ...prev.leadPayloads, [index]: coerceLeadValue(payload) },
         };
         stateRef.current = next;
         scheduleSave();
@@ -400,6 +553,10 @@ export function useUploadStatePersistence(
 
   // Reset all state
   const resetAll = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
     setStateInternal(DEFAULT_STATE);
     setProcessingInternal(DEFAULT_PROCESSING_STATE);
     stateRef.current = DEFAULT_STATE;
@@ -497,7 +654,7 @@ export function hasSavedUploadData(): boolean {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return false;
-    const data: UploadState = JSON.parse(stored);
+    const data = normalizeUploadState(JSON.parse(stored) as UploadState);
     return data.leads.length > 0 || data.fileName !== "";
   } catch {
     return false;

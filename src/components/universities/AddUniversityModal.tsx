@@ -53,6 +53,10 @@ export interface UniversityFormData {
   medium: string;
   campaign: string;
   leadsPerMinute: number;
+  apiTimeoutSeconds: number;
+  defaultPushConcurrency: number;
+  dailyLeadLimit?: number | null;
+  status?: "live" | "disabled";
   apiType: string;
   utmLink: string;
   publisherPanelUrl: string;
@@ -94,7 +98,11 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
     source: "dekhocampus",
     medium: "dekhocampus",
     campaign: "API",
-    leadsPerMinute: 5,
+    leadsPerMinute: 90,
+    apiTimeoutSeconds: 30,
+    defaultPushConcurrency: 2,
+    dailyLeadLimit: "" as number | "",
+    status: "live" as "live" | "disabled",
     apiType: "nopaperforms",
     utmLink: "",
     publisherPanelUrl: "",
@@ -123,7 +131,15 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: name === "leadsPerMinute" ? Number(value) : value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        name === "leadsPerMinute" || name === "apiTimeoutSeconds" || name === "defaultPushConcurrency"
+          ? Number(value)
+          : name === "dailyLeadLimit"
+            ? (value === "" ? "" : Number(value))
+            : value,
+    }));
 
     // Clear existing error for this field
     if (errors[name]) {
@@ -211,6 +227,7 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
           medium: formData.medium,
           campaign: formData.campaign,
           apiType: formData.apiType,
+          apiTimeoutSeconds: formData.apiTimeoutSeconds,
           columnMapping,
         },
       });
@@ -278,6 +295,12 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
     if (formData.leadsPerMinute < 1 || formData.leadsPerMinute > 120) {
       newErrors.leadsPerMinute = "Must be between 1 and 120";
     }
+    if (formData.apiTimeoutSeconds < 5 || formData.apiTimeoutSeconds > 300) {
+      newErrors.apiTimeoutSeconds = "Timeout must be between 5 and 300 seconds";
+    }
+    if (formData.defaultPushConcurrency < 1 || formData.defaultPushConcurrency > 5) {
+      newErrors.defaultPushConcurrency = "Leads at one time must be between 1 and 5";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -292,7 +315,11 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
       source: "dekhocampus",
       medium: "dekhocampus",
       campaign: "API",
-      leadsPerMinute: 5,
+      leadsPerMinute: 90,
+      apiTimeoutSeconds: 30,
+      defaultPushConcurrency: 2,
+      dailyLeadLimit: "" as any,
+      status: "live",
       apiType: "nopaperforms",
       utmLink: "",
       publisherPanelUrl: "",
@@ -339,6 +366,9 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
 
       const universityData: UniversityFormData = {
         ...formData,
+        dailyLeadLimit: formData.dailyLeadLimit === "" || formData.dailyLeadLimit == null ? null : Number(formData.dailyLeadLimit),
+        apiTimeoutSeconds: Number(formData.apiTimeoutSeconds) || 30,
+        defaultPushConcurrency: Number(formData.defaultPushConcurrency) || 2,
         utmLink: formData.utmLink,
         publisherPanelUrl: formData.publisherPanelUrl,
         publisherId: formData.publisherId,
@@ -401,7 +431,10 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
       source: imported.source || "dekhocampus",
       medium: imported.medium || "dekhocampus",
       campaign: imported.campaign || "API",
-      leadsPerMinute: imported.leadsPerMinute || 5,
+      leadsPerMinute: imported.leadsPerMinute || 90,
+      apiTimeoutSeconds: (imported as any).apiTimeoutSeconds ?? (imported as any).api_timeout_seconds ?? 30,
+      defaultPushConcurrency: (imported as any).defaultPushConcurrency ?? (imported as any).default_push_concurrency ?? 2,
+      dailyLeadLimit: ((imported as any).dailyLeadLimit ?? (imported as any).daily_lead_limit ?? (imported as any).daily_limit ?? "") as any,
       apiType: imported.apiType || "nopaperforms",
       utmLink: (imported as any).utmLink || "",
       publisherPanelUrl: (imported as any).publisherPanelUrl || "",
@@ -411,15 +444,17 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
       authHeaderValue: (imported as any).authHeaderValue || "",
       payloadWrapper: (imported as any).payloadWrapper || "object",
       customHeaders: (imported as any).customHeaders || {},
+      status: ((imported as any).status === "disabled" ? "disabled" : "live"),
     });
     setPrograms(imported.programs || []);
-    setStateCities(imported.stateCities || []);
-    setCourseSpecializations(imported.courseSpecializations || []);
-    setCustomColumns(imported.customColumns || []);
+    setStateCities(imported.stateCities || (imported as any).state_cities || []);
+    setCourseSpecializations(imported.courseSpecializations || (imported as any).course_specializations || []);
+    setCustomColumns(imported.customColumns || (imported as any).custom_columns || []);
 
     // Restore payload fields
-    if (imported.payloadFields && imported.payloadFields.length > 0) {
-      setPayloadFields(imported.payloadFields);
+    const importedPayloadFields = imported.payloadFields || (imported as any).payload_fields;
+    if (importedPayloadFields && importedPayloadFields.length > 0) {
+      setPayloadFields(importedPayloadFields);
     } else if (imported.columnMapping && Object.keys(imported.columnMapping).length > 0) {
       setPayloadFields(columnMappingToPayloadFields(imported.columnMapping));
     }
@@ -804,6 +839,7 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
               fields={payloadFields}
               onChange={setPayloadFields}
               previewData={previewData}
+              payloadWrapper={formData.payloadWrapper}
               dynamicValues={{
                 source: formData.source,
                 medium: formData.medium,
@@ -847,21 +883,85 @@ export const AddUniversityModal = forwardRef<HTMLDivElement, AddUniversityModalP
           {/* Rate Limiting */}
           <section>
             <h3 className="font-medium text-foreground mb-4">Rate Limiting</h3>
-            <div className="max-w-xs">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">Leads Per Minute</label>
-              <input
-                type="number"
-                name="leadsPerMinute"
-                value={formData.leadsPerMinute}
-                onChange={handleInputChange}
-                className={`input-field ${errors.leadsPerMinute ? "border-destructive" : ""}`}
-                min="1"
-                max="120"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                1 lead every {Math.round(60 / formData.leadsPerMinute)} seconds
-              </p>
-              {errors.leadsPerMinute && <p className="text-xs text-destructive mt-1">{errors.leadsPerMinute}</p>}
+            <div className="grid gap-4 sm:grid-cols-2 max-w-3xl">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Leads Per Minute</label>
+                <input
+                  type="number"
+                  name="leadsPerMinute"
+                  value={formData.leadsPerMinute}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.leadsPerMinute ? "border-destructive" : ""}`}
+                  min="1"
+                  max="120"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  1 lead every {Math.round(60 / formData.leadsPerMinute)} seconds
+                </p>
+                {errors.leadsPerMinute && <p className="text-xs text-destructive mt-1">{errors.leadsPerMinute}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">API Timeout (seconds)</label>
+                <input
+                  type="number"
+                  name="apiTimeoutSeconds"
+                  value={formData.apiTimeoutSeconds}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.apiTimeoutSeconds ? "border-destructive" : ""}`}
+                  min="5"
+                  max="300"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Default 30 sec. Use a higher value for slow partners like CTPL.
+                </p>
+                {errors.apiTimeoutSeconds && <p className="text-xs text-destructive mt-1">{errors.apiTimeoutSeconds}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Default Leads at One Time</label>
+                <input
+                  type="number"
+                  name="defaultPushConcurrency"
+                  value={formData.defaultPushConcurrency}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.defaultPushConcurrency ? "border-destructive" : ""}`}
+                  min="1"
+                  max="5"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Default upload concurrency for this university. New default is 2.
+                </p>
+                {errors.defaultPushConcurrency && <p className="text-xs text-destructive mt-1">{errors.defaultPushConcurrency}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Daily Lead Limit (DLL)</label>
+                <input
+                  type="number"
+                  name="dailyLeadLimit"
+                  value={formData.dailyLeadLimit as any}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  min="1"
+                  placeholder="Leave blank = unlimited"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Hard ceiling per day. Resets at midnight.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">University Status</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="input-field"
+                >
+                  <option value="live">🟢 Live - accept &amp; push leads</option>
+                  <option value="disabled">🔴 Disabled - block all pushes</option>
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Disabled universities are skipped during push and shown at the bottom of the admin dashboard.
+                </p>
+              </div>
             </div>
           </section>
 

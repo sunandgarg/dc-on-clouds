@@ -14,6 +14,8 @@ const resolvedSupabaseUrl =
     ? SUPABASE_URL.trim()
     : FALLBACK_SUPABASE_URL;
 
+export const supabaseProjectUrl = resolvedSupabaseUrl.replace(/\/$/, '');
+
 const resolvedSupabaseKey =
   typeof SUPABASE_PUBLISHABLE_KEY === 'string' &&
   SUPABASE_PUBLISHABLE_KEY.trim() &&
