@@ -51,7 +51,7 @@ const SUPABASE_KEY =
   env.SUPABASE_PUBLISHER_KEY ||
   env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   "";
-const SITEMAP_SEED_URL = env.SITEMAP_SEED_URL || "https://dekhocampus.in/sitemap.xml";
+const SITEMAP_SEED_URL = env.SITEMAP_SEED_URL || "https://dekhocampus.com/sitemap.xml";
 const PAGE_SIZE = 1000;
 
 interface SitemapEntry {

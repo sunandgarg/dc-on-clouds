@@ -102,7 +102,7 @@ function pushGenericDetails(urls: AdminSitemapUrl[], prefix: string, rows: any[]
 }
 
 export default function AdminSitemap() {
-  const [origin, setOrigin] = useState(typeof window !== "undefined" ? window.location.origin : "https://dekhocampus.in");
+  const [origin, setOrigin] = useState(typeof window !== "undefined" ? window.location.origin : "https://dekhocampus.com");
   const [xml, setXml] = useState("");
   const [building, setBuilding] = useState(false);
   const [counts, setCounts] = useState<Record<string, number>>({});

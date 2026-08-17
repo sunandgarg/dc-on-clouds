@@ -86,7 +86,7 @@ const get = (url, redirects = 0) =>
         timeout: 15000,
         headers: {
           "User-Agent":
-            "Mozilla/5.0 (compatible; DekhoCampusSourceAudit/1.0; +https://dekhocampus.in)",
+            "Mozilla/5.0 (compatible; DekhoCampusSourceAudit/1.0; +https://dekhocampus.com)",
           Accept: "text/html,application/xhtml+xml",
         },
       },

@@ -1,4 +1,4 @@
-const SITE_URL = "https://dekhocampus.in";
+const SITE_URL = "https://dekhocampus.com";
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 
