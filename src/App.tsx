@@ -156,7 +156,9 @@ const AdminBackup = lazyRetry(() => import("./pages/AdminBackup"), "AdminBackup"
 const AdminLeadPush = lazyRetry(() => import("./pages/AdminLeadPush"), "AdminLeadPush");
 const AdminLeadPushHub = lazyRetry(() => import("./pages/AdminLeadPushHub"), "AdminLeadPushHub");
 const AdminLeadPushV2 = lazyRetry(() => import("./pages/AdminLeadPushV2"), "AdminLeadPushV2");
+const AdminUrlShortener = lazyRetry(() => import("./pages/AdminUrlShortener"), "AdminUrlShortener");
 const AdminMarketingAutomation = lazyRetry(() => import("./pages/AdminMarketingAutomation"), "AdminMarketingAutomation");
+const UrlRedirect = lazyRetry(() => import("./pages/UrlRedirect"), "UrlRedirect");
 const News = lazyRetry(() => import("./pages/News"), "News");
 const UserDashboard = lazyRetry(() => import("./pages/UserDashboard"), "UserDashboard");
 const LegalPage = lazyRetry(() => import("./pages/LegalPage"), "LegalPage");
@@ -370,6 +372,8 @@ const App = () => (
               <Route path="/admin/lead-push/:view/*" element={<ProtectedRoute requireAdmin><AdminLeadPushV2 /></ProtectedRoute>} />
               <Route path="/admin/lead-push-legacy" element={<ProtectedRoute requireAdmin><AdminLeadPushHub /></ProtectedRoute>} />
               <Route path="/admin/lead-push-legacy/manage" element={<ProtectedRoute requireAdmin><AdminLeadPush /></ProtectedRoute>} />
+              <Route path="/admin/url-shortener" element={<ProtectedRoute requireAdmin><AdminUrlShortener /></ProtectedRoute>} />
+              <Route path="/admin/url-shortener/:tab" element={<ProtectedRoute requireAdmin><AdminUrlShortener /></ProtectedRoute>} />
               <Route path="/admin/articles" element={<ProtectedRoute module="articles"><AdminArticles /></ProtectedRoute>} />
               <Route path="/admin/clean-data" element={<ProtectedRoute module="content"><AdminDataCleaner /></ProtectedRoute>} />
               <Route path="/admin/clean-data/preview/:itemId" element={<ProtectedRoute module="content"><AdminDataCleanerPreview /></ProtectedRoute>} />
@@ -462,6 +466,11 @@ const App = () => (
               <Route path="/admin/user-analytics" element={<ProtectedRoute requireAdmin><AdminUserAnalytics /></ProtectedRoute>} />
               <Route path="/admin/funnel" element={<ProtectedRoute requireAdmin><AdminFunnel /></ProtectedRoute>} />
               <Route path="/admin/heatmap" element={<ProtectedRoute requireAdmin><AdminHeatmap /></ProtectedRoute>} />
+
+              <Route path="/s/:code" element={<UrlRedirect />} />
+              <Route path="/s/:header/:code" element={<UrlRedirect />} />
+              <Route path="/r/:code" element={<UrlRedirect />} />
+              <Route path="/r/:header/:code" element={<UrlRedirect />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
            </Suspense>

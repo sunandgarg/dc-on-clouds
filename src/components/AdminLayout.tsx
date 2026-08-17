@@ -1,6 +1,6 @@
 import { type ElementType, type ReactNode, useCallback, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Megaphone, Star, Users, GraduationCap, BookOpen, FileText, HelpCircle, Newspaper, Lightbulb, Image, Handshake, Bot, Phone, Database, Scale, Map, Briefcase, ClipboardList, UserCircle, UserCheck, Building2, Award, Sparkles, MapPin, IndianRupee, Library, BarChart3, ChevronDown, Settings, FolderTree, RefreshCw, Network, ExternalLink, Home, Search, Menu, X, Rocket, PanelTop, DatabaseZap } from "lucide-react";
+import { LayoutDashboard, Megaphone, Star, Users, GraduationCap, BookOpen, FileText, HelpCircle, Newspaper, Lightbulb, Image, Handshake, Bot, Phone, Database, Scale, Map, Briefcase, ClipboardList, UserCircle, UserCheck, Building2, Award, Sparkles, MapPin, IndianRupee, Library, BarChart3, ChevronDown, Settings, FolderTree, RefreshCw, Network, Link2, ExternalLink, Home, Search, Menu, X, Rocket, PanelTop, DatabaseZap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Module } from "@/lib/rbac";
@@ -22,6 +22,8 @@ const groups: NavGroup[] = [
       { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
       { label: "All Leads", href: "/admin/leads", icon: Users, module: "leads" },
       { label: "Applications", href: "/admin/applications", icon: ClipboardList, module: "applications" },
+      { label: "Lead Push", href: "/admin/lead-push", icon: Network },
+      { label: "URL Short", href: "/admin/url-shortener", icon: Link2 },
       { label: "Users & Roles", href: "/admin/users", icon: UserCircle, module: "users" },
       { label: "Reviews Moderation", href: "/admin/reviews", icon: Star },
       { label: "Referrals", href: "/admin/referrals", icon: Star, module: "referrals" },
@@ -37,7 +39,6 @@ const groups: NavGroup[] = [
       { label: "Lead Intelligence", href: "/admin/lead-intelligence", icon: Sparkles },
       { label: "Intent Analytics", href: "/admin/lead-intelligence/analytics", icon: BarChart3 },
       { label: "Intent Configuration", href: "/admin/lead-intelligence/config", icon: Settings },
-      { label: "Lead Push Flow", href: "/admin/lead-push", icon: Network },
       { label: "Marketing Automation", href: "/admin/marketing-automation", icon: Megaphone },
       { label: "User Analytics", href: "/admin/user-analytics", icon: BarChart3 },
       { label: "Conversion Funnel", href: "/admin/funnel", icon: BarChart3 },
