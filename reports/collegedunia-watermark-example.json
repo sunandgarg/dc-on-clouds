@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-07-25T10:53:11.379Z",
+  "mode": "apply",
+  "project_ref": "kozdctbbvrnyddlftmvf",
+  "bucket": "legacy-public-assets",
+  "sanitizer_version": "bottom-12-v1",
+  "settings": {
+    "crop_bottom_percent": 12,
+    "quality": 84,
+    "concurrency": 8,
+    "update_concurrency": 10,
+    "checkpoint_size": 500,
+    "max_input_bytes": 26214400,
+    "excluded_fields": [
+      "logo"
+    ]
+  },
+  "scanned_rows": {
+    "colleges": 13018,
+    "courses": 878,
+    "exams": 241,
+    "articles": 1884
+  },
+  "unique_assets": 1,
+  "references": 238466,
+  "scheduled_assets": 1,
+  "sanitized": 1,
+  "already_sanitized": 0,
+  "failed": 0,
+  "rows_updated": 1,
+  "source_bytes": 76972,
+  "output_bytes": 67454,
+  "update_failures": [],
+  "assets": [
+    {
+      "source": "https://kozdctbbvrnyddlftmvf.supabase.co/storage/v1/object/public/legacy-public-assets/webp/8a/8ae4fc7e61a3d5ee4ebf80afb5ff7d2620ee96202f4fd1ff4b8f9704acaf7d64.webp",
+      "destination": "https://kozdctbbvrnyddlftmvf.supabase.co/storage/v1/object/public/legacy-public-assets/sanitized/bottom-12-v1/0b/0b75e9ee7a16921469ac6ba1564a822e1d64ea1b8124040173c485df361e9ecf.webp",
+      "source_width": 592,
+      "source_height": 330,
+      "output_width": 592,
+      "output_height": 290,
+      "cropped_pixels": 40,
+      "source_bytes": 76972,
+      "output_bytes": 67454,
+      "status": "sanitized"
+    }
+  ]
+}

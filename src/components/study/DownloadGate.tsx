@@ -13,6 +13,8 @@ import { getPrefillCookie, savePrefillCookie } from "@/components/CookieConsent"
 import { IITAlumniBadge } from "@/components/IITAlumniBadge";
 import { normalizeIndianMobile } from "@/lib/phone";
 import { functionUrl } from "@/lib/backendMode";
+import { LeadConsentCheckbox, LEAD_CONSENT_TEXT } from "@/components/LeadConsentCheckbox";
+import { setLeadConsentPreference } from "@/lib/leadConsent";
 
 const LEAD_URL = functionUrl("save-lead");
 const OTP_URL = functionUrl("study-otp");
@@ -38,6 +40,7 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
   const [otpToken, setOtpToken] = useState<string | null>(null);
   const [sentOtp, setSentOtp] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [consentAccepted, setConsentAccepted] = useState(true);
   const { data: locations } = useStatesAndCities();
   const { data: profile } = useUserProfile();
   const { data: leadSettings } = useLeadFormSettings();
@@ -170,8 +173,12 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
           source,
           otp_verified: true,
           initial_query: meta ? JSON.stringify(meta) : `Downloaded: ${fileName}`,
+          consent_terms_accepted: consentAccepted,
+          consent_text: LEAD_CONSENT_TEXT,
+          consent_at: new Date().toISOString(),
         }),
       }).catch(() => {});
+      setLeadConsentPreference(consentAccepted);
 
       // Increment download count (best effort)
       if (meta?.resource_id) {
@@ -228,6 +235,7 @@ export function DownloadGate({ open, onOpenChange, fileUrl, fileName, source, me
               <SearchableSelect options={locations?.states || []} value={form.state} onChange={v => { set("state", v); set("city", ""); }} placeholder="State *" />
               <SearchableSelect options={form.state ? (locations?.citiesByState[form.state] || []) : []} value={form.city} onChange={v => set("city", v)} placeholder={form.state ? "City *" : "Pick state"} />
             </div>
+            <LeadConsentCheckbox checked={consentAccepted} onCheckedChange={setConsentAccepted} compact />
             <Button type="submit" disabled={loading} className="w-full rounded-xl h-10 bg-primary text-primary-foreground">
               {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP…</> : <>Send OTP & Continue</>}
             </Button>

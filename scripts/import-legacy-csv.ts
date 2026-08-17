@@ -510,7 +510,8 @@ async function main() {
   const parentSlugFor = (value: unknown) => {
     const raw = clean(value);
     if (!raw) return null;
-    const candidates = [raw, raw.split(",")[0], raw.replace(/\s*-\s*[^-]+$/, "")];
+    const normalized = raw.replace(/[\u2013\u2014]/g, "-");
+    const candidates = [normalized, normalized.split(",")[0], normalized.replace(/\s*-\s*[^-]+$/, "")];
     for (const candidate of candidates) {
       const found = collegeAliases.get(normalizedName(candidate));
       if (found) return found;

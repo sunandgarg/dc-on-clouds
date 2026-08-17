@@ -25,10 +25,6 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 });
 
-// Hardcoded super-admin guarantees: emails + phone numbers
-const SUPER_ADMIN_EMAILS = ["sunandgarg@gmail.com"];
-const SUPER_ADMIN_PHONES = ["8700602524", "9990109393", "8010321712", "8377080085"];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -39,9 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadRoles = useCallback(async (user: User) => {
     try {
-      const email = (user.email || "").toLowerCase();
-      const phone = (user.user_metadata?.phone || user.phone || "").replace(/\D/g, "").slice(-10);
-      const isSuper = SUPER_ADMIN_EMAILS.includes(email) || SUPER_ADMIN_PHONES.includes(phone);
       const [rolesRes, permsRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user.id),
         (supabase as any)
@@ -50,7 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("user_id", user.id),
       ]);
       const dbRoles = (rolesRes.data ?? []).map((r: any) => r.role as AppRole);
-      const all = isSuper ? Array.from(new Set<AppRole>(["admin", ...dbRoles])) : dbRoles;
+      // Security: admin access must come from database-backed roles or explicit
+      // permissions. Do not grant admin from hardcoded frontend emails/phones.
+      const all = dbRoles;
       const g = new Set<string>();
       (permsRes.data ?? []).forEach((p: any) => {
         // Legacy module/action/allow rows

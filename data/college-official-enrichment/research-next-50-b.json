@@ -1,0 +1,431 @@
+[
+  {
+    "name": "A.K.T. Memorial College of Education",
+    "official_url": "https://aktmce.in/",
+    "courses": [
+      "Bachelor of Education (B.Ed)",
+      "Master of Education (M.Ed)"
+    ],
+    "fees": [],
+    "sources": [
+      "https://aktmce.in/",
+      "https://aktmce.in/pdf/courses%20aktmce.pdf"
+    ],
+    "confidence": "high",
+    "note": "Both are co-educational, full-time, 2-year programmes. B.Ed optional subjects are Tamil, English, Mathematics, Physical Science, Biological Science, History, Computer Science, Commerce and Accountancy."
+  },
+  {
+    "name": "A.M. College",
+    "official_url": "https://amcollegegaya.ac.in/",
+    "courses": [
+      "B.A. Hindi",
+      "B.A. English",
+      "B.A. Philosophy",
+      "B.A. Urdu",
+      "B.A. Sanskrit",
+      "B.A. Pali",
+      "B.A. History",
+      "B.A. Psychology",
+      "B.A. Political Science",
+      "B.A. Economics",
+      "B.A. Sociology",
+      "B.Sc. Physics",
+      "B.Sc. Chemistry",
+      "B.Sc. Mathematics",
+      "B.Sc. Botany",
+      "B.Sc. Zoology",
+      "Bachelor of Education (B.Ed)",
+      "Bachelor of Computer Applications (BCA)",
+      "B.Sc. Information Technology",
+      "M.Sc. Information Technology",
+      "Bachelor of Library and Information Science (BLIS)",
+      "Master of Library and Information Science (MLIS)",
+      "Bachelor of Business Management (BBM)"
+    ],
+    "fees": [],
+    "sources": [
+      "https://amcollegegaya.ac.in/",
+      "https://amcollegegaya.ac.in/userfiles/SSR.pdf"
+    ],
+    "confidence": "high",
+    "note": "Resolved as Anugrah Memorial College, Gaya. The catalogue is based on the official department, vocational-course and self-study pages."
+  },
+  {
+    "name": "A.M. Shaikh Homoeopathic Medical College",
+    "official_url": null,
+    "courses": [
+      "Bachelor of Homoeopathic Medicine and Surgery (BHMS)",
+      "M.D. Homoeopathy - Organon of Medicine and Homoeopathic Philosophy",
+      "M.D. Homoeopathy - Materia Medica",
+      "M.D. Homoeopathy - Repertory",
+      "M.D. Homoeopathy - Paediatrics",
+      "M.D. Homoeopathy - Practice of Medicine"
+    ],
+    "fees": [],
+    "sources": [
+      "https://ayush.gov.in/resources/pdf/education/Homoeopathy_permitted.pdf"
+    ],
+    "confidence": "high",
+    "note": "Programme list is supported by the Ministry of AYUSH permitted-college document. No current official college fee page was found."
+  },
+  {
+    "name": "A.M.E's Dental College and Hospital",
+    "official_url": "https://amesdentalcollege.com/",
+    "courses": [
+      "Bachelor of Dental Surgery (BDS)",
+      "Master of Dental Surgery - Oral Medicine and Radiology",
+      "Master of Dental Surgery - Paedodontics",
+      "Master of Dental Surgery - Prosthodontics",
+      "Master of Dental Surgery - Conservative Dentistry and Endodontics",
+      "Master of Dental Surgery - Orthodontics",
+      "Master of Dental Surgery - Periodontics"
+    ],
+    "fees": [],
+    "sources": [
+      "https://amesdentalcollege.com/bds",
+      "https://amesdentalcollege.com/mds"
+    ],
+    "confidence": "high",
+    "note": "The official BDS and MDS pages directly advertise these programmes and MDS specialisations."
+  },
+  {
+    "name": "A.M.Reddy Memorial College of Pharmacy",
+    "official_url": "https://www.amreddypharmacy.co.in/",
+    "courses": [
+      "Bachelor of Pharmacy (B.Pharm)",
+      "Doctor of Pharmacy (Pharm.D)",
+      "Master of Pharmacy - Pharmaceutics",
+      "Master of Pharmacy - Pharmaceutical Analysis",
+      "Master of Pharmacy - Pharmacology",
+      "Master of Pharmacy - Regulatory Affairs"
+    ],
+    "fees": [
+      {
+        "course": "Bachelor of Pharmacy (B.Pharm)",
+        "amount_inr": 46300,
+        "period": "per year"
+      },
+      {
+        "course": "Doctor of Pharmacy (Pharm.D)",
+        "amount_inr": 39400,
+        "period": "per year"
+      },
+      {
+        "course": "Master of Pharmacy - Pharmaceutics",
+        "amount_inr": 60000,
+        "period": "per year"
+      },
+      {
+        "course": "Master of Pharmacy - Pharmaceutical Analysis",
+        "amount_inr": 60000,
+        "period": "per year"
+      },
+      {
+        "course": "Master of Pharmacy - Pharmacology",
+        "amount_inr": 60000,
+        "period": "per year"
+      }
+    ],
+    "sources": [
+      "https://www.amreddypharmacy.co.in/",
+      "https://amreddypharmacy.co.in/admissions/fee-structure.php"
+    ],
+    "confidence": "high",
+    "note": "The official fee page groups Pharmaceutics, Pharmaceutical Analysis and Pharmacology under the M.Pharm Rs 60,000 amount. It does not publish a Regulatory Affairs fee."
+  },
+  {
+    "name": "A.P.C. Mahalaxmi College for Women",
+    "official_url": "https://apcmcollege.ac.in/",
+    "courses": [
+      "B.A. History",
+      "B.A. English",
+      "B.A. Tamil",
+      "B.Sc. Mathematics",
+      "B.Sc. Chemistry",
+      "B.Sc. Zoology",
+      "B.Com.",
+      "M.A. Tamil",
+      "M.Sc. Mathematics",
+      "Ph.D. Tamil",
+      "Ph.D. Mathematics",
+      "Ph.D. English",
+      "Ph.D. Chemistry",
+      "Ph.D. Commerce",
+      "B.Sc. Computer Science",
+      "B.Sc. Physics",
+      "Bachelor of Computer Applications (BCA)",
+      "M.A. English",
+      "M.Sc. Chemistry",
+      "M.Sc. Computer Science",
+      "M.Com."
+    ],
+    "fees": [],
+    "sources": [
+      "https://apcmcollege.ac.in/wp-content/uploads/2025/04/APCMC-Brochure.pdf"
+    ],
+    "confidence": "high",
+    "note": "Programme names are taken from the college's official 2025 brochure. No exact official course fee schedule was found."
+  },
+  {
+    "name": "A.R College of Engineering and Technology",
+    "official_url": "https://argrp.in/",
+    "courses": [
+      "B.Tech. Computer Science Engineering",
+      "B.Tech. Electronics and Communication Engineering",
+      "B.Tech. Electrical and Electronics Engineering",
+      "B.Tech. Mechatronics Engineering",
+      "B.Tech. Mechanical Engineering"
+    ],
+    "fees": [],
+    "sources": [
+      "https://argrp.in/"
+    ],
+    "confidence": "high",
+    "note": "These are the programmes currently advertised on the official group website. Older third-party catalogues contain additional branches and PG programmes, which should not be imported without current official or AICTE confirmation."
+  },
+  {
+    "name": "A.R. Engineering College",
+    "official_url": "https://www.arenggc.com/",
+    "courses": [
+      "B.E. Electronics and Communication Engineering",
+      "B.E. Computer Science and Engineering",
+      "B.E. Electrical and Electronics Engineering",
+      "B.E. Mechanical Engineering",
+      "B.E. Civil Engineering",
+      "B.Tech. Artificial Intelligence and Data Science"
+    ],
+    "fees": [
+      {
+        "course": "All B.E. and B.Tech. programmes",
+        "amount_inr": 50000,
+        "period": "per year",
+        "applies_to": "First year and lateral entry",
+        "academic_year": "2025-26"
+      }
+    ],
+    "sources": [
+      "https://www.arenggc.com/Admission.php"
+    ],
+    "confidence": "high",
+    "note": "The official admission page directly lists all programmes and the 2025-26 government fee."
+  },
+  {
+    "name": "A.S.L. Pauls College of Engineering & Technology Kinathukkadavu",
+    "official_url": null,
+    "courses": [
+      "B.E. Mechanical Engineering",
+      "B.E. Electronics and Communication Engineering",
+      "B.E. Electrical and Electronics Engineering",
+      "B.E. Computer Science and Engineering",
+      "B.E. Civil Engineering"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.careers360.com/colleges/asl-pauls-college-of-engineering-and-technology-coimbatore",
+      "https://aicte-qa.aicte-india.org/sites/default/files/Shortlisted%20institutes%20for%20Website.pdf"
+    ],
+    "confidence": "medium",
+    "note": "No functioning current official institution website or catalogue was found. The five-course set is consistently reported by Careers360 and historical AICTE references. Do not mark official_courses_verified true until current affiliation is confirmed."
+  },
+  {
+    "name": "A.V. College of Arts Science and Commerce",
+    "official_url": "https://www.avcollege.in/",
+    "courses": [
+      "B.A. Economics, Political Science and Public Administration",
+      "B.A. Psychology, Political Science and Public Administration",
+      "Bachelor of Business Administration (BBA)",
+      "B.Com. General",
+      "B.Com. Computer Applications",
+      "B.Sc. Botany, Zoology and Chemistry",
+      "B.Sc. Mathematics, Physics and Chemistry",
+      "B.Sc. Mathematics, Physics and Computer Science",
+      "B.Sc. Mathematics, Electronics and Computer Science",
+      "B.Sc. Mathematics, Statistics and Computer Science",
+      "B.Sc. Clinical Nutrition and Dietetics, Botany and Chemistry",
+      "Master of Business Administration (MBA)",
+      "Master of Computer Applications (MCA)",
+      "M.Sc. Mathematics",
+      "M.Sc. Applied Mathematics",
+      "M.Sc. Physics",
+      "M.Sc. Chemistry",
+      "M.Sc. Computer Science",
+      "M.Com.",
+      "M.A. Telugu",
+      "M.Sc. Biotechnology"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.avcollege.in/programs.html"
+    ],
+    "confidence": "high",
+    "note": "The official programmes page directly provides the current UG and PG combinations. Its fee cells are empty, so no fee was recorded."
+  },
+  {
+    "name": "A.V.C College of Engineering",
+    "official_url": "https://www.avccengg.net/",
+    "courses": [
+      "B.E. Mechanical Engineering",
+      "B.E. Electronics and Communication Engineering",
+      "B.E. Computer Science and Engineering",
+      "B.E. Instrumentation and Control Engineering",
+      "B.E. Civil Engineering",
+      "B.E. Electrical and Electronics Engineering",
+      "B.Tech. Information Technology",
+      "B.Tech. Artificial Intelligence and Data Science",
+      "Master of Computer Applications (MCA)",
+      "Master of Business Administration (MBA)",
+      "M.S. by Research - Mechanical Engineering",
+      "Ph.D. - Mechanical Engineering",
+      "M.S. by Research - Computer Applications",
+      "Ph.D. - Computer Applications",
+      "M.S. by Research - Chemistry",
+      "Ph.D. - Chemistry"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.avccengg.net/Academic/Programmes"
+    ],
+    "confidence": "high",
+    "note": "The official academic programmes page directly lists these UG, PG and research programmes."
+  },
+  {
+    "name": "A.W.H College of Education",
+    "official_url": "https://www.awhcollegeofeducation.org/",
+    "courses": [
+      "B.Ed. Mathematics",
+      "B.Ed. Natural Science",
+      "B.Ed. Social Science",
+      "B.Ed. Commerce",
+      "B.Ed. Special Education - Hearing Impairment"
+    ],
+    "fees": [
+      {
+        "course": "B.Ed. General",
+        "seat_type": "Merit",
+        "amount_inr": 45000,
+        "period": "per year"
+      },
+      {
+        "course": "B.Ed. General",
+        "seat_type": "Management",
+        "amount_inr": 60000,
+        "period": "per year"
+      },
+      {
+        "course": "B.Ed. Special Education - Hearing Impairment",
+        "seat_type": "Merit",
+        "amount_inr": 45000,
+        "period": "per year"
+      },
+      {
+        "course": "B.Ed. Special Education - Hearing Impairment",
+        "seat_type": "Management",
+        "amount_inr": 60000,
+        "period": "per year"
+      }
+    ],
+    "sources": [
+      "https://www.awhcollegeofeducation.org/academic-program",
+      "https://www.awhcollegeofeducation.org/course-offered",
+      "https://www.awhcollegeofeducation.org/fee-structure"
+    ],
+    "confidence": "high",
+    "note": "The current official catalogue does not advertise M.Ed, D.El.Ed or older diploma and certificate programmes found on aggregators."
+  },
+  {
+    "name": "Aadhi Bhagawan College of Pharmacy",
+    "official_url": null,
+    "courses": [
+      "Bachelor of Pharmacy (B.Pharm)",
+      "Master of Pharmacy - Pharmaceutics",
+      "Master of Pharmacy - Pharmacology"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.pci.nic.in/pdf/M.Pharm_9122020.pdf",
+      "https://www.careers360.com/colleges/aadhi-bhagawan-college-of-pharmacy-tiruvannamalai"
+    ],
+    "confidence": "medium",
+    "note": "No current institutional website was found. B.Pharm and both M.Pharm specialisations are supported by PCI documents and recent institutional research affiliations. Aggregator fee figures were not imported."
+  },
+  {
+    "name": "Aadinath Mahila Teacher's Training College",
+    "official_url": "http://aadinath.org",
+    "courses": [
+      "Bachelor of Education (B.Ed)"
+    ],
+    "fees": [],
+    "sources": [
+      "https://mlsu.ac.in/notifications/15101_Centre%20List%20of%20B.Ed.%2C%20B.A.%20B.Ed%2C%20B.Sc.B.Ed%20%26%20M.Ed.%20Examination%202025%20%281%29.pdf",
+      "https://www.careerindia.com/colleges/aadinath-mahila-teacher-s-training-college-udaipur-rajasthan-cp2562/"
+    ],
+    "confidence": "medium",
+    "note": "The listed official domain was not accessible. B.Ed is supported by Mohanlal Sukhadia University examination records and institutional directories. No fee was imported."
+  },
+  {
+    "name": "Aakash College of Education, Fatehabad",
+    "official_url": "https://www.aakashcollege.org.in/",
+    "courses": [
+      "Bachelor of Education (B.Ed)",
+      "Diploma in Elementary Education (D.El.Ed)",
+      "Integrated B.A. B.Ed."
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.aakashcollege.org.in/",
+      "https://cdlu.ac.in/assets/admin/miscellaneous/admission/final%20HBI%20B.Ed.%202025-26.pdf"
+    ],
+    "confidence": "high",
+    "note": "Resolved as the Chander Kalan, Tohana campus. The current CDLU 2025-26 list directly confirms B.Ed with 100 seats. D.El.Ed and B.A. B.Ed are advertised on the official college site but should be checked against the current regulator session before setting official_courses_verified true."
+  },
+  {
+    "name": "Aakash College of Education, Hisar",
+    "official_url": "https://www.aakashcollege.edu.in/",
+    "courses": [
+      "Bachelor of Education (B.Ed)",
+      "Diploma in Elementary Education (D.El.Ed)",
+      "Integrated B.A. B.Ed.",
+      "Integrated B.Sc. B.Ed."
+    ],
+    "fees": [
+      {
+        "course": "Bachelor of Education (B.Ed)",
+        "amount_inr": 44000,
+        "period": "per year"
+      },
+      {
+        "course": "Diploma in Elementary Education (D.El.Ed)",
+        "amount_inr": 25800,
+        "period": "per year"
+      }
+    ],
+    "sources": [
+      "https://www.aakashcollege.edu.in/bed.php",
+      "https://www.kccollegeofeducation.com/downloads/Prospectus-bed-24-25.pdf",
+      "https://www.aakashcollege.edu.in/FEE%20STRUCTURE.pdf"
+    ],
+    "confidence": "high",
+    "note": "Resolved as the Kalirawan, Hisar campus. Courses and the two available fees are stated in official institutional materials."
+  },
+  {
+    "name": "Aakash Institute of Business Management",
+    "official_url": "http://www.aibm.in/",
+    "courses": [
+      "Bachelor of Business Management (BBM)",
+      "Bachelor of Commerce (B.Com)",
+      "Bachelor of Computer Applications (BCA)",
+      "B.Sc. Animation",
+      "Master of Business Administration with PGPM",
+      "Diploma in Animation",
+      "Diploma in Game Design"
+    ],
+    "fees": [],
+    "sources": [
+      "http://www.aibm.in/",
+      "https://targetstudy.com/institute/45188/aakash-institute-of-business-management/",
+      "https://www.shiksha.com/college/aakash-institute-of-business-management-mallathalli-bangalore-33098/courses"
+    ],
+    "confidence": "medium",
+    "note": "Resolved as the Mallathalli, Bengaluru institute. The official domain is not currently accessible and current aggregators conflict on BBM versus BBA and on the total programme count. Preserve these as provisional course names and do not mark official_courses_verified true without a current university or institute document."
+  }
+]

@@ -392,5 +392,5 @@ function writeSitemaps(entries: SitemapEntry[]) {
   console.log(`sitemap written - ${unique.length} URLs across ${files.length} file(s)`);
 })().catch((error) => {
   console.warn("[sitemap] fatal:", error?.message || error);
-    writeSitemaps(STATIC);
+  writeSitemaps(STATIC);
 });

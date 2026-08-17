@@ -19,6 +19,7 @@ export type DbArticle = {
   meta_description: string;
   meta_keywords: string;
   is_active: boolean;
+  featured_rank?: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -71,7 +72,12 @@ export function useAllDbArticles(search?: string) {
               `slug.ilike.${ilikeTerm}`,
               `author.ilike.${ilikeTerm}`,
               `category.ilike.${ilikeTerm}`,
+              `vertical.ilike.${ilikeTerm}`,
+              `description.ilike.${ilikeTerm}`,
               `content.ilike.${ilikeTerm}`,
+              `meta_title.ilike.${ilikeTerm}`,
+              `meta_description.ilike.${ilikeTerm}`,
+              `meta_keywords.ilike.${ilikeTerm}`,
             ].join(",")
           );
         }

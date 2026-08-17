@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { IITAlumniBadge } from "@/components/IITAlumniBadge";
 import { isValidIndianMobile, normalizeIndianMobile } from "@/lib/phone";
 import { functionUrl } from "@/lib/backendMode";
+import { LeadConsentCheckbox, LEAD_CONSENT_TEXT } from "@/components/LeadConsentCheckbox";
+import { setLeadConsentPreference } from "@/lib/leadConsent";
 
 const LEAD_URL = functionUrl("save-lead");
 
@@ -18,6 +20,7 @@ export function FixedCounsellingCTA() {
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +34,16 @@ export function FixedCounsellingCTA() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ name, phone: cleanPhone, source: "fixed_cta" }),
+        body: JSON.stringify({
+          name,
+          phone: cleanPhone,
+          source: "fixed_cta",
+          consent_terms_accepted: consentAccepted,
+          consent_text: LEAD_CONSENT_TEXT,
+          consent_at: new Date().toISOString(),
+        }),
       });
+      setLeadConsentPreference(consentAccepted);
       setSubmitted(true);
       toast.success("We'll call you shortly!");
     } catch {
@@ -71,6 +82,7 @@ export function FixedCounsellingCTA() {
             <form onSubmit={handleSubmit} className="space-y-2.5">
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your Name" className="rounded-xl h-10 text-sm" required />
               <Input value={phone} onChange={(e) => setPhone(normalizeIndianMobile(e.target.value))} placeholder="Phone Number" type="tel" className="rounded-xl h-10 text-sm" required />
+              <LeadConsentCheckbox checked={consentAccepted} onCheckedChange={setConsentAccepted} compact />
               <Button type="submit" className="w-full gradient-primary btn-glow rounded-xl h-10 text-sm" disabled={isLoading}>
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Free Counselling <Send className="w-4 h-4 ml-2" /></>}
               </Button>

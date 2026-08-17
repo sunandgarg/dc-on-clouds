@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { hasPrefillIdentity, isWithinSilentWindow, silentSaveLead, markLeadSubmitted } from "@/lib/leadCapture";
 import { trackEvent } from "@/lib/analytics";
 import { normalizeIndianMobile } from "@/lib/phone";
+import { LeadConsentCheckbox, LEAD_CONSENT_TEXT } from "@/components/LeadConsentCheckbox";
+import { getLeadConsentPreference, setLeadConsentPreference } from "@/lib/leadConsent";
 
 const VisuallyHidden = ({ children }: { children: React.ReactNode }) => (
   <span style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap", border: 0 }}>{children}</span>
@@ -72,6 +74,7 @@ export function ApplyButton({ collegeSlug, collegeName, courseSlug = "", classNa
   const [form, setForm] = useState({
     name: "", email: "", phone: "", state: "", city: "", course_interest: "", message: "",
   });
+  const [consentAccepted, setConsentAccepted] = useState(true);
   const [collegeCourses, setCollegeCourses] = useState<string[]>([]);
 
   useEffect(() => {
@@ -154,10 +157,13 @@ export function ApplyButton({ collegeSlug, collegeName, courseSlug = "", classNa
         await silentSaveLead({
           source: isLeadThenLink ? "brochure_download_silent" : "apply_button_silent",
           cta: label,
-          interested_college_slug: collegeSlug,
-          interested_course_slug: courseSlug || null,
-          name, email, phone, city, state,
-        });
+        interested_college_slug: collegeSlug,
+        interested_course_slug: courseSlug || null,
+        name, email, phone, city, state,
+        consent_terms_accepted: getLeadConsentPreference(),
+        consent_text: LEAD_CONSENT_TEXT,
+        consent_at: new Date().toISOString(),
+      });
         // 2. Also insert a college_applications row (legacy table powers dashboard)
         try {
           await supabase.from("college_applications").insert({
@@ -206,6 +212,7 @@ export function ApplyButton({ collegeSlug, collegeName, courseSlug = "", classNa
       if (error) throw error;
       savePrefillCookie({ name: form.name, email: form.email, phone: form.phone, state: form.state, city: form.city });
       markLeadSubmitted();
+      setLeadConsentPreference(consentAccepted);
       // Also drop a tagged lead row so this college shows in admin filter
       silentSaveLead({
         source: isLeadThenLink ? "brochure_download" : "apply_button",
@@ -213,6 +220,9 @@ export function ApplyButton({ collegeSlug, collegeName, courseSlug = "", classNa
         interested_college_slug: collegeSlug,
         interested_course_slug: courseSlug || null,
         name: form.name, email: form.email, phone: form.phone, city: form.city, state: form.state,
+        consent_terms_accepted: consentAccepted,
+        consent_text: LEAD_CONSENT_TEXT,
+        consent_at: new Date().toISOString(),
       });
       setSubmitted(true);
       toast.success("Details saved! 🎉");
@@ -296,6 +306,7 @@ export function ApplyButton({ collegeSlug, collegeName, courseSlug = "", classNa
                   <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                   <Textarea value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Any questions? (optional)" className="pl-10 rounded-xl min-h-[60px] text-sm" />
                 </div>
+                <LeadConsentCheckbox checked={consentAccepted} onCheckedChange={setConsentAccepted} compact />
                 <Button type="submit" disabled={loading} className="w-full rounded-xl h-11 gradient-primary text-primary-foreground">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (submitLabel || "Submit")}
                 </Button>

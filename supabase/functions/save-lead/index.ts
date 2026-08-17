@@ -13,7 +13,28 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { name, email, phone, current_situation, city, state, initial_query, source, cta, page_url, interested_college_slug, interested_course_slug, interested_exam_slug, otp_verified, program_mode, device_type, source_category } = body;
+    const {
+      name,
+      email,
+      phone,
+      current_situation,
+      city,
+      state,
+      initial_query,
+      source,
+      cta,
+      page_url,
+      interested_college_slug,
+      interested_course_slug,
+      interested_exam_slug,
+      otp_verified,
+      program_mode,
+      device_type,
+      source_category,
+      consent_terms_accepted,
+      consent_text,
+      consent_at,
+    } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -69,6 +90,9 @@ Deno.serve(async (req) => {
       program_mode: mode,
       device_type: device,
       source_category: category,
+      consent_terms_accepted: consent_terms_accepted === false ? false : true,
+      consent_text: consent_text || null,
+      consent_at: consent_at || new Date().toISOString(),
       interested_college_slug: interested_college_slug || null,
       interested_course_slug: interested_course_slug || null,
       interested_exam_slug: interested_exam_slug || null,

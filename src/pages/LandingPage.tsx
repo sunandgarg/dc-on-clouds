@@ -13,6 +13,8 @@ import { ExamAdBlocks, type ExamAd } from "@/components/landing/ExamAdBlocks";
 import { LpComplianceFooter, LpComplianceHeader } from "@/components/landing/LpComplianceFooter";
 import { trackEvent, trackLeadConversion } from "@/lib/analytics";
 import { isStrictIndianMobile, normalizeIndianMobile } from "@/lib/phone";
+import { LeadConsentCheckbox } from "@/components/LeadConsentCheckbox";
+import { setLeadConsentPreference } from "@/lib/leadConsent";
 
 interface LP {
   slug: string;
@@ -90,6 +92,7 @@ export default function LandingPage() {
 
   const [form, setForm] = useState({ name: "", email: "", phone: "", city: "", state: "", course: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(true);
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>;
   if (!data) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Landing page not found.</div>;
@@ -107,10 +110,11 @@ export default function LandingPage() {
     };
     const { error } = await (supabase as any).from("landing_page_leads").insert({
       landing_slug: slug, ...form, phone, ...utm,
-      referrer: document.referrer, page_url: window.location.href, consent: true,
+      referrer: document.referrer, page_url: window.location.href, consent: consentAccepted,
     });
     setSubmitting(false);
     if (error) return toast.error("Could not submit - please try again");
+    setLeadConsentPreference(consentAccepted);
     toast.success("Thanks! Our advisor will call you within 24 hours.");
     trackLeadConversion({ lp_type: data.lp_type || "general", lp_slug: slug, source: "lp_main_form" });
     setForm({ name: "", email: "", phone: "", city: "", state: "", course: "" });
@@ -190,6 +194,7 @@ export default function LandingPage() {
                 {(data.form_courses || []).map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+            <LeadConsentCheckbox checked={consentAccepted} onCheckedChange={setConsentAccepted} compact />
             <Button type="submit" disabled={submitting} className="lp-btn-primary w-full rounded-md py-6 text-base font-bold tracking-wide">{submitting ? "Submitting..." : data.form_submit_label}</Button>
             <p className="text-[11px] opacity-60 leading-relaxed">{data.form_consent_text} <a className="underline" href={data.privacy_url}>Privacy</a> · <a className="underline" href={data.terms_url}>Terms</a></p>
           </div>

@@ -1,0 +1,324 @@
+[
+  {
+    "name": "Aakashline Institute",
+    "official_url": null,
+    "courses": [
+      "B.Sc. Information Technology",
+      "Advanced Diploma in Computer Hardware and Networking",
+      "Diploma in Multimedia and Web Designing",
+      "Diploma in Computer Applications"
+    ],
+    "fees": [],
+    "sources": [
+      "https://targetstudy.com/institute/64460/aakashline-institute/"
+    ],
+    "confidence": "low",
+    "note": "No live official institute website was located. The listed courses come from a third-party directory and require confirmation of current operation and affiliation before publication."
+  },
+  {
+    "name": "Aakson Institute for Management Studies",
+    "official_url": null,
+    "courses": [
+      "Master of Business Administration",
+      "B.Sc. Biotechnology",
+      "B.A. Journalism",
+      "Bachelor of Commerce",
+      "Master of Science",
+      "M.Com. Accountancy",
+      "Master of Computer Applications",
+      "Bachelor of Business Management"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.collegedekho.com/colleges/aakson-institute-for-management-studies-courses"
+    ],
+    "confidence": "low",
+    "note": "No reliable current official catalogue was found. Duplicate B.Sc. Biotechnology and B.Com entries in the source were removed."
+  },
+  {
+    "name": "Aalim Muhammed Salegh Academy of Architecture",
+    "official_url": "https://www.amsarch.ac.in/",
+    "courses": [
+      "Bachelor of Architecture (B.Arch.)"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.amsarch.ac.in/admission/eligibility-criteria/"
+    ],
+    "confidence": "high",
+    "note": "The current official admission page advertises the five-year B.Arch. programme."
+  },
+  {
+    "name": "Aalim Muhammed Salegh College of Engineering",
+    "official_url": "https://www.aalimec.ac.in/",
+    "courses": [
+      "B.E. Civil Engineering",
+      "B.E. Computer Science and Engineering",
+      "B.E. Electrical and Electronics Engineering",
+      "B.E. Electronics and Communication Engineering",
+      "B.E. Mechanical Engineering",
+      "B.Tech. Information Technology",
+      "B.Tech. Artificial Intelligence and Data Science",
+      "B.Tech. Computer Science and Business Systems",
+      "B.E. Computer Science and Engineering (Cyber Security)",
+      "B.E. Computer Science and Engineering (Artificial Intelligence and Machine Learning)"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.aalimec.ac.in/c-naac-accreditation-certificate/",
+      "https://www.aalimec.ac.in/wp-content/uploads/2025/01/AMSCE-Policies.pdf"
+    ],
+    "confidence": "high",
+    "note": "The programme catalogue is supported by the official college website and its official policy document. No exact current official fee schedule was found."
+  },
+  {
+    "name": "Aarupadai Veedu Institute of Technology",
+    "official_url": "https://avit.ac.in/",
+    "courses": [
+      "B.E. Computer Science and Engineering",
+      "B.E. Computer Science and Engineering (Artificial Intelligence and Machine Learning)",
+      "B.E. Computer Science and Engineering (Cyber Security)",
+      "B.E. Computer Science and Engineering (Data Science)",
+      "B.E. Biomedical Engineering",
+      "B.E. Civil Engineering",
+      "B.E. Electronics and Communication Engineering",
+      "B.E. Electrical and Electronics Engineering",
+      "B.E. Mechanical Engineering",
+      "B.Tech. Biotechnology",
+      "M.Tech. Biotechnology",
+      "M.E. Computer Science and Engineering",
+      "M.E. Construction Engineering and Management",
+      "M.E. Embedded Systems Technologies",
+      "M.E. Manufacturing Engineering",
+      "M.E. Power Systems Engineering",
+      "B.E. Electronics and Communication Engineering - Working Professionals",
+      "B.E. Electrical and Electronics Engineering - Working Professionals",
+      "B.E. Mechanical Engineering - Working Professionals"
+    ],
+    "fees": [],
+    "sources": [
+      "https://avit.ac.in/programmes-offered/"
+    ],
+    "confidence": "high",
+    "note": "The list is from the current official programmes page. Intel, HCL and lateral-entry variants that lead to the same award were not duplicated."
+  },
+  {
+    "name": "Aarupadai Veedu Medical College",
+    "official_url": "https://avmc.edu.in/",
+    "courses": [
+      "MBBS",
+      "M.D. Anatomy",
+      "M.D. Biochemistry",
+      "M.D. Microbiology",
+      "M.D. Community Medicine",
+      "M.D. General Medicine",
+      "M.D. Pediatrics",
+      "M.D. Anesthesiology",
+      "M.D. Dermatology, Venereology and Leprosy",
+      "M.D. Radiodiagnosis",
+      "M.D. Psychiatry",
+      "M.D. Emergency Medicine",
+      "M.D. Pathology",
+      "M.D. Respiratory Medicine",
+      "M.D. Pharmacology",
+      "M.S. General Surgery",
+      "M.S. Otorhinolaryngology",
+      "M.S. Orthopedics",
+      "M.S. Obstetrics and Gynaecology",
+      "M.S. Ophthalmology",
+      "Ph.D. Anatomy",
+      "Ph.D. Medical Microbiology",
+      "Ph.D. Pharmacology",
+      "Ph.D. Pathology",
+      "Ph.D. Biochemistry",
+      "Ph.D. General Surgery",
+      "Ph.D. Obstetrics and Gynecology",
+      "Ph.D. Interdisciplinary"
+    ],
+    "fees": [],
+    "sources": [
+      "https://avmc.edu.in/courses-offered/"
+    ],
+    "confidence": "high",
+    "note": "The complete list is taken from the current official courses page. No exact current official fee schedule was added."
+  },
+  {
+    "name": "Aasee College of Education",
+    "official_url": null,
+    "courses": [],
+    "fees": [],
+    "sources": [
+      "https://ncte.gov.in/WebAdmin/pdf/RCMeeting/4_09_01_2020_637141878886415363.pdf"
+    ],
+    "confidence": "high",
+    "note": "NCTE meeting minutes state that recognition for the B.Ed. course was withdrawn from the following academic session. Do not advertise an active course without a newer restoration order."
+  },
+  {
+    "name": "Aashlar Business School",
+    "official_url": "http://www.aashlarbschool.com",
+    "courses": [
+      "Master of Business Administration"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.careers360.com/colleges/aashlar-business-school-mathura/courses",
+      "https://www.gniotgroup.edu.in/circulars-pdf/1778070816-centre-list.pdf"
+    ],
+    "confidence": "medium",
+    "note": "The official website was unavailable. Current sources consistently support MBA. Examination records also mention MAM, but that programme requires human confirmation before publication."
+  },
+  {
+    "name": "Aayojan School of Architecture",
+    "official_url": "https://www.aayojan.edu.in/",
+    "courses": [
+      "Bachelor of Architecture (B.Arch.)",
+      "Master of Architecture (Urban Design)"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.aayojan.edu.in/courses/"
+    ],
+    "confidence": "high",
+    "note": "Both programmes are advertised on the official academics page. No exact current official fee schedule was found."
+  },
+  {
+    "name": "Abacus Institute of Computer Applications",
+    "official_url": "https://www.jspm.edu.in/",
+    "courses": [
+      "Master of Computer Applications"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.shiksha.com/college/abacus-institute-of-computer-applications-hadapsar-pune-52723/courses/mca-bc/",
+      "https://www.icbse.com/colleges/abacus-institute-of-computer-application-dy83pq"
+    ],
+    "confidence": "medium",
+    "note": "The official parent organisation was identified, but a current official institute catalogue was not found. Recent sources show MCA only. Older claims for MBA or Ph.D. require official confirmation."
+  },
+  {
+    "name": "Abacus Institute of Engineering and Management",
+    "official_url": "https://www.abacusinstitute.org/",
+    "courses": [
+      "B.Tech. Computer Science and Engineering",
+      "B.Tech. Electronics and Communication Engineering",
+      "B.Tech. Electrical Engineering",
+      "B.Tech. Civil Engineering",
+      "B.Tech. Mechanical Engineering",
+      "Diploma in Civil Engineering",
+      "Diploma in Mechanical Engineering",
+      "Diploma in Computer Science and Technology",
+      "Diploma in Electrical Engineering",
+      "Bachelor of Business Administration",
+      "Bachelor of Computer Applications"
+    ],
+    "fees": [],
+    "sources": [
+      "https://www.abacusinstitute.org/admission-procedures.php",
+      "https://www.abacusinstitute.org/about.php"
+    ],
+    "confidence": "high",
+    "note": "The programme list is taken from the official admission and about pages. No exact current official fee schedule was added."
+  },
+  {
+    "name": "Abasaheb Garware Institute of Management Studies",
+    "official_url": "https://agims.org.in/",
+    "courses": [
+      "Master of Business Administration"
+    ],
+    "fees": [
+      {
+        "course": "Master of Business Administration",
+        "amount_inr": 59000,
+        "basis": "per academic year",
+        "note": "Official disclosure for academic year 2025-26 states Rs. 59,000 plus university fees."
+      }
+    ],
+    "sources": [
+      "https://agims.org.in/",
+      "https://agims.org.in/pdf/Disclosure_of_AGIMS_2026_2027.pdf"
+    ],
+    "confidence": "high",
+    "note": "The official institute website describes its women-only MBA programme. The fee is retained with its academic-year qualifier."
+  },
+  {
+    "name": "Abasaheb Marathe Arts and New Commerce Science College",
+    "official_url": "https://amcrajapur.ac.in/",
+    "courses": [
+      "Bachelor of Arts",
+      "Bachelor of Commerce",
+      "Bachelor of Science",
+      "Master of Commerce"
+    ],
+    "fees": [],
+    "sources": [
+      "https://amcrajapur.ac.in/"
+    ],
+    "confidence": "high",
+    "note": "The current official website identifies these four degree programmes. No exact current official course-level fee schedule was added."
+  },
+  {
+    "name": "Abasaheb Parvekar Mahavidyalaya",
+    "official_url": "https://apmvy.edu.in/",
+    "courses": [
+      "Bachelor of Arts",
+      "Bachelor of Commerce",
+      "Bachelor of Library and Information Science",
+      "Master of Commerce",
+      "Certificate or Diploma in Hotel Management",
+      "Certificate in Communication Skills in English",
+      "Certificate or Diploma in E-Commerce",
+      "Certificate or Diploma in Library and Office Automation"
+    ],
+    "fees": [],
+    "sources": [
+      "https://apmvy.edu.in/about/"
+    ],
+    "confidence": "high",
+    "note": "The official page groups some vocational offerings as certificate and diploma courses without precise award names, so the labels remain conservative."
+  },
+  {
+    "name": "Abdul Aziz Ansari Degree College",
+    "official_url": "https://abdulazizcollege.jnp.org.in/",
+    "courses": [
+      "Bachelor of Arts",
+      "Bachelor of Science",
+      "Master of Arts",
+      "Bachelor of Education",
+      "Basic Training Certificate"
+    ],
+    "fees": [
+      {
+        "course": "Bachelor of Arts",
+        "amount_inr": 4000,
+        "basis": "per year"
+      },
+      {
+        "course": "Bachelor of Science",
+        "amount_inr": 5000,
+        "basis": "per year"
+      }
+    ],
+    "sources": [
+      "https://abdulazizcollege.jnp.org.in/admission.php"
+    ],
+    "confidence": "high",
+    "note": "The official menu lists B.A., M.A., B.T.C. and B.Ed. The current official admission fee table also advertises B.Sc. Subject-level specialisations were not added because the current official page does not enumerate them."
+  },
+  {
+    "name": "Abdul Razak Degree College",
+    "official_url": "http://www.ardcjoya.com",
+    "courses": [
+      "Bachelor of Arts",
+      "Bachelor of Science",
+      "Bachelor of Commerce",
+      "Master of Arts"
+    ],
+    "fees": [],
+    "sources": [
+      "https://amroha.nic.in/degree-college/",
+      "https://www.collegedekho.com/colleges/abdul-razzak-degree-college-joya-courses"
+    ],
+    "confidence": "medium",
+    "note": "The Amroha district government directory confirms the official domain, but the site was unreachable. Only degree families should be published until subject specialisations are verified by the college or affiliating university."
+  }
+]

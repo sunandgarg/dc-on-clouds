@@ -21,6 +21,7 @@ import { LeadDetailDrawer, LEAD_STATUSES, statusBadge } from "@/components/leads
 import { MergeLeadsDialog } from "@/components/leads/MergeLeadsDialog";
 import { LeadFilterPresets } from "@/components/leads/LeadFilterPresets";
 import { Sparkles } from "lucide-react";
+import { leadConsentLabel } from "@/lib/leadConsent";
 
 /** Compact labeled chip wrapper - CRM-style floating-label field. */
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
@@ -97,6 +98,7 @@ export default function AdminLeads() {
     { key: "device_type", label: "Device", defaultVisible: false },
     { key: "program_mode", label: "Mode", defaultVisible: false },
     { key: "otp_verified", label: "OTP Verified", defaultVisible: false },
+    { key: "consent", label: "Consent", defaultVisible: true },
     { key: "status", label: "Status", defaultVisible: true },
     { key: "campus", label: "Campus", defaultVisible: false },
     { key: "exam", label: "Exam", defaultVisible: false },
@@ -109,7 +111,7 @@ export default function AdminLeads() {
     { key: "registered_at", label: "Date of Registration", defaultVisible: false },
     { key: "actions", label: "Actions", defaultVisible: true },
   ];
-  const STORAGE_KEY = "admin_leads_columns_v3"; // bump key so new defaults take effect once
+  const STORAGE_KEY = "admin_leads_columns_v4"; // bump key so the Consent default column appears once
   const defaultOrder = ALL_COLUMNS.map((c) => c.key);
   const defaultVisible = Object.fromEntries(ALL_COLUMNS.map((c) => [c.key, c.defaultVisible !== false])) as Record<string, boolean>;
   const [columnOrder, setColumnOrder] = useState<string[]>(defaultOrder);
@@ -282,8 +284,8 @@ export default function AdminLeads() {
   }, [leads]);
 
   const exportCSV = () => {
-    const headers = ["Name", "Phone", "Email", "City", "State", "Source", "Mode", "OTP Verified", "Query", "Created"];
-    const rows = filtered.map((l: any) => [l.name, l.phone, l.email, l.city, l.state, l.source, (l.program_mode || "regular"), l.otp_verified ? "Yes" : "No", (l.initial_query || "").replace(/[\r\n,]+/g, " "), l.created_at]);
+    const headers = ["Name", "Phone", "Email", "City", "State", "Source", "Mode", "OTP Verified", "Consent", "Query", "Created"];
+    const rows = filtered.map((l: any) => [l.name, l.phone, l.email, l.city, l.state, l.source, (l.program_mode || "regular"), l.otp_verified ? "Yes" : "No", leadConsentLabel(l), (l.initial_query || "").replace(/[\r\n,]+/g, " "), l.created_at]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${(v ?? "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -626,6 +628,10 @@ export default function AdminLeads() {
                       return <Badge className={`text-[10px] border ${(lead.program_mode || "regular") === "online" ? "bg-blue-500/10 text-blue-600 border-blue-500/30" : "bg-primary/10 text-primary border-primary/30"}`}>{(lead.program_mode || "regular") === "online" ? "Online" : "Regular"}</Badge>;
                     case "otp_verified":
                       return lead.otp_verified ? <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 border">✓ Verified</Badge> : <Badge className="text-[10px] bg-muted text-muted-foreground border">Unverified</Badge>;
+                    case "consent": {
+                      const accepted = lead.consent_terms_accepted !== false;
+                      return <Badge className={`text-[10px] border ${accepted ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" : "bg-rose-500/10 text-rose-700 border-rose-500/30"}`}>Consent: {accepted ? "Y" : "N"}</Badge>;
+                    }
                     case "status": {
                       if (t) return <Badge className={`text-[10px] border ${t.chip}`}>🔥 {t.label}</Badge>;
                       if (lead.otp_verified) return <Badge className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 border">Qualified</Badge>;
@@ -748,6 +754,7 @@ export default function AdminLeads() {
                     case "exam": return "interested_exam_slug";
                     case "landing_page": case "page_url": return "page_url";
                     case "first_at": case "registered_at": return "created_at";
+                    case "consent": return "consent_terms_accepted";
                     default: return k;
                   }
                 };

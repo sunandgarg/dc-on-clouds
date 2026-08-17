@@ -14,6 +14,8 @@ import { useInlineOtp, isValidIndianMobile, PHONE_HINT, sanitizeIndianMobile } f
 import { ProgramModeToggle, type ProgramMode } from "@/components/ProgramModeToggle";
 import { detectDeviceType, inferSourceCategory } from "@/lib/leadTracking";
 import { functionUrl } from "@/lib/backendMode";
+import { LeadConsentCheckbox, LEAD_CONSENT_TEXT } from "@/components/LeadConsentCheckbox";
+import { setLeadConsentPreference } from "@/lib/leadConsent";
 
 const LEAD_URL = functionUrl("save-lead");
 
@@ -78,8 +80,12 @@ export function AILeadForm({ isOpen, onClose, onSubmit }: AILeadFormProps) {
           program_mode: programMode,
           device_type: detectDeviceType(),
           source_category: inferSourceCategory("ai_chat_lead"),
+          consent_terms_accepted: authorized,
+          consent_text: LEAD_CONSENT_TEXT,
+          consent_at: new Date().toISOString(),
         }),
       });
+      setLeadConsentPreference(authorized);
       onSubmit({ name: formData.name, course: courseValue, state: formData.state, city: formData.city });
     } catch (error) {
       console.error("Lead save error:", error);
@@ -231,15 +237,9 @@ export function AILeadForm({ isOpen, onClose, onSubmit }: AILeadFormProps) {
             </div>
           </div>
 
-          {/* Authorization checkbox */}
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input type="checkbox" checked={authorized} onChange={e => setAuthorized(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border text-primary accent-primary" />
-            <span className="text-[11px] text-muted-foreground leading-tight">
-              I authorize DekhoCampus to contact me with updates via Email, SMS, WhatsApp & Call. <a href="/terms" className="text-primary underline">T&C apply</a>
-            </span>
-          </label>
+          <LeadConsentCheckbox checked={authorized} onCheckedChange={setAuthorized} />
 
-          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 rounded-xl h-11 text-sm" disabled={isLoading || !authorized}>
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 rounded-xl h-11 text-sm" disabled={isLoading}>
             {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
             {isLoading ? "Saving..." : "Continue with Diya"}
           </Button>

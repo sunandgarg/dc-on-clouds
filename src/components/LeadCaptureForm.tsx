@@ -17,6 +17,8 @@ import { ProgramModeToggle, type ProgramMode } from "@/components/ProgramModeTog
 import { detectDeviceType, inferSourceCategory } from "@/lib/leadTracking";
 import { trackEvent, trackLeadConversion } from "@/lib/analytics";
 import { functionUrl } from "@/lib/backendMode";
+import { LeadConsentCheckbox, LEAD_CONSENT_TEXT } from "@/components/LeadConsentCheckbox";
+import { setLeadConsentPreference } from "@/lib/leadConsent";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -148,12 +150,16 @@ export function LeadCaptureForm({
           program_mode: programMode,
           device_type: detectDeviceType(),
           source_category: inferSourceCategory(source),
+          consent_terms_accepted: authorized,
+          consent_text: LEAD_CONSENT_TEXT,
+          consent_at: new Date().toISOString(),
         }),
       });
 
       if (response.ok) {
         setIsSubmitted(true);
         toast.success("Thank you! Our counselor will contact you soon.");
+        setLeadConsentPreference(authorized);
         savePrefillCookie({ name: formData.name, email: formData.email, phone: formData.phone, state: formData.state, city: formData.city });
         markLeadSubmitted();
         try { (window as any).fireGoogleAdsConversion?.({ value: 1, currency: "INR", source }); } catch {}
@@ -340,14 +346,9 @@ export function LeadCaptureForm({
             </div>
           </div>
 
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input type="checkbox" checked={authorized} onChange={e => setAuthorized(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border text-primary accent-primary" />
-            <span className="text-[11px] text-muted-foreground leading-tight">
-              I authorize DekhoCampus to contact me via Email, SMS, WhatsApp & Call. No spam - promise. <a href="/terms" className="text-primary underline">T&C</a> · <a href="/privacy" className="text-primary underline">Privacy</a>
-            </span>
-          </label>
+          <LeadConsentCheckbox checked={authorized} onCheckedChange={setAuthorized} />
 
-          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 rounded-xl h-10 text-sm text-primary-foreground" disabled={isLoading || !authorized}>
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 rounded-xl h-10 text-sm text-primary-foreground" disabled={isLoading}>
             {isLoading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
             ) : (
@@ -379,8 +380,8 @@ export function LeadCaptureForm({
               {otp.verifyBlock && <div className="rounded-xl bg-white p-2 text-slate-900 sm:col-span-2">{otp.verifyBlock}</div>}
               <SearchableSelect options={locations?.states || []} value={formData.state} onChange={(v) => { update("state", v); update("city", ""); }} placeholder="State *" />
               <SearchableSelect options={formData.state ? (locations?.citiesByState[formData.state] || []) : []} value={formData.city} onChange={(v) => update("city", v)} placeholder={formData.state ? "City *" : "Select state first"} />
-              <Button type="submit" className="h-11 rounded-xl bg-white font-extrabold text-primary hover:bg-slate-100" disabled={isLoading || !authorized}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get free guidance →"}</Button>
-              <label className="flex items-start gap-2 text-[10px] leading-4 text-white/65 sm:col-span-2"><input type="checkbox" checked={authorized} onChange={e => setAuthorized(e.target.checked)} className="mt-0.5 accent-primary" /><span>I agree to receive guidance by call, SMS or WhatsApp. <a href="/legal/privacy-policy" className="underline">Privacy</a></span></label>
+              <Button type="submit" className="h-11 rounded-xl bg-white font-extrabold text-primary hover:bg-slate-100" disabled={isLoading}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get free guidance →"}</Button>
+              <LeadConsentCheckbox checked={authorized} onCheckedChange={setAuthorized} compact dark className="sm:col-span-2" />
             </form>
           </div>
         </motion.div>
@@ -450,6 +451,7 @@ export function LeadCaptureForm({
             <div className="sm:col-span-2 max-w-xs mx-auto w-full">
               <ProgramModeToggle value={programMode} onChange={setProgramMode} />
             </div>
+            <LeadConsentCheckbox checked={authorized} onCheckedChange={setAuthorized} dark className="sm:col-span-2 mx-auto max-w-2xl" />
             <div className="sm:col-span-2 flex justify-center">
               <Button type="submit" className="w-full sm:w-auto sm:min-w-[260px] bg-card text-foreground hover:bg-card/90 rounded-xl h-11 px-8 text-sm font-semibold whitespace-nowrap shadow-md" disabled={isLoading}>
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get Free Callback"}
@@ -527,6 +529,7 @@ export function LeadCaptureForm({
           </div>
 
           <ProgramModeToggle value={programMode} onChange={setProgramMode} compact />
+          <LeadConsentCheckbox checked={authorized} onCheckedChange={setAuthorized} compact />
           <Button type="submit" size="sm" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl h-9 text-sm" disabled={isLoading}>
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get Free Help"}
           </Button>
@@ -604,6 +607,7 @@ export function LeadCaptureForm({
 
         {/* Regular / Online toggle */}
         <ProgramModeToggle value={programMode} onChange={setProgramMode} compact />
+        <LeadConsentCheckbox checked={authorized} onCheckedChange={setAuthorized} compact />
 
         {/* Submit */}
         <Button type="submit" size="sm" className="w-full bg-primary text-primary-foreground rounded-lg h-10" disabled={isLoading}>

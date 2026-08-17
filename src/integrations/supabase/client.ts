@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { backendFetch, backendTarget, invokeAwsFunction } from '@/lib/backendMode';
+import { normalizeJsonRequestBody } from '@/lib/typography';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -46,7 +47,11 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
     }
 
     headers.set('apikey', supabaseKey);
-    return backendFetch(input, { ...init, headers });
+    return backendFetch(input, {
+      ...init,
+      body: normalizeJsonRequestBody(init?.body),
+      headers,
+    });
   };
 }
 

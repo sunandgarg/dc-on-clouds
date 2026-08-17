@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { trackEvent, trackLeadConversion } from "@/lib/analytics";
 import { normalizeIndianMobile } from "@/lib/phone";
 import { functionUrl } from "@/lib/backendMode";
+import { LeadConsentCheckbox } from "@/components/LeadConsentCheckbox";
+import { setLeadConsentPreference } from "@/lib/leadConsent";
 
 const SEND_OTP_URL = functionUrl("send-otp");
 
@@ -204,6 +206,7 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
   const [otpSent, setOtpSent] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(true);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -217,11 +220,12 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
     setBusy(true);
     const { error } = await (supabase as any).from("landing_page_leads").insert({
       landing_slug: slug, name: name || phone, phone,
-      page_url: window.location.href, referrer: document.referrer, consent: true,
+      page_url: window.location.href, referrer: document.referrer, consent: consentAccepted,
       utm_content: source,
     });
     setBusy(false);
     if (error) return toast.error("Could not submit - please try again");
+    setLeadConsentPreference(consentAccepted);
     trackLeadConversion({ lp_type: "exam_ad", lp_slug: slug, source, gate });
     trackEvent("lp_unlock_success", { lp_type: "exam_ad", lp_slug: slug, source, gate: "form" });
     onSuccess();
@@ -287,9 +291,10 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
     if (verified) {
       await (supabase as any).from("landing_page_leads").insert({
         landing_slug: slug, name: name || phone, phone,
-        page_url: window.location.href, referrer: document.referrer, consent: true,
+        page_url: window.location.href, referrer: document.referrer, consent: consentAccepted,
         utm_content: source,
       });
+      setLeadConsentPreference(consentAccepted);
       trackEvent("lp_otp_verified", { lp_type: "exam_ad", lp_slug: slug, source });
       trackLeadConversion({ lp_type: "exam_ad", lp_slug: slug, source, gate: "otp" });
       trackEvent("lp_unlock_success", { lp_type: "exam_ad", lp_slug: slug, source, gate: "otp" });
@@ -314,6 +319,7 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
           <div className="space-y-3">
             <div><Label className="text-xs">Full name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" /></div>
             <div><Label className="text-xs">Mobile *</Label><Input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(normalizeIndianMobile(e.target.value))} placeholder="10-digit mobile" /></div>
+            <LeadConsentCheckbox checked={consentAccepted} onCheckedChange={setConsentAccepted} compact />
             <Button className="lp-btn-primary w-full rounded-md" disabled={busy} onClick={submitLead}>{busy ? "Submitting…" : "Unlock"}</Button>
           </div>
         )}
@@ -331,7 +337,10 @@ function UnlockOverlay({ gate, slug, source, onSuccess, onClose }: { gate: GateM
               </>
             )}
             {!otpSent ? (
-              <Button className="lp-btn-primary w-full rounded-md" disabled={busy} onClick={() => sendOtp()}>{busy ? "Sending…" : "Send OTP"}</Button>
+              <>
+                <LeadConsentCheckbox checked={consentAccepted} onCheckedChange={setConsentAccepted} compact />
+                <Button className="lp-btn-primary w-full rounded-md" disabled={busy} onClick={() => sendOtp()}>{busy ? "Sending…" : "Send OTP"}</Button>
+              </>
             ) : (
               <>
                 <Button className="lp-btn-primary w-full rounded-md" disabled={busy || otp.length !== 6} onClick={verifyOtp}>{busy ? "Verifying…" : "Verify & Unlock"}</Button>

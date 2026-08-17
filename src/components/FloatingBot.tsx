@@ -17,7 +17,6 @@ type Message = {
 };
 
 const CHAT_URL = functionUrl("ai-counselor");
-const LEAD_URL = functionUrl("save-lead");
 
 const DEFAULT_SUGGESTIONS = [
   "Top 5 engineering colleges in India",

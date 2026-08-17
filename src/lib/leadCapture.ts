@@ -12,6 +12,7 @@
 import { getPrefillCookie, savePrefillCookie } from "@/components/CookieConsent";
 import { normalizeIndianMobile } from "@/lib/phone";
 import { functionUrl } from "@/lib/backendMode";
+import { getLeadConsentPreference, LEAD_CONSENT_TEXT } from "@/lib/leadConsent";
 
 const LAST_LEAD_TS_KEY = "dc_last_lead_ts_v1";
 export const LEAD_SILENT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
@@ -54,6 +55,9 @@ export interface SilentLeadPayload {
   phone?: string;
   city?: string | null;
   state?: string | null;
+  consent_terms_accepted?: boolean;
+  consent_text?: string | null;
+  consent_at?: string | null;
 }
 
 /**
@@ -81,6 +85,9 @@ export async function silentSaveLead(payload: SilentLeadPayload): Promise<boolea
     interested_college_slug: payload.interested_college_slug ?? null,
     interested_course_slug: payload.interested_course_slug ?? null,
     interested_exam_slug: payload.interested_exam_slug ?? null,
+    consent_terms_accepted: payload.consent_terms_accepted ?? getLeadConsentPreference(),
+    consent_text: payload.consent_text ?? LEAD_CONSENT_TEXT,
+    consent_at: payload.consent_at ?? new Date().toISOString(),
     silent_capture: true,
   };
 

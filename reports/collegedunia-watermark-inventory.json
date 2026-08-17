@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-07-25T10:52:27.021Z",
+  "mode": "inventory",
+  "project_ref": "kozdctbbvrnyddlftmvf",
+  "bucket": "legacy-public-assets",
+  "sanitizer_version": "bottom-12-v1",
+  "settings": {
+    "crop_bottom_percent": 12,
+    "quality": 84,
+    "concurrency": 8,
+    "update_concurrency": 10,
+    "checkpoint_size": 500,
+    "max_input_bytes": 26214400,
+    "excluded_fields": [
+      "logo"
+    ]
+  },
+  "scanned_rows": {
+    "colleges": 13018,
+    "courses": 878,
+    "exams": 241,
+    "articles": 1884
+  },
+  "unique_assets": 120628,
+  "references": 238466,
+  "scheduled_assets": 0,
+  "sanitized": 0,
+  "already_sanitized": 0,
+  "failed": 0,
+  "rows_updated": 0,
+  "source_bytes": 0,
+  "output_bytes": 0,
+  "update_failures": [],
+  "assets": []
+}

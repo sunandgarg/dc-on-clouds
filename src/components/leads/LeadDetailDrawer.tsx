@@ -9,6 +9,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { leadConsentLabel } from "@/lib/leadConsent";
 
 export const LEAD_STATUSES = [
   { value: "new",        label: "New",        color: "bg-blue-500/10 text-blue-700 border-blue-500/30" },
@@ -94,6 +95,7 @@ export function LeadDetailDrawer({ lead, onClose, onChanged }: { lead: any | nul
                   {(lead.city || lead.state) && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{[lead.city, lead.state].filter(Boolean).join(", ")}</span>}
                   {lead.created_at && <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}</span>}
                   {lead.source && <span className="inline-flex items-center gap-1"><Tag className="w-3 h-3" />{lead.source}</span>}
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${lead.consent_terms_accepted === false ? "border-rose-500/30 bg-rose-500/10 text-rose-700" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"}`}>Consent: {leadConsentLabel(lead)}</span>
                 </div>
               </div>
               <Badge className={`text-[11px] border ${sb.color} shrink-0`}>{sb.label}</Badge>
@@ -149,6 +151,7 @@ export function LeadDetailDrawer({ lead, onClose, onChanged }: { lead: any | nul
             <Field label="City" value={lead.city || "-"} />
             <Field label="State" value={lead.state || "-"} />
             <Field label="Source" value={lead.source || "-"} />
+            <Field label="Consent" value={`Consent: ${leadConsentLabel(lead)}`} />
             <Field label="Mode" value={(lead.program_mode || "regular")} />
             <Field label="Interested College" value={lead.interested_college_slug || "-"} />
             <Field label="Interested Course" value={lead.interested_course_slug || "-"} />

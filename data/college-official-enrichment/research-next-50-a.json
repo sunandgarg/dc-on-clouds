@@ -1,0 +1,411 @@
+[
+  {
+    "name": "A B Shetty Memorial Institute of Dental Sciences",
+    "official_url": "https://nitte.edu.in/absmids/",
+    "courses": [
+      "BDS - Bachelor of Dental Surgery",
+      "MDS Conservative Dentistry and Endodontics",
+      "MDS Oral and Maxillofacial Pathology and Oral Microbiology",
+      "MDS Oral and Maxillofacial Surgery",
+      "MDS Oral Medicine and Radiology",
+      "MDS Orthodontics and Dentofacial Orthopaedics",
+      "MDS Paediatric and Preventive Dentistry",
+      "MDS Periodontology",
+      "MDS Prosthodontics and Crown and Bridge",
+      "Fellowship Programme in Cleft Lip and Palate",
+      "Fellowship Programme in Oral Implantology"
+    ],
+    "fees": null,
+    "sources": [
+      "https://nitte.edu.in/absmids/",
+      "https://nitte.edu.in/absmids/admissions.php"
+    ],
+    "confidence": "high",
+    "note": "Current official admissions catalogue for 2026-27. Certificate offerings are advertised separately and are not merged into this core programme list."
+  },
+  {
+    "name": "A Radiant Institute of Management and Technology",
+    "official_url": "https://arimtmeerut.com/",
+    "courses": [
+      "Bachelor of Business Administration (BBA)",
+      "Bachelor of Computer Applications (BCA)",
+      "Bachelor of Education (B.Ed)",
+      "Bachelor of Science (Home Science)"
+    ],
+    "fees": null,
+    "sources": [
+      "https://arimtmeerut.com/",
+      "https://www.collegebatch.com/10601-a-radiant-institute-of-management-and-technology-in-meerut-fs05"
+    ],
+    "confidence": "provisional",
+    "note": "The official domain does not return a crawlable course catalogue. The current secondary listing supports these four undergraduate programmes. Keep requires_official_source_refresh set to true."
+  },
+  {
+    "name": "A. D. Patel Institute of Technology",
+    "official_url": "https://adit.ac.in/",
+    "courses": [
+      "B.Tech Artificial Intelligence and Data Science",
+      "B.Tech Automobile Engineering",
+      "B.Tech Civil Engineering",
+      "B.Tech Computer Engineering",
+      "B.Tech Computer Science and Design",
+      "B.Tech Dairy Technology",
+      "B.Tech Electrical Engineering",
+      "B.Tech Electronics and Communication Engineering",
+      "B.Tech Food Processing Technology",
+      "B.Tech Information Technology",
+      "B.Tech Mechanical Engineering",
+      "M.Tech Food Technology",
+      "M.Tech Artificial Intelligence",
+      "M.Tech Mechanical Engineering"
+    ],
+    "fees": null,
+    "sources": [
+      "https://adit.ac.in/programs.php"
+    ],
+    "confidence": "high",
+    "note": "Programme names come directly from the current official programmes page."
+  },
+  {
+    "name": "A. K. Choudhury School of Information Technology",
+    "official_url": "https://www.caluniv.ac.in/",
+    "courses": [
+      "B.Tech Information Technology",
+      "M.Tech Information Technology",
+      "M.Tech Computer Engineering and Applications (Part-Time)",
+      "Master of Computer Applications (MCA)",
+      "Ph.D Information Technology"
+    ],
+    "fees": null,
+    "sources": [
+      "https://www.caluniv.ac.in/admission/FourYearBTech.pdf",
+      "https://www.caluniv.ac.in/news/MTech28-5-19.pdf",
+      "https://www.caluniv.ac.in/admission/phd_akc_31_3_21.pdf"
+    ],
+    "confidence": "medium-high",
+    "note": "All programmes are documented by the University of Calcutta, but the indexed notices span multiple admission years. Current intake should be checked before clearing the official refresh flag."
+  },
+  {
+    "name": "A. P. Shah Institute of Technology",
+    "official_url": "https://www.apsit.edu.in/",
+    "courses": [
+      "B.E. Civil Engineering",
+      "B.E. Mechanical Engineering",
+      "B.E. Computer Engineering",
+      "B.E. Information Technology",
+      "B.E. Computer Science and Engineering (Artificial Intelligence and Machine Learning)",
+      "B.E. Computer Science and Engineering (Data Science)"
+    ],
+    "fees": null,
+    "sources": [
+      "https://www.apsit.edu.in/index.php/",
+      "https://www.apsit.edu.in/sites/default/files/2025-02/Application%20Report%20PART1.pdf"
+    ],
+    "confidence": "high",
+    "note": "Programme names are supported by the official institute website and its 2025 AICTE application document."
+  },
+  {
+    "name": "A. V. Patil Degree College of Arts, Science & Commerce",
+    "official_url": null,
+    "courses": [
+      "Bachelor of Arts (Sociology)",
+      "Bachelor of Arts (Political Science)",
+      "Bachelor of Arts (Kannada)",
+      "Bachelor of Science (Mathematics)",
+      "Bachelor of Science (Botany)",
+      "Bachelor of Commerce"
+    ],
+    "fees": null,
+    "sources": [
+      "https://universitykart.com/university/universitydetails/av-patil-degree-college-of-arts-science-and-commerce-gulbarga"
+    ],
+    "confidence": "provisional",
+    "note": "No official institute course page was found. Treat this as a candidate catalogue and keep requires_official_source_refresh set to true."
+  },
+  {
+    "name": "A.C.P.M. Dental College",
+    "official_url": "https://acpmdental.com/",
+    "courses": [
+      "Bachelor of Dental Surgery (BDS)",
+      "MDS Prosthodontics",
+      "MDS Periodontology",
+      "MDS Oral and Maxillofacial Surgery",
+      "MDS Conservative Dentistry and Endodontics",
+      "MDS Orthodontics",
+      "MDS Pediatric Dentistry",
+      "MDS Public Health Dentistry",
+      "Ph.D Dentistry"
+    ],
+    "fees": null,
+    "sources": [
+      "https://acpmdental.com/college/",
+      "https://acpmdental.com/wp-content/uploads/2023/08/MDS-2023-24.pdf",
+      "https://acpmdental.com/wp-content/uploads/2024/07/MDS.pdf"
+    ],
+    "confidence": "high",
+    "note": "The official college page confirms BDS, MDS and Ph.D programmes. Official seat matrix documents name all seven MDS specialities. Available official fee notices are not current enough for a 2026-27 fee update."
+  },
+  {
+    "name": "A.C.S. Medical College and Hospital",
+    "official_url": "https://acsmch.ac.in/",
+    "courses": [
+      "MBBS",
+      "MD Anaesthesiology",
+      "MD General Medicine",
+      "MS Otorhinolaryngology (ENT)",
+      "MS Ophthalmology",
+      "MD Paediatrics",
+      "MD Radiodiagnosis",
+      "MD Dermatology",
+      "MS General Surgery",
+      "MS Obstetrics and Gynaecology",
+      "MS Orthopaedics",
+      "MD Psychiatry",
+      "MD Respiratory Medicine",
+      "MD Emergency Medicine",
+      "MD Anatomy",
+      "MD Biochemistry",
+      "MD Forensic Medicine",
+      "MD Microbiology",
+      "MD Pathology",
+      "MD Pharmacology",
+      "MD Physiology",
+      "MD Community Medicine"
+    ],
+    "fees": null,
+    "sources": [
+      "https://acsmch.ac.in/admissions/",
+      "https://acsmch.ac.in/pg-md-ms/"
+    ],
+    "confidence": "high",
+    "note": "Degree prefixes and spelling have been normalized from the official undergraduate and postgraduate specialty lists."
+  },
+  {
+    "name": "A.D.M. College for Women",
+    "official_url": "https://adjadmc.ac.in/",
+    "courses": [
+      "B.A. Tamil",
+      "B.A. Economics",
+      "B.A. English",
+      "B.A. History",
+      "B.Com",
+      "BBA",
+      "BCA",
+      "B.Sc Biochemistry",
+      "B.Sc Botany",
+      "B.Sc Geology",
+      "B.Sc Mathematics",
+      "B.Sc Physics",
+      "B.Sc Zoology",
+      "B.Sc Chemistry",
+      "B.Sc Computer Science",
+      "B.Sc Information Technology",
+      "M.Sc Mathematics",
+      "M.Sc Zoology",
+      "M.A. Economics",
+      "M.A. History",
+      "M.Com",
+      "M.Sc Computer Science",
+      "M.Sc Chemistry",
+      "M.Sc Physics"
+    ],
+    "fees": null,
+    "sources": [
+      "https://adjadmc.ac.in/syllabi.php"
+    ],
+    "confidence": "high",
+    "note": "Exact undergraduate and postgraduate programme names come from the current official 2024-25-onwards syllabus index."
+  },
+  {
+    "name": "A.G & S.G Siddhartha Degree College of Arts and Science",
+    "official_url": "https://www.agsgsc.edu.in/",
+    "courses": [
+      "B.A. Honours Political Science",
+      "B.Com Honours General",
+      "B.Com Honours Computer Applications",
+      "B.Sc Honours Mathematics",
+      "B.Sc Honours Physics",
+      "B.Sc Honours Chemistry",
+      "B.Sc Honours Botany",
+      "B.Sc Honours Artificial Intelligence",
+      "B.Sc Honours Aquaculture",
+      "B.Sc Honours Computer Science",
+      "BCA Honours",
+      "M.Sc Organic Chemistry",
+      "M.Sc Computer Science"
+    ],
+    "fees": null,
+    "sources": [
+      "https://www.agsgsc.edu.in/"
+    ],
+    "confidence": "high",
+    "note": "Current programmes displayed in the official Our Departments section."
+  },
+  {
+    "name": "A.G. College of Education",
+    "official_url": "https://agbedcollege.com/",
+    "courses": [
+      "B.Ed Tamil",
+      "B.Ed English",
+      "B.Ed Mathematics",
+      "B.Ed Physical Science",
+      "B.Ed Biological Science",
+      "B.Ed Computer Science",
+      "B.Ed Commerce",
+      "B.Ed Economics",
+      "B.Ed History"
+    ],
+    "fees": null,
+    "sources": [
+      "https://agbedcollege.com/"
+    ],
+    "confidence": "high",
+    "note": "The official page explicitly states that only B.Ed courses are offered."
+  },
+  {
+    "name": "A.J. College of Science and Technology Thonnakkal",
+    "official_url": "https://ajcollege.in/",
+    "courses": [
+      "FYUGP Journalism",
+      "FYUGP Communicative English",
+      "FYUGP Economics",
+      "FYUGP Business Management",
+      "FYUGP Computer Science",
+      "FYUGP Botany and Biotechnology",
+      "FYUGP Biochemistry and Industrial Microbiology",
+      "FYUGP BMS Hotel Management",
+      "FYUGP Commerce - Business Information Systems",
+      "FYUGP Commerce - Finance",
+      "FYUGP Commerce - Taxation",
+      "Master of Mass Communication and Journalism (MMCJ)",
+      "M.A. English Language and Literature",
+      "M.Sc Computer Science",
+      "M.Sc Biotechnology",
+      "M.Sc Biochemistry",
+      "M.Sc Microbiology"
+    ],
+    "fees": null,
+    "sources": [
+      "https://ajcollege.in/category/ug-courses/",
+      "https://ajcollege.in/category/pg-courses/"
+    ],
+    "confidence": "high",
+    "note": "The current official FYUGP 2026-27 and postgraduate catalogues provide these programme names."
+  },
+  {
+    "name": "A.J. Institute of Dental Sciences",
+    "official_url": "https://ajids.edu.in/",
+    "courses": [
+      "Bachelor of Dental Surgery (BDS)",
+      "MDS Conservative Dentistry and Endodontics",
+      "MDS Prosthodontics and Crown and Bridge",
+      "MDS Pedodontics and Preventive Dentistry",
+      "MDS Periodontology",
+      "MDS Orthodontics and Dentofacial Orthopedics",
+      "MDS Oral and Maxillofacial Surgery",
+      "MDS Oral Medicine and Radiology",
+      "MDS Oral Pathology and Microbiology",
+      "MDS Public Health Dentistry",
+      "PG Diploma Conservative Dentistry and Endodontics",
+      "PG Diploma Prosthodontics and Crown and Bridge",
+      "PG Diploma Pedodontics and Preventive Dentistry",
+      "PG Diploma Orthodontics and Dentofacial Orthopedics",
+      "Ph.D Orthodontics and Dentofacial Orthopedics",
+      "Ph.D Oral Medicine and Radiology",
+      "Ph.D Oral Pathology and Oral Microbiology",
+      "Ph.D Oral and Maxillofacial Surgery",
+      "Ph.D Prosthodontics and Crown Bridge",
+      "Ph.D Periodontology",
+      "Ph.D Conservative Dentistry and Endodontics",
+      "Ph.D Pediatric and Preventive Dentistry",
+      "Ph.D Public Health Dentistry"
+    ],
+    "fees": null,
+    "sources": [
+      "https://ajids.edu.in/Webpages/AcdmcPgmstrdntlsurgery.aspx",
+      "https://ajids.edu.in/pdf/A%20J%20PROSPECTUS.pdf",
+      "https://ajids.edu.in/Webpages/PHD.aspx"
+    ],
+    "confidence": "high",
+    "note": "Programme names come from the official academic programme, prospectus and Ph.D pages."
+  },
+  {
+    "name": "A.J.K. Mass Communication Research Centre",
+    "official_url": "https://jmi.ac.in/A.J.K.-Mass-Communication-Research-Centre",
+    "courses": [
+      "Ph.D Mass Communication",
+      "M.A. Convergent Journalism",
+      "M.A. Development Communication",
+      "M.A. Mass Communication",
+      "M.A. Visual Effects and Animation",
+      "M.Sc Mathematics Education (Meta University programme)",
+      "PG Diploma in Acting",
+      "PG Diploma in Broadcast Technology",
+      "PG Diploma in Still Photography and Visual Communication"
+    ],
+    "fees": null,
+    "sources": [
+      "https://jmi.ac.in/A.J.K.-Mass-Communication-Research-Centre/Programmes/Courses"
+    ],
+    "confidence": "high",
+    "note": "The official Jamia Millia Islamia programme list explicitly includes the Meta University mathematics education programme under this Centre."
+  },
+  {
+    "name": "A.K.D. Dharmaraja College for Women",
+    "official_url": "https://akddrwomenscollege.edu.in/",
+    "courses": [
+      "B.A. English",
+      "B.A. Tamil",
+      "BBA",
+      "B.Com",
+      "B.Com Computer Applications",
+      "B.Sc Computer Science",
+      "B.Sc Mathematics",
+      "B.Sc Physics",
+      "B.Sc Physical Education",
+      "M.A. Tamil",
+      "M.Com",
+      "M.Com Computer Applications",
+      "M.Sc Computer Science",
+      "M.Sc Mathematics",
+      "M.Sc Physics"
+    ],
+    "fees": null,
+    "sources": [
+      "https://akddrwomenscollege.edu.in/programmes.html"
+    ],
+    "confidence": "high",
+    "note": "Programme names are normalized from the official table. B.Sc Physical Education appears after the postgraduate rows on that page but is an undergraduate degree."
+  },
+  {
+    "name": "A.K.G Memorial Co-Operative College of Nursing",
+    "official_url": "https://www.akgnursingcollege.com/",
+    "courses": [
+      "B.Sc Nursing"
+    ],
+    "fees": null,
+    "sources": [
+      "https://www.akgnursingcollege.com/courses"
+    ],
+    "confidence": "high",
+    "note": "The official page states that B.Sc Nursing is the only current course. The proposed M.Sc course must not be inserted."
+  },
+  {
+    "name": "A.K.K. New Law Academy",
+    "official_url": "https://nlapune.org/",
+    "courses": [
+      "B.A. LL.B.",
+      "LL.B.",
+      "LL.M.",
+      "Diploma in Taxation Law",
+      "Ph.D Law"
+    ],
+    "fees": null,
+    "sources": [
+      "https://nlapune.org/wp-content/uploads/2025/01/AQAR-2021-22.pdf",
+      "https://www.careers360.com/colleges/mce-societys-akk-new-law-academy-and-phd-research-centre-pune/courses/full-time-courses-mode"
+    ],
+    "confidence": "medium",
+    "note": "The official domain and AQAR confirm the institution and Ph.D centre but do not expose a crawlable current catalogue. The five-programme candidate list is supported by a current secondary catalogue. Keep requires_official_source_refresh set to true until the institute confirms it."
+  }
+]
