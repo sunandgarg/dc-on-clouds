@@ -33,10 +33,25 @@ production.
 ## Prepared application specification
 
 `.do/app.yaml` defines the two services, Bangalore region, health checks,
-graceful termination, deploy-on-push, private service-to-service traffic, and
-the production database binding. It contains no credential value. It assumes a
-managed PostgreSQL cluster named `dc-on-clouds-db` and an App Platform GitHub
-installation authorized only for `sunandgarg/dc-on-clouds`.
+graceful termination, private service-to-service traffic, and the production
+database binding. It contains no credential value. Because the repository was
+verified public on 2026-08-21, both services use its anonymous HTTPS Git source;
+manual App Platform deployment does not require DigitalOcean GitHub access. It
+assumes a managed PostgreSQL cluster named `dc-on-clouds-db`.
+
+Anonymous public-Git sources do not provide GitHub-triggered deploy-on-push. If
+the repository becomes private again, or automatic deployments are required,
+authorize the DigitalOcean GitHub App as follows:
+
+1. In DigitalOcean, open **Apps** → **Create App** and choose **GitHub**.
+2. Select **Manage Access** or **Install DigitalOcean GitHub App**.
+3. In GitHub, choose the `sunandgarg` account, select **Only select
+   repositories**, and select only `dc-on-clouds`.
+4. Choose **Install/Authorize**, return to DigitalOcean, select the `main`
+   branch, and enable automatic deployment.
+
+This permission grant is optional while the repository remains public and was
+not performed during the no-payment preparation run.
 
 DigitalOcean supplies `${dc-postgres.JDBC_DATABASE_URL}` and the database user
 and password at runtime. The frontend reaches Spring over
@@ -56,14 +71,15 @@ production deployment is considered secure.
 
 ## Provisioning and migration order
 
-1. Confirm the $72.45/month base purchase and authorize DigitalOcean's GitHub
-   App for **only** `sunandgarg/dc-on-clouds`.
+1. Confirm the $72.45/month base purchase. Keep the anonymous public-Git source,
+   or optionally authorize DigitalOcean's GitHub App for **only**
+   `sunandgarg/dc-on-clouds` if automatic deployments are required.
 2. Create `dc-on-clouds-db` in Bangalore on PostgreSQL 18, 1 vCPU / 2 GiB /
    30 GiB, enable storage autoscaling and scheduled backups, then add the App
    Platform app as a trusted source.
-3. Obtain a temporary Supabase PostgreSQL read-only connection or reset/retrieve
-   the database password through the approved owner workflow. A REST secret is
-   not a substitute for this connection.
+3. Use the verified temporary Supabase PostgreSQL role for schema/inventory
+   capture. For complete data, obtain an owner-approved export connection with
+   visibility through all RLS policies; plain `GRANT SELECT` is insufficient.
 4. Run `database/scripts/capture-source.sh` to create a fresh encrypted logical
    dump. Transfer it directly over encrypted channels; never commit artifacts.
 5. Restore to a disposable database first. Reconcile extensions, schemas,

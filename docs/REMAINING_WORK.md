@@ -10,14 +10,15 @@ production-verified in the current environment. It must be read together with
   Supabase schema and data migration, reconcile row counts, constraints,
   indexes, functions, triggers, and RLS behavior, and run rollback/recovery
   drills.
-- **Why it is blocked:** The authenticated dashboard was audited, but it does
-  not provide a database password or an approved export channel. No target
-  endpoint, credentials, maintenance window, or approved data-transfer path
-  was supplied. Docker is also unavailable locally.
-- **Required to complete:** A temporary read-only libpq service for the source,
-  target database connection details, an approved maintenance/cutover window,
-  backup retention requirements, and Docker or an equivalent PostgreSQL
-  runtime. Start with `database/scripts/capture-source.sh`.
+- **Why it is blocked:** An expiring, forced-read-only libpq role was verified,
+  and the live public schema and inventory were captured privately. Full data
+  export is still impossible with that role because 276 RLS policies apply;
+  `pg_dump` stopped rather than writing an incomplete backup. No paid target
+  endpoint or approved cutover window exists. Docker is also unavailable locally.
+- **Required to complete:** An owner-approved source export role/path with
+  complete RLS visibility, target database connection details, an approved
+  maintenance/cutover window, backup retention requirements, and Docker or an
+  equivalent PostgreSQL runtime. Re-run `database/scripts/capture-source.sh`.
 - **Affected:** `database/`, `db-export/`, `supabase/migrations/`,
   `backend-java/src/main/resources/db/migration/`, all database-backed
   features.
@@ -53,8 +54,9 @@ production-verified in the current environment. It must be read together with
   OAuth, OTP, authorization roles, token expiry, session revocation, and admin
   access against the real Supabase tenant; then decide whether to retain or
   replace Supabase Auth.
-- **Why it is blocked:** No Supabase URL/keys, OAuth applications, SMS provider
-  access, test users, or production auth policy were supplied.
+- **Why it is blocked:** The live Supabase URL and public client key are known,
+  but OAuth applications, SMS provider access, role-specific test users, and a
+  production auth/cutover policy were not supplied.
 - **Required to complete:** Approved production/callback URLs, secret-manager
   configuration, OAuth/SMS credentials if those flows are retained, test users
   for each role, and an approved target identity architecture. Dashboard access
@@ -120,12 +122,12 @@ data; the current native path safely resolves and increments aggregate clicks.
   tests.
 - **Why it is blocked:** Both production Docker images now build successfully in
   GitHub CI, although Docker is not installed locally. The authenticated
-  DigitalOcean `DekhoCampus` project was verified and is empty. Provisioning the
-  prepared $72.45/month base stack and installing DigitalOcean's GitHub App for
-  the private repository are chargeable/permission-changing actions requiring
-  explicit confirmation immediately before execution.
-- **Required to complete:** Confirm the exact DigitalOcean purchase and GitHub
-  App scope, then create the Bangalore resources from `.do/app.yaml`; provide
+  DigitalOcean `DekhoCampus` project was verified and is empty. The repository
+  is public and `.do/app.yaml` uses anonymous Git, so GitHub App access is no
+  longer required for manual deployment. The user explicitly deferred the
+  chargeable $72.45/month base stack.
+- **Required to complete:** Confirm the exact DigitalOcean purchase, then create
+  the Bangalore resources from `.do/app.yaml`; provide
   environment-specific encrypted secrets, domains/DNS, monitoring/alerting
   destinations and an approved release window. GitHub CI is the verified
   Docker-capable build runner.
@@ -140,7 +142,7 @@ The recommended base purchase is documented in
 `docs/DIGITALOCEAN_DEPLOYMENT.md`: $12 Next.js + $25 Spring + $30.45 managed
 PostgreSQL + $5 Spaces, approximately $72.45/month before tax and overages.
 
-## 9. Rotate the disclosed Supabase secret
+## 7. Rotate the disclosed Supabase secret
 
 - **What is left:** Revoke/rotate the Supabase server secret pasted into chat,
   update only approved encrypted secret stores, and verify the old key fails.
@@ -158,7 +160,7 @@ PostgreSQL + $5 Spaces, approximately $72.45/month before tax and overages.
 - **Recommended action:** Rotate first, update known consumers atomically, revoke
   the old key, and review Supabase audit logs.
 
-## 7. Retire the legacy lint baseline
+## 8. Retire the legacy lint baseline
 
 - **What is left:** Resolve 2,022 errors and 106 warnings in the retained
   Vite/Supabase code. Most findings are unsafe `any` types, with additional
@@ -177,7 +179,7 @@ PostgreSQL + $5 Spaces, approximately $72.45/month before tax and overages.
 - **Recommended action:** Reject new lint findings and clear existing findings
   in the same order that legacy capabilities are migrated.
 
-## 8. Live Supabase advisor remediation
+## 9. Live Supabase advisor remediation
 
 - **What is left:** Export and classify all 79 Security Advisor warnings and
   633 Performance Advisor warnings; fix the security-definer view, mutable
@@ -202,19 +204,22 @@ PostgreSQL + $5 Spaces, approximately $72.45/month before tax and overages.
 1. Rotate the disclosed Supabase secret, update approved consumers, revoke the
    old key, and review audit logs.
 2. Freeze the legacy lint baseline and keep the target-stack quality gates green.
-3. Confirm the DigitalOcean purchase and GitHub App repository scope.
-4. Supply remaining access through the approved secret manager; never commit secrets.
-5. Provision disposable PostgreSQL and deployment staging environments.
-6. Capture the live source, restore it to staging, and reconcile schema/data.
-7. Export/remediate advisor findings in staging and prove RLS permission parity.
-8. Validate authentication and role authorization against staging.
-9. Port and verify Edge Functions, direct Supabase calls, Realtime, and Storage
+3. Obtain an owner-approved RLS-complete source export path; the temporary
+   SELECT-only role is insufficient for a trustworthy data dump.
+4. Confirm the DigitalOcean purchase. GitHub App scope is optional unless
+   deploy-on-push or a private repository is desired.
+5. Supply remaining access through the approved secret manager; never commit secrets.
+6. Provision disposable PostgreSQL and deployment staging environments.
+7. Capture the full live source, restore it to staging, and reconcile schema/data.
+8. Export/remediate advisor findings in staging and prove RLS permission parity.
+9. Validate authentication and role authorization against staging.
+10. Port and verify Edge Functions, direct Supabase calls, Realtime, and Storage
    capability by capability.
-10. Validate all external providers and scheduled jobs with failure tests.
-11. Clear or retire each capability's legacy lint findings during its port.
-12. Run regression, integration, end-to-end, security, accessibility, SEO, and
+11. Validate all external providers and scheduled jobs with failure tests.
+12. Clear or retire each capability's legacy lint findings during its port.
+13. Run regression, integration, end-to-end, security, accessibility, SEO, and
    performance gates against representative staging data.
-13. Build, scan, sign, and publish immutable container images.
-14. Rehearse backup, Storage restore, rollback, monitoring, and incident alerts.
-15. Execute a canary production cutover, reconcile data and traffic, and retire
+14. Build, scan, sign, and publish immutable container images.
+15. Rehearse backup, Storage restore, rollback, monitoring, and incident alerts.
+16. Execute a canary production cutover, reconcile data and traffic, and retire
     legacy paths only after the acceptance window passes.

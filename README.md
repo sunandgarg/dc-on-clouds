@@ -5,8 +5,8 @@ The repository now contains the existing production Vite/Supabase application an
 - `frontend/`: Next.js 16.3 App Router, React 19.2, strict TypeScript, SSR/ISR and technical SEO.
 - `backend-java/`: Spring Boot 4.1 modular API on Java 25 with PostgreSQL/Flyway, JWT security and Actuator.
 - `database/`: production-safe migration runbook, read-only live inventory and credential-safe source-capture tooling.
-- `.do/app.yaml`: credential-free DigitalOcean App Platform topology for the
-  private repository and a separately provisioned managed PostgreSQL cluster.
+- `.do/app.yaml`: credential-free DigitalOcean App Platform topology using the
+  public repository URL and a separately provisioned managed PostgreSQL cluster.
 - `docs/`: exhaustive audit, target architecture and honest migration/blocker status.
 - `compose.yml`: local PostgreSQL, API and web runtime.
 
@@ -19,7 +19,9 @@ and cut over.
 
 An authenticated read-only audit of the live Supabase project was completed on
 2026-08-21. It found substantial drift from the checked-in schema export; see
-`docs/LIVE_SUPABASE_AUDIT.md`. No production setting or data was changed.
+`docs/LIVE_SUPABASE_AUDIT.md`. A temporary, expiring read-only role was later
+verified and produced a fresh schema-only capture. Full data export remains
+blocked by RLS, and no application data was changed.
 
 # Legacy Lovable application
 

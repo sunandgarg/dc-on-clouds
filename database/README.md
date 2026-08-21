@@ -4,10 +4,13 @@ The checked-in Flyway migrations create a safe minimal local schema and a migrat
 
 ## Safe source capture
 
-`live-inventory.sql` is read-only and deliberately avoids outputting user rows,
-object names, secrets, or cron command bodies. `scripts/capture-source.sh`
+`live-inventory.sql` is read-only and deliberately avoids outputting table rows,
+secrets, or cron command bodies. `scripts/capture-source.sh`
 creates a public-schema custom dump, a schema-only dump, an inventory report,
 and SHA-256 manifests. It does **not** export Supabase Auth or Storage payloads.
+The source role must have complete visibility through every public-table RLS
+policy (or an owner-approved equivalent export path). Plain `GRANT SELECT` does
+not bypass RLS; the script fails instead of silently creating a partial dump.
 
 Configure a libpq service entry backed by a temporary password file or your
 approved secret manager; this keeps credentials out of shell history and
@@ -21,6 +24,12 @@ database/scripts/capture-source.sh /absolute/encrypted/path/source-capture
 Treat the resulting dump as sensitive production data. Encrypt it at rest,
 limit access, record custody, and delete it according to the approved retention
 policy after cutover.
+
+On 2026-08-21, `codex_readonly` was verified with forced read-only sessions,
+no elevated role attributes, and a 24-hour expiry. The live schema-only export
+succeeded. Full data export stopped at `public.about_founders` because RLS
+applies to that role, so the output is not a restorable production-data backup.
+The private capture artifacts were kept outside the repository.
 
 Production sequence:
 

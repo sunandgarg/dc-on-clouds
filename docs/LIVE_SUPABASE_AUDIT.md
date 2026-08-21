@@ -84,6 +84,25 @@ Seven daily physical database backups were visible, from 14 through 20 August
 2026. The newest was 20 August 2026 at 19:44:11 UTC. A restore was not attempted.
 These backups do not contain Storage object payloads.
 
+## Temporary database capture
+
+On 2026-08-21, the owner-provided `codex_readonly` role was rotated to a
+generated password, restricted to login-only non-elevated attributes, forced
+read-only, and set to expire after 24 hours. A libpq session verified both the
+role identity and read-only default. The password was not committed.
+
+The role produced a fresh 406 KiB public-schema export plus a catalog inventory
+with mode-`0600` artifacts and SHA-256 checksums outside the repository. The
+inventory reconfirmed 145 tables, 371 indexes, 276 policies, 39 routines, 234
+non-internal trigger objects, and approximately 41,220 rows. The earlier 378
+trigger figure counts trigger-event rows exposed by `information_schema`.
+
+A custom-format data dump was attempted and stopped at
+`public.about_founders`: PostgreSQL refused the COPY because RLS affects this
+role. No partial dump was retained. A complete data migration therefore still
+requires an owner-approved export path with visibility through all policies;
+plain `GRANT SELECT` is not sufficient.
+
 ## Advisor findings
 
 Security Advisor: 1 error, 79 warnings, and 4 informational suggestions.

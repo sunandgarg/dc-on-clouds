@@ -24,8 +24,8 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
 | Remaining public routes | Compatibility | Explicit legacy-origin bridge; not counted as migrated |
 | Admin and user routes | Compatibility | Legacy-origin bridge; server-side module authorization not yet ported |
 | Spring Boot API | Tested | Content, About, school-study, college-study and redirect boundaries plus auth/function gateways, validation, safe allowlists and correlation IDs; Maven verify passes with 6 tests |
-| PostgreSQL/Flyway | Migrated for clean local baseline; production blocked | Additive minimal schema only; live production export unavailable |
-| Supabase database exit | Live audited; cutover blocked | PostgreSQL 17.6; 145 tables, 371 indexes, 276 policies, 39 routines, 378 triggers and ~41,220 rows observed; fresh credentialed dump, staging target and cutover window still required |
+| PostgreSQL/Flyway | Migrated for clean local baseline; production blocked | Fresh live public-schema capture verified; full data dump is blocked by RLS and no target exists |
+| Supabase database exit | Schema captured; data/cutover blocked | Expiring read-only role verified; PostgreSQL 17.6, 145 tables, 371 indexes, 276 policies, 39 routines, 234 non-internal trigger objects and ~41,220 rows observed. Full dump stopped safely at the first RLS-protected table |
 | Authentication | Live audited; Compatibility | One user; email/password and confirmation enabled; built-in Google/phone disabled; password gateway implemented and existing Supabase user preserved |
 | Google OAuth/phone OTP/recovery/refresh | Blocked | Google is disabled live; custom OTP functions are deployed; provider credentials, production URLs and role-based test users are required |
 | RLS replacement | In progress, live risk verified | JWT boundary implemented; 276 live policies require parity. Advisor reports 1 error and 79 warnings |
@@ -34,8 +34,8 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
 | Realtime | Live audited; replacement not started | Enabled with public channels, 2+2 DB pools, 200 clients and two one-table publications; admin logs/profile subscriptions remain Supabase-specific |
 | SEO/GEO/AEO | Migrated for core routes, production verification pending | Metadata, canonical, JSON-LD, semantic answers, robots and dynamic sitemap |
 | Performance | Architecture tested; database risks verified; CWV blocked | Server rendering, bounded payloads, ISR and standalone build pass; live advisor has 0 errors, 633 warnings and 115 suggestions; no deployed target CWV endpoint |
-| Docker/deployment | Container builds verified; provisioning blocked | Both production Docker images build successfully in GitHub CI. Docker/Compose/health configuration and a DigitalOcean App Platform spec/runbook are added. The authenticated `DekhoCampus` project is empty; paid resource creation and GitHub App authorization await explicit confirmation |
-| CI/CD | Verified | Migration CI run `32478294808` passed all five jobs on `main`: source/deploy artifact validation, frontend, backend, both container builds and legacy regression. Legacy lint remains an explicitly non-blocking recorded baseline |
+| Docker/deployment | Container builds verified; provisioning blocked | Both production Docker images build successfully in GitHub CI. The public repository is now configured as an anonymous Git source, so GitHub App access is optional. The authenticated `DekhoCampus` project remains empty because paid resource creation is not approved |
+| CI/CD | Verified | Migration CI run `32478500434` passed all five jobs on `main`: source/deploy artifact validation, frontend, backend, both container builds and legacy regression. Legacy lint remains an explicitly non-blocking recorded baseline |
 | Legacy regression | Tests/build/typecheck verified; lint backlog open | 114 tests pass; Vite build, sitemap generation and metadata post-build pass; existing legacy lint reports 2,022 errors and 106 warnings |
 
 ## Live Supabase verification (2026-08-21)
@@ -45,22 +45,28 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
   extensions, publications, and advisor totals were inspected through the
   authenticated dashboard.
 - Read-only SQL confirmed PostgreSQL 17.6, 145 public tables, 371 indexes, 276
-  policies, 39 routines, 378 triggers, one Auth user, five buckets, and an
-  estimated 41,220 public rows.
+  policies, 39 routines, 378 trigger-event rows (234 non-internal trigger
+  objects), one Auth user, five buckets, and an estimated 41,220 public rows.
 - Seven daily physical database backups were visible. They do not back up
   Storage objects.
-- No production mutation was made. The Supabase dashboard session does not
-  provide the database password, a safe dump channel, Storage object payloads,
-  destination PostgreSQL, or provider secrets.
+- A temporary `codex_readonly` role was rotated to a generated password,
+  restricted to non-elevated attributes, forced read-only, and given a 24-hour
+  expiry. A direct connection verified `current_user=codex_readonly` and
+  `default_transaction_read_only=on`.
+- A 406 KiB schema-only export and catalog inventory were captured outside the
+  repository with mode `0600` and SHA-256 checksums. A full logical dump was
+  rejected at `public.about_founders` because RLS applies to the role. No table
+  data was copied or changed.
 
 ## Live DigitalOcean verification (2026-08-21)
 
 - The authenticated `DekhoCampus` project is accessible and contains no Apps,
   databases, Spaces buckets, or other resources. Estimated August usage was
   $0.00 at inspection time.
-- The private GitHub repository is accessible, but DigitalOcean App Platform is
-  not connected to the GitHub account. Installing the GitHub App changes
-  repository permissions and still requires explicit confirmation.
+- The GitHub repository was verified public. `.do/app.yaml` now uses its public
+  HTTPS clone URL, so a manual App Platform deployment needs no GitHub App
+  permission. Repository-scoped GitHub authorization is optional only for a
+  private source or deploy-on-push.
 - Current plan options were inspected. The recommended Bangalore stack is a
   $12/month Next.js service, $25/month Spring service, $30.45/month managed
   PostgreSQL cluster, and $5/month Spaces base plan: approximately $72.45/month
@@ -74,14 +80,14 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
 ### 1. Live database and Flyway cutover
 
 - What is left: full schema/data migration, counts/checksums, query parity, sequence validation and cutover.
-- Why blocked: authenticated dashboard inspection is complete, but the pasted
-  Supabase REST secret is not a PostgreSQL password and cannot produce a
-  complete schema/data dump. No database password/libpq service or approved
-  export path exists, and the paid DigitalOcean destination awaits confirmation.
-- Required: rotate the disclosed Supabase secret; provide a temporary read-only
-  PostgreSQL role/service or approved database password workflow; confirm the
-  $72.45/month DigitalOcean stack; then create a fresh encrypted capture using
-  `database/scripts/capture-source.sh` and schedule a staging window.
+- Why blocked: the temporary database role and schema capture are verified, but
+  plain SELECT grants do not bypass 276 RLS policies. `pg_dump` correctly
+  refused to export a policy-filtered dataset. The paid DigitalOcean destination
+  is intentionally not created.
+- Required: rotate the separately disclosed Supabase server secret; obtain an
+  owner-approved source export path with complete row visibility (not merely
+  SELECT), approve and provision a disposable DigitalOcean PostgreSQL target,
+  then restore/reconcile in staging before any cutover.
 - Affected: every data-backed feature, `backend-java`, `database`, all content/admin/user routes.
 - Safe without it: the legacy app remains safe; the new stack cannot serve production data independently.
 - Next action: execute `database/README.md` against staging.
@@ -125,14 +131,12 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
 ### 6. Production performance and deployment verification
 
 - What is left: Docker builds, deployed integration/E2E tests, Lighthouse/Core Web Vitals baselines, load tests, WAF/rate limits and rollback drill.
-- Why blocked: Production container builds are verified in GitHub CI.
-  DigitalOcean access is verified, but the project is empty; creating the
-  recommended paid services and granting
-  the DigitalOcean GitHub App access to the private repository require explicit
-  confirmation at the point of action.
-- Required: approve the approximately $72.45/month base stack and GitHub App
-  access limited to `sunandgarg/dc-on-clouds`; then deploy the CI-verified images
-  through App Platform with a production-like dataset and an approved DNS plan.
+- Why blocked: Production container builds are verified in GitHub CI and the
+  public Git source is prepared. DigitalOcean access is verified, but the
+  project is empty and the user explicitly deferred paid resource creation.
+- Required: approve the approximately $72.45/month base stack; then deploy the
+  CI-verified images through App Platform with a production-like dataset and an
+  approved DNS plan. GitHub App access is optional for deploy-on-push only.
 - Affected: deployment readiness and every “production verification pending” item.
 - Safe without it: code can be reviewed/built, but must not replace production yet.
 - Next action: run CI, deploy staging, validate CWV/security/E2E, then perform a canary cutover.
@@ -152,8 +156,9 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
    old key, and review audit logs.
 2. Keep the verified target-stack gates green and freeze the legacy lint
    baseline so new findings cannot be added.
-3. Confirm the DigitalOcean purchase/GitHub App scope, provision the Bangalore
-   staging stack, and create a temporary read-only Supabase database service.
+3. Obtain an owner-approved RLS-complete Supabase export path, then confirm the
+   DigitalOcean purchase and provision the Bangalore staging stack. Optionally
+   authorize the repository-scoped GitHub App for deploy-on-push.
 4. Import and verify database data; run Spring in shadow mode.
 5. Configure Auth and verify password, refresh, recovery, OAuth and phone OTP
    with role fixtures.

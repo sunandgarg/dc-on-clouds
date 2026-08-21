@@ -7,10 +7,9 @@ alerts:
 
 services:
   - name: backend
-    github:
-      repo: sunandgarg/dc-on-clouds
+    git:
+      repo_clone_url: https://github.com/sunandgarg/dc-on-clouds.git
       branch: main
-      deploy_on_push: true
     source_dir: backend-java
     dockerfile_path: backend-java/Dockerfile
     http_port: 8080
@@ -63,10 +62,9 @@ services:
       grace_period_seconds: 30
 
   - name: frontend
-    github:
-      repo: sunandgarg/dc-on-clouds
+    git:
+      repo_clone_url: https://github.com/sunandgarg/dc-on-clouds.git
       branch: main
-      deploy_on_push: true
     source_dir: frontend
     dockerfile_path: frontend/Dockerfile
     http_port: 3000
