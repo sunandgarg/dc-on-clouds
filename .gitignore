@@ -11,10 +11,17 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+!**/.env.example
 supabase/.temp/
 reports/legacy-csv-mapped/
 reports/legacy-csv-*.json
 reports/legacy-asset-*.json
+database/artifacts/
+database/**/*.dump
+database/**/*live-inventory.txt
 
 # Editor directories and files
 .vscode/*

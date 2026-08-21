@@ -1,0 +1,1 @@
+import { ListingPage } from "@/components/ListingPage"; export default function Page({ searchParams }: { searchParams: Promise<{page?:string;q?:string}> }) { return <ListingPage type="jobs" title="Education Vacancies" description="Browse current education and campus-related opportunities." searchParams={searchParams}/>; }

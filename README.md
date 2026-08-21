@@ -1,4 +1,27 @@
-# Welcome to your Lovable project
+# DekhoCampus platform migration
+
+The repository now contains the existing production Vite/Supabase application and a target-stack migration:
+
+- `frontend/`: Next.js 16.3 App Router, React 19.2, strict TypeScript, SSR/ISR and technical SEO.
+- `backend-java/`: Spring Boot 4.1 modular API on Java 25 with PostgreSQL/Flyway, JWT security and Actuator.
+- `database/`: production-safe migration runbook, read-only live inventory and credential-safe source-capture tooling.
+- `.do/app.yaml`: credential-free DigitalOcean App Platform topology for the
+  private repository and a separately provisioned managed PostgreSQL cluster.
+- `docs/`: exhaustive audit, target architecture and honest migration/blocker status.
+- `compose.yml`: local PostgreSQL, API and web runtime.
+
+Start the target stack on a Docker-capable machine with `docker compose up --build`.
+The complete migration state and required production inputs are documented in
+`docs/MIGRATION_STATUS.md`; the prepared DigitalOcean plan and rollback runbook
+are in `docs/DIGITALOCEAN_DEPLOYMENT.md`. The legacy application remains at the
+repository root to prevent functionality loss while route groups are verified
+and cut over.
+
+An authenticated read-only audit of the live Supabase project was completed on
+2026-08-21. It found substantial drift from the checked-in schema export; see
+`docs/LIVE_SUPABASE_AUDIT.md`. No production setting or data was changed.
+
+# Legacy Lovable application
 
 ## Production hosting
 

@@ -1,0 +1,2 @@
+import { NextRequest, NextResponse } from "next/server";
+export async function POST(request: NextRequest) { const api = (process.env.INTERNAL_API_URL || "http://localhost:8080/api/v1").replace(/\/$/, ""); await fetch(`${api}/auth/logout`, { method: "POST", headers: { cookie: request.headers.get("cookie") || "" }, cache: "no-store" }); const next = NextResponse.redirect(new URL("/", request.url), 303); next.cookies.delete("dc_access"); next.cookies.delete("dc_refresh"); return next; }

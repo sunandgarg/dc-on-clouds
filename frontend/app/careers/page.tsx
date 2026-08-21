@@ -1,0 +1,1 @@
+import { ListingPage } from "@/components/ListingPage"; export default function Page({ searchParams }: { searchParams: Promise<{page?:string;q?:string}> }) { return <ListingPage type="careers" title="Career Paths" description="Understand roles, skills, salaries and the courses that can take you there." searchParams={searchParams}/>; }

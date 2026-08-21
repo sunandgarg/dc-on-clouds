@@ -1,0 +1,28 @@
+spring:
+  application.name: dekhocampus-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/dekhocampus}
+    username: ${DATABASE_USER:dekhocampus}
+    password: ${DATABASE_PASSWORD:dekhocampus}
+    hikari: { maximum-pool-size: ${DB_POOL_MAX:20}, minimum-idle: ${DB_POOL_MIN:2}, connection-timeout: 5000, max-lifetime: 1800000 }
+  flyway: { enabled: true, baseline-on-migrate: true, baseline-version: 0, validate-migration-naming: true }
+  threads.virtual.enabled: true
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+  shutdown: graceful
+  compression.enabled: true
+  servlet.session.cookie: { http-only: true, secure: ${COOKIE_SECURE:true}, same-site: lax }
+management:
+  endpoints.web.exposure.include: health,info,metrics,prometheus
+  endpoint.health.probes.enabled: true
+  health: { livenessstate.enabled: true, readinessstate.enabled: true }
+security:
+  require-auth: ${SECURITY_REQUIRE_AUTH:true}
+  jwks-uri: ${SUPABASE_JWKS_URI:}
+app:
+  cors-origin: ${CORS_ORIGIN:http://localhost:3000}
+  supabase-url: ${SUPABASE_URL:}
+  supabase-publishable-key: ${SUPABASE_PUBLISHABLE_KEY:}
+  cookie-secure: ${COOKIE_SECURE:true}
+logging.pattern.console: '{"timestamp":"%d{yyyy-MM-dd''T''HH:mm:ss.SSSXXX}","level":"%p","logger":"%logger{36}","requestId":"%X{requestId:-}","message":"%replace(%m){''[\r\n]'','' ''}"}%n'

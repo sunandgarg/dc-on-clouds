@@ -1,0 +1,1 @@
+"use client"; export default function ErrorPage({ reset }: { reset: () => void }) { return <main className="container page"><h1>We could not load this page</h1><p>The content service is temporarily unavailable. No private data was exposed.</p><button onClick={() => reset()}>Try again</button></main>; }

@@ -1,0 +1,2 @@
+import { describe, expect, it } from "vitest"; import { entityJsonLd, entityMetadata } from "./seo";
+describe("SEO contracts",()=>{it("creates canonical entity metadata",()=>{const result=entityMetadata({name:"Example College",meta_description:"A useful description"},"/colleges/example","Fallback");expect(result.title).toBe("Example College");expect(result.alternates?.canonical).toContain("/colleges/example");});it("uses valid education schema",()=>{expect(entityJsonLd("colleges",{name:"Example"},"/colleges/example")["@type"]).toBe("CollegeOrUniversity");});});

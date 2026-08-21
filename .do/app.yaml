@@ -1,0 +1,111 @@
+name: dc-on-clouds
+region: blr
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+services:
+  - name: backend
+    github:
+      repo: sunandgarg/dc-on-clouds
+      branch: main
+      deploy_on_push: true
+    source_dir: backend-java
+    dockerfile_path: backend-java/Dockerfile
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-2gb
+    health_check:
+      http_path: /actuator/health/readiness
+      port: 8080
+      initial_delay_seconds: 45
+      period_seconds: 20
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: DATABASE_URL
+        value: ${dc-postgres.JDBC_DATABASE_URL}
+        scope: RUN_TIME
+      - key: DATABASE_USER
+        value: ${dc-postgres.USERNAME}
+        scope: RUN_TIME
+      - key: DATABASE_PASSWORD
+        value: ${dc-postgres.PASSWORD}
+        scope: RUN_TIME
+        type: SECRET
+      - key: DB_POOL_MAX
+        value: "15"
+        scope: RUN_TIME
+      - key: DB_POOL_MIN
+        value: "2"
+        scope: RUN_TIME
+      - key: CORS_ORIGIN
+        value: ${APP_URL}
+        scope: RUN_TIME
+      - key: COOKIE_SECURE
+        value: "true"
+        scope: RUN_TIME
+      - key: SECURITY_REQUIRE_AUTH
+        value: "true"
+        scope: RUN_TIME
+      - key: SUPABASE_URL
+        value: https://kozdctbbvrnyddlftmvf.supabase.co
+        scope: RUN_TIME
+      - key: SUPABASE_PUBLISHABLE_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SUPABASE_JWKS_URI
+        value: https://kozdctbbvrnyddlftmvf.supabase.co/auth/v1/.well-known/jwks.json
+        scope: RUN_TIME
+    termination:
+      grace_period_seconds: 30
+
+  - name: frontend
+    github:
+      repo: sunandgarg/dc-on-clouds
+      branch: main
+      deploy_on_push: true
+    source_dir: frontend
+    dockerfile_path: frontend/Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    health_check:
+      http_path: /robots.txt
+      port: 3000
+      initial_delay_seconds: 20
+      period_seconds: 20
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://dekhocampus.com
+        scope: RUN_AND_BUILD_TIME
+      - key: INTERNAL_API_URL
+        value: ${backend.PRIVATE_URL}/api/v1
+        scope: RUN_TIME
+      - key: LEGACY_FRONTEND_URL
+        scope: RUN_TIME
+        type: SECRET
+    termination:
+      grace_period_seconds: 30
+
+databases:
+  - name: dc-postgres
+    engine: PG
+    version: "18"
+    production: true
+    cluster_name: dc-on-clouds-db
+    db_name: dekhocampus
+    db_user: dekhocampus_app
+
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /
+      component:
+        name: frontend

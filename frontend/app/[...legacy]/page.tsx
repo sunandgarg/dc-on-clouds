@@ -1,0 +1,3 @@
+import type { Metadata } from "next"; import Link from "next/link"; import { redirect } from "next/navigation";
+export const metadata: Metadata = { title: "Legacy route", robots: { index: false, follow: false } };
+export default async function LegacyRoute({ params }: { params: Promise<{ legacy: string[] }> }) { const { legacy } = await params; const path = `/${legacy.join("/")}`; const origin = process.env.LEGACY_FRONTEND_URL?.replace(/\/$/, ""); if (origin) redirect(`${origin}${path}`); return <main className="container page"><h1>This route is awaiting verified migration</h1><p>The route <code>{path}</code> is intentionally unavailable in the new runtime because no verified legacy origin is configured.</p><Link className="button" href="/">Return home</Link></main>; }

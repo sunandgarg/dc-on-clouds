@@ -1,0 +1,75 @@
+name: Migration CI
+on:
+  pull_request:
+  push:
+    branches: [main, migration/**]
+permissions: { contents: read }
+jobs:
+  migration-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source-capture tooling
+        run: bash -n database/scripts/capture-source.sh
+      - name: Parse DigitalOcean app spec
+        run: ruby -e 'require "yaml"; YAML.load_file(".do/app.yaml")'
+  frontend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.19.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: frontend/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          INTERNAL_API_URL: "http://127.0.0.1:8080/api/v1"
+          NEXT_PUBLIC_SITE_URL: "https://dekhocampus.com"
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend-java } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25, cache: maven }
+      - run: mvn -B verify
+  container-builds:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build Next.js production image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: false
+          tags: dc-on-clouds-frontend:ci
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+      - name: Build Spring production image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend-java
+          file: backend-java/Dockerfile
+          push: false
+          tags: dc-on-clouds-backend:ci
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+  legacy-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Legacy lint baseline (non-blocking until backlog is cleared)
+        continue-on-error: true
+        run: npm run lint
+      - run: npm test
+      - run: npm run build
