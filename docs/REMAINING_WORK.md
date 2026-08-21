@@ -118,7 +118,8 @@ data; the current native path safely resolves and increments aggregate clicks.
   dependencies, publish to a registry, deploy to the target platform, configure
   secrets/observability/backups, and execute smoke, load, rollback, and recovery
   tests.
-- **Why it is blocked:** Docker is not installed locally. The authenticated
+- **Why it is blocked:** Both production Docker images now build successfully in
+  GitHub CI, although Docker is not installed locally. The authenticated
   DigitalOcean `DekhoCampus` project was verified and is empty. Provisioning the
   prepared $72.45/month base stack and installing DigitalOcean's GitHub App for
   the private repository are chargeable/permission-changing actions requiring
@@ -126,7 +127,8 @@ data; the current native path safely resolves and increments aggregate clicks.
 - **Required to complete:** Confirm the exact DigitalOcean purchase and GitHub
   App scope, then create the Bangalore resources from `.do/app.yaml`; provide
   environment-specific encrypted secrets, domains/DNS, monitoring/alerting
-  destinations, a Docker-capable build runner, and an approved release window.
+  destinations and an approved release window. GitHub CI is the verified
+  Docker-capable build runner.
 - **Affected:** `compose.yml`, both Dockerfiles, `.github/workflows/`, runtime
   environment configuration and all production operations.
 - **Safe without it:** Source builds and tests can run; production deployment

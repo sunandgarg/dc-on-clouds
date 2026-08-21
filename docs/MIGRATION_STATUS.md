@@ -34,8 +34,8 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
 | Realtime | Live audited; replacement not started | Enabled with public channels, 2+2 DB pools, 200 clients and two one-table publications; admin logs/profile subscriptions remain Supabase-specific |
 | SEO/GEO/AEO | Migrated for core routes, production verification pending | Metadata, canonical, JSON-LD, semantic answers, robots and dynamic sitemap |
 | Performance | Architecture tested; database risks verified; CWV blocked | Server rendering, bounded payloads, ISR and standalone build pass; live advisor has 0 errors, 633 warnings and 115 suggestions; no deployed target CWV endpoint |
-| Docker/deployment | Prepared; provisioning blocked | Docker/Compose/health configuration and a DigitalOcean App Platform spec/runbook are added. The authenticated `DekhoCampus` project is empty; paid resource creation and GitHub App authorization await explicit confirmation, and Docker is unavailable locally |
-| CI/CD | Migrated, remote verification pending | New target-stack plus legacy regression workflow |
+| Docker/deployment | Container builds verified; provisioning blocked | Both production Docker images build successfully in GitHub CI. Docker/Compose/health configuration and a DigitalOcean App Platform spec/runbook are added. The authenticated `DekhoCampus` project is empty; paid resource creation and GitHub App authorization await explicit confirmation |
+| CI/CD | Verified | Migration CI run `32478294808` passed all five jobs on `main`: source/deploy artifact validation, frontend, backend, both container builds and legacy regression. Legacy lint remains an explicitly non-blocking recorded baseline |
 | Legacy regression | Tests/build/typecheck verified; lint backlog open | 114 tests pass; Vite build, sitemap generation and metadata post-build pass; existing legacy lint reports 2,022 errors and 106 warnings |
 
 ## Live Supabase verification (2026-08-21)
@@ -125,13 +125,14 @@ Status meanings: **Migrated** = implemented in target stack; **Tested** = automa
 ### 6. Production performance and deployment verification
 
 - What is left: Docker builds, deployed integration/E2E tests, Lighthouse/Core Web Vitals baselines, load tests, WAF/rate limits and rollback drill.
-- Why blocked: Docker is not installed locally. DigitalOcean access is verified,
-  but the project is empty; creating the recommended paid services and granting
+- Why blocked: Production container builds are verified in GitHub CI.
+  DigitalOcean access is verified, but the project is empty; creating the
+  recommended paid services and granting
   the DigitalOcean GitHub App access to the private repository require explicit
   confirmation at the point of action.
 - Required: approve the approximately $72.45/month base stack and GitHub App
-  access limited to `sunandgarg/dc-on-clouds`; then use a Docker-capable CI/App
-  Platform build, a production-like dataset, and an approved DNS plan.
+  access limited to `sunandgarg/dc-on-clouds`; then deploy the CI-verified images
+  through App Platform with a production-like dataset and an approved DNS plan.
 - Affected: deployment readiness and every “production verification pending” item.
 - Safe without it: code can be reviewed/built, but must not replace production yet.
 - Next action: run CI, deploy staging, validate CWV/security/E2E, then perform a canary cutover.
